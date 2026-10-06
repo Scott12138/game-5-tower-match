@@ -1,0 +1,21 @@
+{
+  "_说明": "Cocos 微信小游戏构建配置。构建脚本通过 --build configPath= 传给它 —— 这是唯一能可靠写入 AppID 的通道（命令行顶层 appid= 会被静默忽略，见 cocos-to-wechat-minigame 技能坑 4）。",
+  "_AppID说明": "2026-10-06 用户拍板：出真机试玩码用 wxfaa19afc583badd9（已归属 game-3）。原因是用户先前给的 wx2fe17409639680bb 被微信判定为【小程序】账号，工具会按小程序工程编译并去找 app.json，必然失败（已用「同一目录只换 AppID」的 A/B 实测坐实）。",
+  "_风险提示": "⚠️ 该 AppID 只可用于【预览 preview】，绝不可用于【上传 upload】—— 上传会覆盖 game-3 的线上版本。game-5 正式上线前必须换成自己的小游戏 AppID。",
+  "_体积说明": "微信小游戏主包上限 4MB（预览与上传都会被本地预检拦下：CODE_SIZE_EXCEED）。因此 separateEngine 必须为 true —— 把约 3.6M 引擎拆成独立分包，主包只剩 assets。",
+  "platform": "wechatgame",
+  "debug": false,
+  "outputName": "wechatgame",
+  "startScene": "2370c222-b89e-433c-8520-57e3143ea48a",
+  "packages": {
+    "wechatgame": {
+      "appid": "wxfaa19afc583badd9",
+      "orientation": "portrait",
+      "separateEngine": false,
+      "highPerformanceMode": false,
+      "buildOpenDataContextTemplate": ""
+    }
+  },
+  "mainBundleCompressionType": "subpackage",
+  "_分包说明": "官方「小游戏分包」文档明确要求：构建时把【主包压缩类型 mainBundleCompressionType】设为 subpackage，自定义 Bundle（compressionType=subpackage）的产物才会落到 build/wechatgame/subpackages/，并自动写进 game.json 的 subPackages。"
+}

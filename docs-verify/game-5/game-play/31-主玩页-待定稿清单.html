@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>主玩页（④）· 待定稿清单 · game-5《麻麻大消除》</title>
+<style>
+  :root{
+    --bg:#0C1612; --panel:#13221C; --panel2:#172922; --line:#2C443A;
+    --cream:#F0F5EF; --mute:#92A89C; --gold:#F6C445; --goldhi:#FFE08A;
+    --teal:#8FE3C5; --orange:#FF9E60; --red:#D8432F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--cream);
+    font-family:"Hiragino Sans GB","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.62}
+  .wrap{max-width:1120px;margin:0 auto;padding:44px 34px 90px}
+
+  /* ── 页头 ── */
+  .kicker{font-size:13px;letter-spacing:.34em;color:var(--mute)}
+  h1{font-size:35px;margin:10px 0 6px;color:var(--goldhi);letter-spacing:.02em;font-weight:800}
+  h1 small{display:block;font-size:15px;color:var(--mute);font-weight:400;letter-spacing:.06em;margin-top:10px}
+  .ruleset{height:2px;background:linear-gradient(90deg,var(--gold),transparent);margin:22px 0 26px}
+
+  /* ── 结论条 ── */
+  .verdict{border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:10px;
+    background:var(--panel);padding:18px 22px;font-size:15px}
+  .verdict b{color:var(--goldhi)}
+  .verdict .em{color:var(--teal)}
+
+  /* ── 数字卡 ── */
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:26px 0 8px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .card .n{font-size:31px;font-weight:800;line-height:1.1}
+  .card .l{font-size:12.5px;color:var(--mute);margin-top:5px;letter-spacing:.06em}
+  .n.ok{color:var(--teal)} .n.todo{color:var(--orange)} .n.hold{color:var(--mute)} .n.all{color:var(--goldhi)}
+
+  /* ── 章节 ── */
+  h2{font-size:21px;color:var(--gold);margin:44px 0 8px;font-weight:700;letter-spacing:.03em}
+  h2 span{font-size:14px;color:var(--mute);font-weight:400;margin-left:10px;letter-spacing:.04em}
+  .note{font-size:13.5px;color:var(--mute);margin:0 0 14px}
+
+  /* ── 分组标题 ── */
+  .grp{margin:26px 0 0;display:flex;align-items:baseline;gap:11px}
+  .grp .tag{font-size:14px;font-weight:800;color:var(--bg);background:var(--gold);
+    border-radius:5px;padding:2px 9px;letter-spacing:.06em}
+  .grp .tt{font-size:16.5px;font-weight:700;color:var(--cream)}
+  .grp .sub{font-size:13px;color:var(--mute);margin-left:auto}
+
+  /* ── 表格 ── */
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13.8px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th{background:var(--panel2);color:var(--mute);font-weight:600;font-size:12.5px;
+    text-align:left;padding:10px 13px;letter-spacing:.07em;white-space:nowrap}
+  td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top}
+  tr:first-child td{border-top:0}
+  td.id{color:var(--gold);font-weight:800;white-space:nowrap;width:52px}
+  td.it{width:224px}
+  td.it b{color:var(--cream);font-weight:700}
+  td.st{width:142px;white-space:nowrap}
+  td.dep{width:96px;color:var(--mute);white-space:nowrap}
+  td.ac{color:var(--cream)}
+  td.ac em{font-style:normal;color:var(--orange)}
+
+  .pill{display:inline-block;font-size:12px;font-weight:700;border-radius:5px;
+    padding:2px 8px;white-space:nowrap;border:1px solid transparent}
+  .p-ok{color:var(--teal);border-color:rgba(143,227,197,.42);background:rgba(143,227,197,.10)}
+  .p-no{color:var(--orange);border-color:rgba(255,158,96,.42);background:rgba(255,158,96,.10)}
+  .p-hd{color:var(--mute);border-color:var(--line);background:rgba(146,168,156,.08)}
+  .p-bad{color:var(--red);border-color:rgba(216,67,47,.45);background:rgba(216,67,47,.11)}
+
+  /* ── 依赖链 ── */
+  .chain{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:14px 0 4px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;font-size:13.5px}
+  .node{border:1px solid var(--line);border-radius:7px;padding:5px 11px;background:var(--panel2);white-space:nowrap}
+  .node.hot{border-color:rgba(255,158,96,.5);color:var(--orange)}
+  .node.done{border-color:rgba(143,227,197,.45);color:var(--teal)}
+  .arw{color:var(--mute)}
+
+  /* ── 待拍板 ── */
+  .qs{counter-reset:q;margin-top:12px}
+  .q{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--orange);
+    border-radius:10px;padding:15px 18px;margin-bottom:12px}
+  .q .qh{font-size:15px;font-weight:700;color:var(--goldhi);margin-bottom:7px}
+  .q .qh::before{counter-increment:q;content:"Q" counter(q) " · ";color:var(--orange)}
+  .q .qb{font-size:13.6px;color:var(--cream)}
+  .q .opt{margin-top:9px;font-size:13.4px;color:var(--mute)}
+  .q .opt b{color:var(--teal);font-weight:700}
+  .q .opt i{font-style:normal;color:var(--mute)}
+
+  footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--mute)}
+  @media (max-width:880px){
+    .cards{grid-template-columns:repeat(2,1fr)} .wrap{padding:30px 18px 70px}
+    h1{font-size:27px} td.it{width:auto} .grp .sub{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">GAME-5 · 麻麻大消除 · 页面 ④</div>
+  <h1>主玩页 · 待定稿清单
+    <small>第 32 轮更新 · 2026-10-05 · 供拍板用</small>
+  </h1>
+  <div class="ruleset"></div>
+
+  <div class="verdict">
+    <b>★ 第 33 轮变更（最新，以此为准）：</b>
+    你对第 31 轮暂停的 <b>L1~L4 四项拍板</b>，本轮已逐条落地：<br>
+    ① <b>L1 牌面资产</b>：你定「不需要重出」→ 从 <code>_src</code> 源图<b>重新导出</b>（<b>不重画美术</b>），
+       27 张母版 <b>192×256 → 224×298</b>；各关由 CSS 缩，缩比 <b>w/112 = 1.000 ~ 0.786</b>，<b>规格唯一</b>。<br>
+    ② <b>L2 主包体积</b>：转 <b>WebP q=92</b> 另出 <code>*-webp/</code> 目录，<b>资产文件本身一字未改</b>
+       （57 个文件 md5 全等）。主包 <b>6552.2 KB → 1115.6 KB</b>（超限 4096 → <b>达标</b>）。
+       回退：删 <code>*-webp/</code> 即完全复原。<br>
+    ③ <b>L3 万字形状不齐</b>：你决定<b>暂不处理</b>（先试玩再定）—— 本轮<b>未做任何形状修正</b>，
+       万字占宽仍 <b>90.6~100.0%</b> / 占高 <b>91.6~100.0%</b>，仍标 MISMATCH。<br>
+    ④ <b>L4 牌体占位口径</b>：<code>OCC_H 0.804 → 1.0</code>（紧贴画布）—— 但<b>字面不可行</b>：
+       27 张牌体自身长宽比不齐（<b>0.680~0.822</b>），若字面取「占高 100%」，最宽的「九万」牌体宽
+       <b>244.9px &gt; 画布 224</b> ⇒ <b>7 张万字会被裁</b>（最多丢 20.9px 像素）。
+       故取<b>无裁切语义 = 内切 <code>contain</code></b>（<code>k = min(CW/bw, CH/bh)</code>）：
+       条/筒贴高 <b>208×298</b>、万字 7 张贴宽 <b>224×273~296</b>，<b>27/27 零裁切</b>。
+       效果：可见牌体占布局盒面积 <b>60.3% → 92.9%</b>；条/筒 <b>208×298</b> 折回 192 画布
+       = <b>178.3×255.5 ≈ 你引用的「179×256」</b>（逐值吻合）。<br>
+    ⑤ <b><code>TOP_SHARE_TRIES</code> 按你指示暂时挂起</b>，待真机试玩后再定。<br>
+    <span style="color:#8FE3C5">验收：牌面资产 <b>7/7</b> · 牌面接入 <b>17/17</b> · 牌堆几何 <b>69/69</b> ·
+    关卡表 <b>38/38</b> · 归档 <b>12/12</b> · 待定稿 <b>16/16</b>（合计 <b>159/159</b>）</span>
+  </div>
+
+  <div class="verdict">
+    <b>★ 第 32 轮变更（历史）：</b>
+    你对第 31 轮遗留的 <b>4 项新发现（N1~N4）一次性拍板 5 条</b>，本轮已全部落地，生成器升 <b>v7</b>：<br>
+    ① <b>N1 牌宽下限</b>：你定「上限放宽到 10 层，<b>下限保持 88</b>」→ 24 关牌宽顶到 88 是<b>必然结果</b>，接受为设计约束（不再挂起）；<br>
+    ② <b>N2 后段可点率</b>：「<b>后段开局要尽量提升可点率</b>」→ 新增 <b>天际线抬升 <code>top_share</code></b> + <b>层间黄金角错位 <code>R</code></b>
+       ⇒ 后段（L21~L30）开局可点率 <b>7.2%~10.0% → 14.8%~18.1%</b>（L30：11 张 → <b>25 张</b>）；<br>
+    ③ <b>N3 分段</b>：「<b>必须保留分段</b>以控制难度和复杂度，<b>可按层来分段</b>」→ 恢复分段 · <b>按层切</b>：段边界落层边界、
+       段内 <b>3 的倍数且 ≤36</b>、段序<b>自顶向下</b>、<b>全堆同时在桌</b>、层数 = 整关总层数；段内满清可解 <b>30/30</b>，段内可点率 <b>26.7%~70.0%</b>；<br>
+    ④ <b>N4 主玩页档位</b>：「演示档位需<b>跟随真实牌数变化</b>」→ 删掉写死的 <code>PILE</code>/<code>buildPile(36/12/96)</code>，
+       改读 <code>levels.json</code> 的<b>真实关卡</b>（默认 <b>L1 = 12 张 / L10 = 93 张 / L30 = 138 张</b>）；<br>
+    ⑤ <b>尺寸一致性（新增拍板）</b>：「<b>单关内每张麻将牌的尺寸（大小和长宽比）必须保持一致</b>」→ 一关<b>唯一</b> <code>w</code>（<code>h = w×4/3</code>）；
+       <b>横牌 = 纯旋转</b>（元素恒为 <code>w×h</code>，只加 <code>rotate(90deg)</code>）—— 旧版把横牌换宽高 + 图片铺满，<b>牌面被横向拉伸 1.33 倍</b>，已修。<br>
+    <span class="em">验收：<code>verify_levels.mjs</code> <b>38/38</b> · <code>verify_pile_geometry.mjs</code> <b>69/69</b> ·
+    <code>verify_tile_face.mjs</code> <b>17/17</b> · <code>verify_archive_play.mjs</code> <b>12/12</b>；
+    当前口径验收板 <code>63-真实牌堆档位-验收板.png</code>。</span>
+  </div>
+
+  <div class="verdict">
+    <b>第 27 轮变更（以本轮为准）：</b>
+    ① <b>规则弹层「整页合并为一张图」= 规则页定稿</b> —— 标题栏 + 碰/吃 区 + 点数表区 + 页脚一次性烘焙为
+       <code>rule-完整规则页.png</code>（@2x <b>1264×2040</b> = CSS <b>632×1020</b> · 739 KB），页内整卡换 <code>&lt;img&gt;</code>、
+       ✕ 以<b>透明热区</b>（56×56 · 距右 18 · 中心 y=48）承接点击；验收 <b>16/16 + 11/11</b>；<br>
+    ② <b>删除点数对应表下方的说明行</b>（原「和值 2–12：左右对称的赠送相同 · 中间值 7 出现最多」），
+       <code>.figDice</code> 改居中，使删行后表格在 360 高区间内不偏上；<br>
+    ③ 第 26 轮的两张分区图（<code>rule-碰吃示意.png</code> 1136×600 / <code>rule-点数对应表.png</code> 1136×720）
+       <b>已被整页图取代，移入留痕</b>，不再被页面引用；<br>
+    ④ 排期不变：<b>下一轮</b> = 暂停面板 / 失败流程 / 通关金币雨；<b>下下轮</b> = 音效与 BGM。
+  </div>
+
+  <div class="verdict">
+    <b>★ 第 29 轮变更（最新）：</b>
+    ① <b>「红中」根因已修</b> —— 不是我上一轮上报的「风格突兀」，而是
+    <code>buildPile()</code> 里 <code>rng() &lt; 0.08 ? {k:'zhong'} : …</code> <b>主动注入了一张库外的牌</b>；
+    现收敛为<b>唯一真源 <code>DECK</code>（27 种）</b>，页内不留任何字牌通路 → 牌库审计 <b>15/15</b>（12/36/96 三档全覆盖）；
+    ② <b>被抓到一条"把 bug 当期望值"的坏断言</b>：旧验收里写着 <code>ok(a.zhongWithImg === 0, '「中」牌 0 张挂真母版')</code>
+    —— 所以 12/12 全绿却漏报红中（已反转为"库外牌必须为 0"）；
+    ③ 完成<b>「牌堆初始化方案」研究</b>：<span class="em">《羊了个羊》= 人工设计卡位（每日一换）+ 真随机洗牌，
+    每种牌 ×3 存入总数组从结构上保证"总数是 3 的倍数"，覆盖判定就是矩形相交，<b>不保证有解</b></span>；
+    ④ 现状体检（精确解）：<b>三档全部不可满清</b> —— 12 档最多清 50% / 36 档 67% / 96 档 91%；
+    ⑤ 出<b>四方向对比板</b> <code>55-牌堆散落方案-对比板.png</code>（现状 / 手抖 / 层片模型 / 图案卡位），等拍板（见 <b>A7 · A8</b>）。
+  </div>
+
+  <div class="verdict">
+    <b>第 28 轮变更（存档）：</b>
+    ① <b>A 组四步已全部做完</b> —— <b>A2</b> 统一后处理（边缘密度法实测 → 归一化 192×256）·
+    <b>A5</b> 压规格（27 张 <b>1690.3 KB，降 95.9%</b>，源图保留 <code>_src/</code>）·
+    <b>A4</b> 页内接真母版（<b>12/12</b>）· <b>A3</b> 牌堆尺寸重校（<b>29/29</b>）；
+    ② <b>新发现两件必须拍板的事</b> —— 主包体积 <b>5311 KB &gt; 4096 KB（超 1215）</b>；
+    真母版「<b>牌体只占画布 75.0%×80.5%</b>」，与隔壁 game-4 已跑通的 <b>97.6%×98.2%</b> 口径不符 → <b>牌在页面上视觉小 25%</b>；
+    ③ 新增交付 <b><code>game-5-核心玩法与素材尺寸契约.md</code></b>（通读 game-4 真实工程 21 个 TS / 18,031 行后抽出的尺寸契约）。
+  </div>
+
+  <div class="verdict">
+    <b>第 26 轮变更（存档）：</b>
+    ① 字牌 7 张剔除 —— 本游戏不使用、不制作（牌面全量口径从 34 张撤回 <b>27 张</b>，27/27 已全部入库）；
+    ② B 组规则弹层内容图 = 全部结项（字体定 <b>丙</b>、布局定 <b>A（6 行）</b>、两图已导出固化）；
+    ③ 排期已定：下一轮 = 暂停面板 / 失败流程 / 通关金币雨；下下轮 = 音效与 BGM；
+    ④ 筒子九张无需再逐张细扣。
+  </div>
+
+  <div class="verdict">
+    <b>一句话结论：</b>主玩页<b>本体</b>已定稿入库（第 17 轮 · 95/95 断言通过），
+    <span class="em">美术侧（A 组）第 28 轮已四步全做完</span>；
+    第 29 轮又修掉「红中」根因并把<b>牌堆初始化</b>这条线正式摆上台面（<b>A7 已修 · A8 第 30 轮拍板</b>）；
+    <span class="em">第 31 轮把 <b>A9 从「开局不卡」升级为「满清可解」</b>，并重排关卡曲线（138 张 / 10 层 / 均匀铺位）</span>；
+    <span class="em">第 32 轮按你 5 条拍板把 <b>N1~N4 全部处置</b>：后段可点率翻倍（<b>7%~10% → 14.8%~18.1%</b>）、
+    <b>分段恢复（按层切）</b>、<b>单关内尺寸唯一 + 横牌纯旋转</b>、<b>主玩页档位改接真实关卡</b></span>；
+    真正还没做的是<b>两类</b>——
+    ① <b>A 组待拍板</b>（A6 牌体占位口径 / 体积超限 / 万字不齐，<b>本轮 L1~L4 已挂起</b>）；
+    ② <b>页内的"平台能力 + 流程"缺口</b>（广告 / 分享 / 震动 / 音效 / 存档 / 暂停面板 / 失败 / 通关），
+    这些目前全是 <b>Web 模拟或提示文案</b>，页内 <code>0 处 wx.* 调用</code>。
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="n ok">7 区</div><div class="l">内容框架已定稿 · 23 功能要素</div></div>
+    <div class="card"><div class="n all">95/95</div><div class="l">真实浏览器断言全绿</div></div>
+    <div class="card"><div class="n all">27/27</div><div class="l">牌面全部入库 · <b>已归一化 192×256</b></div></div>
+    <div class="card"><div class="n todo">10 项</div><div class="l">待定稿 / 待实现（新增 A7/A8/A9）</div></div>
+  </div>
+
+  <!-- ══════════════ 一 ══════════════ -->
+  <h2>一 · 已经定稿的部分 <span>不需要再确认，列在此处只为界定范围</span></h2>
+  <p class="note">以下内容已随第 17 轮验收入库，改功能一律改工作稿 <code>game-5-主玩页-排版.html</code>
+     再跑归档脚本重出两版产物，<b>不要直接编辑 <code>assets/</code> 下的产物</b>。</p>
+
+  <table>
+    <tr><th>模块</th><th>定稿内容</th><th>状态</th></tr>
+    <tr><td class="id">几何</td><td class="it"><b>三带模型</b></td>
+        <td class="ac">顶带 292 / 麻将桌 750×750（屏 y 292–1042）/ 底带 292；底带占用 <b>220 ≤ 224</b>（余 4）；
+            顶带首行四件套中心同为 <b>y 120</b>；复活徽标 <b>344/88</b> 不压槽位</td>
+        <td class="st"><span class="pill p-ok">✅ 已定稿</span></td></tr>
+    <tr><td class="id">内容</td><td class="it"><b>7 区 23 要素</b></td>
+        <td class="ac">M1 顶条 / M2 状态信息 / M3 牌堆 / M4 槽位 / M5 道具栏 / M6 本局赠礼 / M7 规则弹层</td>
+        <td class="st"><span class="pill p-ok">✅ 已定稿</span></td></tr>
+    <tr><td class="id">玩法</td><td class="it"><b>核心交互可跑</b></td>
+        <td class="ac">点可点牌 → 飞入槽位 → 同面三张成组自动消除；被压牌不可点（真几何 ≥18% 判定）；
+            满槽告警三通道（色 + 抖 + 心跳）；倒计时<b>真实走秒</b>（末 10s 转朱红呼吸）</td>
+        <td class="st"><span class="pill p-ok">✅ 已定稿</span></td></tr>
+    <tr><td class="id">赠礼</td><td class="it"><b>两段连贯</b></td>
+        <td class="ac">全屏过场（掷骰定赠）→ 落位飞入道具栏；映射表第 13 轮定稿 11/11 命中；
+            <b>仅限本局使用</b>护栏（结算 / 提前退出 / 重掷换关三出口同走 <code>endRun()</code>）</td>
+        <td class="st"><span class="pill p-ok">✅ 已定稿</span></td></tr>
+    <tr><td class="id">弹层</td><td class="it"><b>规则页已整页定稿</b></td>
+        <td class="ac">规则弹层：<b>整页一图</b>（<code>rule-完整规则页.png</code> · CSS <b>632×1020</b> @2x 1264×2040）——
+            标题栏 + 碰/吃 区 + 点数表区 + 页脚一次烘焙，✕ 走透明热区；看广告弹层（宽 560 · 5s 进度 · 到账按钮）</td>
+        <td class="st"><span class="pill p-ok">✅ 已定稿</span></td></tr>
+    <tr><td class="id">皮肤</td><td class="it"><b>首版不开放</b></td>
+        <td class="ac">桌图 A/B 两案已完整归档储备；上架时走分包或云端下载</td>
+        <td class="st"><span class="pill p-hd">⏸ 首版不做</span></td></tr>
+  </table>
+
+  <!-- ══════════════ 二 ══════════════ -->
+  <h2>二 · 待定稿清单 <span>第 32 轮：<b>N1~N4 已全部处置</b>（可点率 / 分段 / 尺寸一致 / 主玩页档位）· A9 满清可解（30/30 关）沿用 · B 组规则页已定稿</span></h2>
+
+  <!-- A -->
+  <div class="grp"><span class="tag">A 组</span><span class="tt">牌面美术</span>
+    <span class="sub">✅ <b>第 28 轮四步做完</b>（A2 / A5 / A4 / A3）· 第 29 轮 A7 修复 · <b>✅ 第 30 轮 A8 已拍板（方案甲）</b> · <b>✅ 第 31 轮 A9 已解决（满清可解）</b> · 剩 A6 待拍板（本轮挂起）</span></div>
+  <table>
+    <tr><th>#</th><th>项目</th><th>现状</th><th>阻塞于</th><th>建议动作</th></tr>
+    <tr><td class="id">A1</td><td class="it"><s><b>字牌 7 张出图</b></s><br>东 南 西 北 中 发 白</td>
+        <td class="st"><span class="pill p-ok">❌ 已剔除</span></td><td class="dep">—</td>
+        <td class="ac"><b>第 26 轮你拍板「本游戏不使用」→ 不制作</b>，本条<b>关闭</b>。
+            牌面全量口径由 34 张<b>撤回 27 张</b>（万/条/筒各 9），且已 100% 入库。
+            玩法无影响：碰（三张相同）/ 吃（同花色连号）都不依赖字牌</td></tr>
+    <tr><td class="id">A2</td><td class="it"><b>27 张统一后处理</b><br>视角校正 + 圆角遮罩 + 抠底 + 压规格</td>
+        <td class="st"><span class="pill p-ok">✅ 已做完</span></td><td class="dep">—</td>
+        <td class="ac"><b>第 28 轮完成</b>：判据定为<b>边缘密度法</b>（旧三种判据全部失效，详见 manifest §5.1k）；
+            归一化到 <b>192×256 @2x</b>（<code>OCC_H 0.804</code> / 圆角 0.085 / LANCZOS）。
+            条/筒 18 张<b>恒 144×206（完全一致）</b>；
+            ⚠ <b>万字 9 张仍 72.9%~88.0%（形状差异无法靠归一化消除）</b> → 待拍板</td></tr>
+    <tr><td class="id">A3</td><td class="it"><b>牌堆牌尺寸重校</b></td>
+        <td class="st"><span class="pill p-ok">✅ 已重校</span></td><td class="dep">A2</td>
+        <td class="ac"><b>29/29 通过</b>（<code>verify_pile_geometry.mjs</code>）：三档<b>全部落在安全区 682×682 内、不压底带</b>；
+            12/36 档 96×128（可点 12 / 12、被压 0 / 24）、96 档 80×107（可点 24、被压 72）；
+            <b>占位几何与矢量模式逐值一致</b>。⚠ 96 档纵向<b>只剩 4.5px 余量</b>；
+            ⚠ 发现 1 张「三张各压一点、累加 20.3% 越 18% 线」被判死（单张最大仅 13.4%）→ 待拍板</td></tr>
+    <tr><td class="id">A4</td><td class="it"><b>页内接入真母版</b></td>
+        <td class="st"><span class="pill p-ok">✅ 已接入</span></td><td class="dep">A2 · A3</td>
+        <td class="ac"><b>已接入</b>：<code>IMG_FACE</code> 3 张样张 → <b>27 张真母版</b>，默认 <code>img</code> 模式；
+            真实点按钮 <b>img↔svg 双向切换正确</b>。
+            <br><b>★ 第 29 轮修正</b>：原口径「36 张牌堆挂 35 张母版（唯一「中」回退矢量）」中的「中」
+            <b>本就不该存在</b> —— 是生成器注入的库外牌（见 A7）。现为 <b>36/36 全部挂真母版</b>，
+            牌库审计 15/15（含 12/96 档）。
+            ⚠ 真母版<b>可见牌体只占占位 75.0%×80.5%</b>（72×103 / 60×86）→ 牌视觉小 25%，见 A6</td></tr>
+    <tr><td class="id">A5</td><td class="it"><b>体积降规格落地</b></td>
+        <td class="st"><span class="pill p-ok">✅ 已压到 192×256</span></td><td class="dep">—</td>
+        <td class="ac">你第 28 轮拍板「<b>先把PNG降到192✖️256，但源图不能删除</b>」→ 已完成：
+            27 张 192×256 PNG <b>合计 1690.3 KB（39.9 MB → 1690.3 KB，降 95.9%）</b>，源图保留 <code>assets/_src/</code>。
+            ⚠ <b>主包仍超限</b>：既有 2882 + 规则页 739 + 牌面 1690 = <b>5311 KB &gt; 4096 KB（超 1215）</b> → 待拍板（WebP / 分包 / 减张数）</td></tr>
+    <tr><td class="id">A6</td><td class="it"><b>牌体占位口径（新）</b></td>
+        <td class="st"><span class="pill p-no">⏳ 待拍板</span></td><td class="dep">—</td>
+        <td class="ac">通读隔壁 <b>game-4《麻麻大消除》真实工程</b>（21 个 TS / 18,031 行）后确认：
+            它的 <code>TILE_GEO.BODY 128.8×172.8 / 132×176</code> → <b>牌体占牌位 97.6%×98.2%</b>，
+            而本作归一化口径是 <b>75.0%×80.5%</b>。<b>画布 192×256 与显示 96×128 都对，错的是"主体占比"。</b>
+            三种改法（甲 <code>OCC_H 0.804→1.0</code> 重跑归一化【推荐】/ 乙 放大占位【⚠ 96 档物理放不下】/ 丙 收紧网格步进）
+            见 <code>game-5-核心玩法与素材尺寸契约.md</code> §5.3</td></tr>
+    <tr><td class="id">A7</td><td class="it"><b>「红中」根因修复</b><br>牌库收敛为唯一真源</td>
+        <td class="st"><span class="pill p-ok">✅ 已修复</span></td><td class="dep">—</td>
+        <td class="ac"><b>第 29 轮用户报障</b>「牌里出现了红中，但牌库只有万/条/筒」。
+            <b>根因</b>：<code>buildPile()</code> 的 <code>mk()</code> 写着
+            <code>rng() &lt; 0.08 ? {k:'zhong'} : …</code> —— <b>以 8% 概率主动注入库外的牌</b>，
+            与"缺素材回退"无关。<br>
+            <b>修法</b>：① 建唯一真源 <code>DECK</code>（万/条/筒 × 1~9 = 27 项），生成器只从它抽；
+            ② 删 <code>tileSVG()</code> 的 <code>zhong</code> 分支 + 首行 <code>inDeck()</code> 兜底；
+            ③ <code>IMG_FACE</code> 改为由 <code>DECK</code> 派生。<br>
+            <b>验收</b>：牌库审计 <b>库外牌 0 张 / 牌面「中」字 0 处</b>，12·36·96 三档全覆盖 → <b>15/15</b></td></tr>
+    <tr><td class="id">A8</td><td class="it"><b>★ 牌堆初始化方案</b><br>位置 + 发牌（两件事一起定）</td>
+        <td class="st"><span class="pill p-ok">✅ 第 30 轮已拍板</span></td><td class="dep">—</td>
+        <td class="ac"><b>用户第 30 轮拍板</b>（P1~P4 全部收敛）：
+            <br>· <b>P1 位置来源 = 方案甲 · 图案卡位表</b>（位置写死、程序只洗牌填卡位、对齐羊了个羊、难度可控、逐关设计）
+            <br>· <b>P2 同层不重叠 = 直接沿用《羊了个羊》既有设计</b>（可点判定只看更高层，同层不参与）
+            <br>· <b>P3 随机朝向 = 仅横 / 竖两种</b>（<code>rot ∈ {0,90}</code>，横牌占 23%）
+            <br>· <b>P4 可解性口径</b> = 第 30 轮为「开局不卡」→ <b style="color:var(--teal)">第 31 轮升级为「满清可解」（见 A9）</b>
+            <span class="em">── 第 31 轮「关卡排布方案优化」补充 ──</span>
+            <br><b>· 张数 12→138</b>（陡前半 + 缓后半）· <b>层数 2→10</b>（L1=2 / L2=3 / L3 起 ≥5）
+            <br>· <b>铺位改为「同心超椭圆」</b>（逐层独立网格 + 按到层心距离由内向外取格 + 0.025 抖动）⇒ 均匀但不严格对称
+            <br>· <b>牌堆 = 整关</b>（旧「单阶段 ≤36 分段清场」废止）
+            <br><b>本轮产出</b>：30 关完整关卡表（张数 12→138 / 层数 2→10 单调不减）+ 逐关尺寸（牌宽 112→88 单调不增）
+            → 交付 <code>game-5-关卡表与尺寸契约.md</code>；生成器 <code>level_design.py</code> <b>v6</b>；可视化 <code>56-关卡表与牌堆预览.html</code>；
+            真实浏览器验收 <code>verify_levels.mjs</code> <b>30/30 全绿</b>。
+            <br>规格见 <code>game-5-主玩页-规格.md</code> §三「牌堆初始化 · ✅ 第 30 轮已拍板 · ★ 第 31 轮口径升级」</td></tr>
+    <tr><td class="id">A9</td><td class="it"><b>★ 发牌不可满清</b><br>（比"显得假"更硬的缺陷）</td>
+        <td class="st"><span class="pill p-ok">✅ 第 31 轮已解决（满清可解）</span></td><td class="dep">A8</td>
+        <td class="ac"><b>用户第 31 轮原话</b>：「<b>上限改成 138，每关初始的时候要设置成能消完</b>」→ 口径由「开局不卡」<b>升级为「满清可解」</b>，采用<b>方案甲 · 逆向构造</b>：
+            <br>· <b>① 贪心可点剥离</b> <code>greedy_peel(tiles, open_first=3G)</code>：反复取"当前可点"的牌剥离，得到一条<b>合法消除序列</b>；
+            <br>· <b>② 锁定开局组</b>：把序列最前 <code>3G</code> 张锁进「开局可点」集合 ⇒ 保证开局就能整组消（开局可凑 2~3 组）；
+            <br>· <b>③ 连续三元同种</b> <code>fill_by_triples()</code>：序列按<b>连续 3 张</b>切段、每段填同一种牌（= 一次「碰」）⇒ 玩家依次点击即整关清空；
+            <br>· <b>④ 槽位校验</b>：8 槽瞬时占用 ≤ 3，永不满。
+            <br><b>三套独立实现互证</b>：Python 构造 / Python <code>verify_clear()</code> 复算（不复用增量覆盖数）/ <b>浏览器内 JS 独立复算</b>（断言 A9）；
+            另有断言 A10 校验「序列每连续 3 张确为同种」。
+            <br>· <b>实测：30/30 关满清可解 ✅</b>（合计 2877 张全部可清空）；
+            开局可点率 <b>7%~67%</b>、开局可凑 <b>2~3 组</b>、离散指数 <b>0.636~1.049</b>（均值 0.813，优于随机撒布）。
+            <br>· 历史对照（旧口径已作废）：旧 12 档最多清 50% / 36 档 67% / 96 档 91% —— 那是从 27 种逐个独立随机抽的结果。</td></tr>
+  </table>
+
+  <!-- B -->
+  <div class="grp"><span class="tag">B 组</span><span class="tt">规则弹层内容图（C3）</span>
+    <span class="sub">✅ <b>第 27 轮合并为整页一图</b> · 规则页已定稿 · 3 项均已完成</span></div>
+  <table>
+    <tr><th>#</th><th>项目</th><th>现状</th><th>阻塞于</th><th>建议动作</th></tr>
+    <tr><td class="id">B1</td><td class="it"><b>碰 / 吃 示意图</b></td>
+        <td class="st"><span class="pill p-ok">✅ 已并入整页图</span></td><td class="dep">—</td>
+        <td class="ac">碰 = 三张五筒；吃 = 一筒·二筒·三筒。<b>零新增出图</b>（牌面复用 <code>tiles/</code> 裁切件）。<br>
+            第 26 轮曾单独导出为 <code>rule-碰吃示意.png</code> <b>1136×600</b>（渲染实宽 568）；<b>第 27 轮已并入整页图，不再单列</b></td></tr>
+    <tr><td class="id">B2</td><td class="it"><b>掷骰点数对应表</b></td>
+        <td class="st"><span class="pill p-ok">✅ 已并入整页图</span></td><td class="dep">—</td>
+        <td class="ac">口径 = 第 13 轮定稿映射表，<b>布局 A · 对称和值合并 6 行</b>（2·12 / 3·11 / 4·10 / 5·9 / 6·8 / 7）。<br>
+            第 26 轮曾单列为 <code>rule-点数对应表.png</code> <b>1136×720</b>；<b>第 27 轮并入整页图</b>，
+            并按你的要求<b>删除其下方说明行</b></td></tr>
+    <tr><td class="id">B3</td><td class="it"><b>★ 整页固化</b><br>632 × 1020</td>
+        <td class="st"><span class="pill p-ok">✅ 已定稿固化</span></td><td class="dep">—</td>
+        <td class="ac">成品 <code>rule-完整规则页.png</code> <b>1264×2040 @2x</b>（= CSS <b>632×1020</b> · 739 KB），
+            含标题栏 + 两区 + 页脚；由 <code>export_rule_page.mjs</code> 从<b>源稿页</b>导出、连截两次 md5 零漂移；<br>
+            页内整卡换 <code>&lt;img&gt;</code> + <b>透明 ✕ 热区</b>（56×56 · 距右 18 · 中心 y=48）→ 验收 <b>16/16 + 11/11</b>。
+            ★ <b>字体方案丙已烘焙进图</b> —— 跨端一致性天然消解</td></tr>
+  </table>
+
+  <!-- C -->
+  <div class="grp"><span class="tag">C 组</span><span class="tt">平台能力接入</span>
+    <span class="sub">页内 0 处 wx.* 调用 · 目前全是 Web 模拟 · 5 项</span></div>
+  <table>
+    <tr><th>#</th><th>项目</th><th>现状</th><th>阻塞于</th><th>建议动作</th></tr>
+    <tr><td class="id">C1</td><td class="it"><b>看广告获得道具</b></td>
+        <td class="st"><span class="pill p-no">5s 假进度</span></td><td class="dep">无</td>
+        <td class="ac">页内是 5s 模拟进度条。接 <code>wx.createRewardedVideoAd</code>：
+            <b>成功 → 本局 +1；中途退出 → 不到账</b>（现有两条分支逻辑已按此写好）</td></tr>
+    <tr><td class="id">C2</td><td class="it"><b>分享给好友得道具</b></td>
+        <td class="st"><span class="pill p-no">仅文案</span></td><td class="dep">D1</td>
+        <td class="ac">入口按你的拍板<b>已从主界面移到暂停面板</b>；暂停面板本身还没做成实体（见 D1）</td></tr>
+    <tr><td class="id">C3</td><td class="it"><b>震动反馈</b></td>
+        <td class="st"><span class="pill p-no">未接</span></td><td class="dep">无</td>
+        <td class="ac">J2 档位已定稿：<b>轻</b>（牌入槽 / 按钮确认）· <b>重</b>（凑成消除 / 阶段清空 / 通关 / 失败）
+            → <code>wx.vibrateShort</code>，全局可关</td></tr>
+    <tr><td class="id">C4</td><td class="it"><b>音效 / BGM</b></td>
+        <td class="st"><span class="pill p-bad">全未接</span></td><td class="dep">无</td>
+        <td class="ac"><em>这是"爽点"里最大的一块空缺。</em>J1 已定稿（对标截取 · 无缝循环判据 · 疲劳防控 ·
+            音量配平 · 附录 A 音效清单），但<b>整个项目只接了一个音效</b>（开局页掷骰 <code>sfx-roll-dice.mp3</code>），
+            主玩页连"牌入槽 / 成组消除 / 满槽告警心跳 / 通关"一个都没有</td></tr>
+    <tr><td class="id">C5</td><td class="it"><b>本地存档</b></td>
+        <td class="st"><span class="pill p-no">未接</span></td><td class="dep">无</td>
+        <td class="ac">首版要做：<b>静音开关状态持久化</b> + 关卡进度。目前页内无 <code>localStorage</code> 相关实现</td></tr>
+  </table>
+
+  <!-- D -->
+  <div class="grp"><span class="tag">D 组</span><span class="tt">页内流程缺口</span>
+    <span class="sub">排版稿里目前只是「提示 toast」，没有实体 · 4 项</span></div>
+  <table>
+    <tr><th>#</th><th>项目</th><th>现状</th><th>阻塞于</th><th>建议动作</th></tr>
+    <tr><td class="id">D1</td><td class="it"><b>暂停面板</b></td>
+        <td class="st"><span class="pill p-no">只有 toast</span></td><td class="dep">无</td>
+        <td class="ac">现在点暂停只弹一条文案。需要真实面板：<b>继续 / 重开 / 返回首页（二次确认）/ 声音开关 / 分享入口</b></td></tr>
+    <tr><td class="id">D2</td><td class="it"><b>失败流程</b></td>
+        <td class="st"><span class="pill p-no">只有告警</span></td><td class="dep">无</td>
+        <td class="ac">现在只有「槽位将满」的告警 toast。<b>满槽且不能成组 → 失败</b>的判定与失败态表现未做；
+            若本局有赠礼<b>复活</b>机会 → <b>自动直消槽内最后 4 张</b>（第 14 轮口径已统一）</td></tr>
+    <tr><td class="id">D3</td><td class="it"><b>通关流程 + 局末金币雨</b></td>
+        <td class="st"><span class="pill p-no">未实现</span></td><td class="dep">无</td>
+        <td class="ac">J3 已定稿：金币雨是<b>全作唯一峰值</b>——通关瞬间牌堆余牌收走 → 金币雨倾泻 → 结算弹层浮起；
+            <b>失败态不炸</b>（牌堆淡出收走）。目效分级（小 / 中 / 大）也还没落</td></tr>
+    <tr><td class="id">D4</td><td class="it"><b>结算出口</b></td>
+        <td class="st"><span class="pill p-no">未定</span></td><td class="dep">E1</td>
+        <td class="ac">主玩页 → 结算页 的跳转时机与要传递的数据（本局和值 / 道具消耗 / 剩余牌 / 成绩）未定义</td></tr>
+  </table>
+
+  <!-- E -->
+  <div class="grp"><span class="tag">E 组</span><span class="tt">相邻页</span>
+    <span class="sub">尚未立项 · 2 项</span></div>
+  <table>
+    <tr><th>#</th><th>项目</th><th>现状</th><th>阻塞于</th><th>建议动作</th></tr>
+    <tr><td class="id">E1</td><td class="it"><b>⑤ 单局结算页</b></td>
+        <td class="st"><span class="pill p-no">未立项</span></td><td class="dep">D4</td>
+        <td class="ac">六页模型里排在主玩页之后的第一页</td></tr>
+    <tr><td class="id">E2</td><td class="it"><b>⑥ 奖励页</b></td>
+        <td class="st"><span class="pill p-no">未立项</span></td><td class="dep">E1</td>
+        <td class="ac">最后一张页</td></tr>
+  </table>
+
+  <!-- ══════════════ 三 ══════════════ -->
+  <h2>三 · 依赖链 <span>哪些能并行、哪些必须排队</span></h2>
+  <div class="chain">
+    <span class="node" style="color:var(--teal)">✅ A2 统一后处理</span><span class="arw">→</span>
+    <span class="node" style="color:var(--teal)">✅ A5 压规格 192×256</span><span class="arw">→</span>
+    <span class="node" style="color:var(--teal)">✅ A3 牌堆尺寸重校</span><span class="arw">→</span>
+    <span class="node" style="color:var(--teal)">✅ A4 页内接真母版</span><span class="arw">→</span>
+    <span class="node" style="color:var(--teal)">✅ A7 牌库收敛（红中已除）</span><span class="arw">→</span>
+    <span class="node">E1 结算页</span><span class="arw">→</span>
+    <span class="node">E2 奖励页</span>
+  </div>
+  <div class="chain">
+    <span class="node" style="color:var(--teal)">✅ A8 牌堆初始化（方案甲 · 已拍板）</span><span class="arw">→</span>
+    <span class="node" style="color:var(--teal)">✅ A9 发牌口径（满清可解 · 30/30 关）</span><span class="arw">→</span>
+    <span class="node" style="color:var(--teal)">✅ 30 关关卡表 + 逐关尺寸（138 张 / 10 层）</span><span class="arw">→</span>
+    <span class="node">A6 牌体占位口径<b style="color:var(--red)">待拍板</b></span>
+  </div>
+  <div class="chain">
+    <span class="node">B 组 规则页<b style="color:var(--teal)">已定稿（整页一图）</b></span>
+    <span class="node">C 组 平台能力 ×5</span>
+    <span class="node">D1~D3 页内流程</span>
+    <span class="arw">——</span><span style="color:var(--teal)">可随时并行，不阻塞任何人</span>
+  </div>
+  <p class="note"><b>★ 第 31 轮：A8 + A9 两条线全部收敛，牌堆收干净了</b> ——
+    第 30 轮 <b>A8（位置来源 / 同层不重叠 / 随机朝向 / 可解性口径）</b>四项拍板；第 31 轮 <b>A9 升级为「满清可解」</b>（30/30 关可清空），
+    并顺带完成「关卡排布方案优化」（张数 12→138 / 层数 2→10 / 同心超椭圆均匀铺位）。
+    B / C / D 三组互不依赖、也不阻塞 A 组，你说哪组先做就哪组先做。</p>
+
+  <!-- ══════════════ 四 ══════════════ -->
+  <h2>四 · 请你拍板的事 <span>第 32 轮更新：<b>A8 ①②③④ + A9 + N1~N4 已全部收敛</b> · 剩 4 件（对应 L1~L4，<b>本轮已挂起</b>）+ 1 件<b>待真机确认</b>（<code>top_share</code> 观感）</span></h2>
+
+  <div class="qs">
+    <div class="q">
+      <div class="qh">★ 第 32 轮 · N1~N4 处置结果（<span class="pill p-ok">✅ 已全部处置</span>）</div>
+      <div class="ac">
+        <b>N1 牌宽下限</b> → 你定「上限放宽到 10 层，<b>下限保持 88</b>」⇒ 24 关牌宽顶到 88 是必然结果，<b>接受为设计约束</b>，不再挂起。<br>
+        <b>N2 后段可点率</b> → 新增<b>天际线抬升 <code>top_share</code></b>（把高段下层张数搬到顶层，使顶层 ≥ <code>top_share × n</code>）
+        + <b>层间黄金角错位 <code>R</code></b>（137.5078°，Σ偏移≈0 ⇒ 质心不漂移）；
+        实测后段（L21~L30）<b>7.2%~10.0% → 14.8%~18.1%</b>，L30 由 11 张 → <b>25 张</b>。<br>
+        <b>N3 分段</b> → 恢复分段 · <b>按层切</b>：段边界落层边界、段内 <b>3 的倍数且 ≤36</b>、段序<b>自顶向下</b>；
+        <span class="em">你拍板的口径：<b>全堆同时在桌</b>、<b>层数 = 整关总层数</b></span>；段内满清可解 <b>30/30</b>、段内可点率 <b>26.7%~70.0%</b>。<br>
+        <b>N4 主玩页档位</b> → 删掉写死的 <code>PILE</code>/<code>buildPile(36/12/96)</code>，改读 <code>levels.json</code>
+        的<b>真实关卡</b>（默认 <b>L1 = 12 张 / L10 = 93 张 / L30 = 138 张</b>）；逐张卡位实测偏差 <b>0.05px</b>。
+      </div>
+      <div class="opt">证据：<code>verify_levels.mjs</code> <b>38/38</b> · <code>verify_pile_geometry.mjs</code> <b>69/69</b> ·
+        <code>verify_tile_face.mjs</code> <b>17/17</b> · <code>verify_archive_play.mjs</code> <b>12/12</b> ·
+        验收板 <code>63-真实牌堆档位-验收板.png</code>。</div>
+    </div>
+
+    <div class="q">
+      <div class="qh">★ 第 32 轮 · 尺寸一致性（<span class="pill p-ok">✅ 已落地</span>）</div>
+      <div class="ac">
+        你定：「<b>单关内每张麻将牌的尺寸（大小和长宽比）必须保持一致</b>，跨关可调节尺寸，但单关内必须统一」；
+        补充口径：「<b>保留横竖，但横牌旋转 90 度后，必须要与竖牌大小完全一致</b>」。<br>
+        <b>落地</b>：一关<b>唯一</b> <code>w</code>（<code>h = w × 4/3</code>）；跨关 <b>112 → 88</b> 单调不增；
+        <b>横牌 = 纯旋转</b> —— 元素恒为 <code>w×h</code>，只加 <code>transform: rotate(90deg)</code>。<br>
+        <span class="em">旧 bug：横牌换宽高（<code>width=h;height=w</code>）+ 图片 <code>100%×100%</code> ⇒ 牌面被<b>横向拉伸 1.33 倍</b>（非等比缩放）。预览页与主玩页都犯过，本轮同时修复。</span>
+      </div>
+      <div class="opt"><b>四条自动断言</b>：① 布局盒 <code>offsetWidth×offsetHeight</code> 恒 = <code>w×h</code>（横竖集合完全相同）；
+        ② 变换矩阵 <code>a²+b²=1</code>、<code>det=1</code>、<code>e=f=0</code>（⇒ 无 scale / 无 translate）；
+        ③ 可见外框恰好宽高互换（<code>88×117 ↔ 117×88</code>，面积相等）；④ 逐张卡位与关卡表比对（容差 0.2px）。</div>
+    </div>
+
+    <div class="q">
+      <div class="qh">★ 只剩 1 件要你看真机后定夺：<code>top_share</code> 的档位（可点率 ↔ 堆叠感）</div>
+      <div class="ac">
+        现在的做法是「<b>顶层铺满到 18%</b>」—— 好处是<b>一眼看过去有 25 张能点</b>（旧口径只有 11 张，很闷）；
+        代价是<b>顶层几乎盖住整个footprint，下层只从边缘露头</b>，"10 层的厚度感"主要靠投影与边缘。<br>
+        <span class="em">换句话说：<code>top_share</code> 越大 → 可点越多、但越像"平铺"；越小 → 越像"堆"，但越闷。</span>
+      </div>
+      <div class="opt">建议动作：先<b>在真机 / 浏览器上试玩 L10 与 L30</b>，看立体感是否够。
+        若要调，改 <code>level_design.py</code> 的 <code>TOP_SHARE_TRIES</code>（现为 <code>0.0/0.10/0.12/0.14/0.16/0.18</code>）
+        重新生成即可，<b>不需要改任何其它代码</b>。<code>layerShift R=0.35</code> 越大错位越明显、堆叠层次越强。</div>
+    </div>
+
+    <div class="q">
+      <div class="qh">★ A8-① 牌堆的「位置」从哪来？（本轮最关键）</div>
+      <div class="ac">现状：3 层 × 4×3 网格、层偏移恒定 <code>(46,46)</code>、<b>36 张全部 0° 正放</b> ——
+        层与层只差一个固定偏移，<b>一眼就能看出是同一张网格复制三次</b>，这就是「显得很假」的根因。<br>
+        《羊了个羊》的做法是：<b>卡位是人工设计好的图案、每天换一次</b>，程序只负责"把牌洗进卡位"；
+        它的"乱"来自<b>图案本身不规则</b>，不是来自随机。<br>
+        隔壁 <b>game-4</b> 走的是另一条路：<b>程序化"层片模型"</b>（每层一片随机散布、层心独立漂移），已跑通且验证过。</div>
+      <div class="opt">三选一：<b>甲 图案卡位表</b>（对齐羊了个羊 · 难度可控、最像 · 但需逐关设计图案）；
+        <b>乙 层片模型</b>（对齐 game-4 · 零人工、30 关不重样 · 难度不可控）；
+        <b>丙 图案骨架 + 程序抖动</b>（图案定"哪里密哪里疏"，程序在骨架内抖 · 兼顾两者，推荐）。<br>
+        对比图：<code>55-牌堆散落方案-对比板.png</code>（面板 ③ = 乙 · 面板 ④ = 甲）</div>
+    </div>
+
+    <div class="q">
+      <div class="qh">★ A8-② 要不要放开「同层不重叠」这条硬约束？</div>
+      <div class="ac">现在页内有一条硬约束「同层步进 ≥ 牌尺寸 ⇒ 同层不重叠」，好处是<b>同层的每一张都看得清</b>。<br>
+        但它也正是"轮廓只能是方正网格"的原因 —— <b>让牌堆紧凑成一坨（有"堆"感）必须靠层内瓦叠</b>：
+        行步进从 150 压到 ≈64（= 牌高 × 0.5），行与行互压一半。game-4 用的就是 <code>CELL_H_RATIO_STACK 0.48</code>。</div>
+      <div class="opt">三选一：<b>保持不重叠</b>（读牌最清楚，轮廓偏方正）／
+        <b>放开为"同层可瓦叠"</b>（有堆感；⚠ 需新定义"同层里谁压谁"——
+        建议按行号：靠下（近）的压靠上（远）的，与 game-4 一致）／
+        <b>完全放开</b>（任意重叠，最像随手撒的，⚠ 可点判定会变得很碎）。</div>
+    </div>
+
+    <div class="q">
+      <div class="qh">★ A8-③ 随机朝向开不开？（现在 <code>[0]</code>，一张都不歪）</div>
+      <div class="ac">真实牌堆里"大半摆得挺正、少数歪着"。game-4 的做法是
+        <b>四向基础朝向 <code>[0,90,180,270]</code> + 偏斜档位</b>：
+        <code>0°:55 / 5°:12 / 10°:9 / 16°:7 / 24°:6 / 33°:6 / 45°:5</code>（权重）。
+        它的注释里留了一条重要权衡：<b>不直接 0~360 自由随机</b> ——
+        牌面全乱转之后玩家第一眼分辨不出"这是几万几条"，而本作核心操作恰恰是"扫一眼找到能凑的那张"。<br>
+        ⚠ 代价：大角度牌的占位是 <b>1.65 倍</b>面积（game-4 实测），会同时压掉网格容量与开局可点牌数。</div>
+      <div class="opt">四选一：<b>不开</b>（读牌最快）／<b>只横竖</b>（0/90/180/270）／
+        <b>横竖 + 小角度 5~25°</b>（"随手一放"的典型区间，推荐）／<b>按 game-4 全档位</b>（含 33/45°）。</div>
+    </div>
+
+    <div class="q">
+      <div class="qh">★ A9 发牌怎么保证"能清完"？<span class="pill p-ok">✅ 第 31 轮已解决</span></div>
+      <div class="ac"><b>用户第 31 轮拍板</b>：「<b>上限改成 138，每关初始的时候要设置成能消完</b>」→
+        取<b>方案甲 · 逆向构造</b>（而非乙 / 丙），落地为 <b>满清可解</b>：<br>
+        · <code>greedy_peel(open_first=3G)</code> 贪心可点剥离 → 合法消除序列 → <code>fill_by_triples()</code> 按<b>连续 3 张同种</b>填充；<br>
+        · <b>三套独立实现互证</b>（Python 构造 / Python 复算 / 浏览器内 JS 独立复算），另有断言校验「每连续 3 张同种」；<br>
+        · <b>实测 30/30 关满清可解 ✅</b>（2877 张全部可清空）。<br>
+        <span class="em">—— 以下是第 29 轮的原始问题与三选项（已作废，仅留痕）——</span><br>
+        精确算出来的硬结论（旧口径）：<b>12 档最多清 50% · 36 档 67% · 96 档 91%</b>，
+        <b>三档都不可满清</b> —— 剩余的张无论怎么打都消不掉。<br>
+        根因：发牌是从 27 种里<b>逐个独立随机抽</b>，没有"每种牌张数为 3 的倍数"这条约束。
+        《羊了个羊》正是靠<b>把每种牌 ×3 存进总数组再洗牌</b>，从结构上杜绝"消不完"；
+        但它<b>不保证有解</b>（解包分析：源码里没有求解/校验算法，第二关 28 层"许多关卡本身就是无解的"）。</div>
+      <div class="opt">三选一：<b>甲 逆向构造</b>（准备"3 张一组"的牌，每组放到当时最高层的空位；
+        反序消除即为一组解 ⇒ <b>100% 可解</b>）<b style="color:var(--teal)">← ✅ 第 31 轮采纳此案</b>／
+        <b>乙 随机 + 校验重采样</b>（game-4 口径：只保证"开局不卡"，中后段靠道具）<i>（第 30 轮曾采此案，已升级）</i>／
+        <b>丙 纯随机</b>（对齐羊了个羊原版，允许无解）。<br>
+        ⚠ 本作比其他同类多一条「吃」（同花色连号三张），所以"一组 3 张"可以是 3 张同种，也可以是 1-2-3 连号。</div>
+    </div>
+
+    <div class="q">
+      <div class="qh">A6 · 牌体占位口径：真母版要"填满画布"吗？（★ 本轮关键）</div>
+      <div class="ac">第 28 轮把真母版接进页面后实测：<b>可见牌体只有占位的 75.0%×80.5%</b>
+        （12/36 档 72×103、96 档 60×86），同层横向间隙从 32 变成 <b>56</b> —— <b>牌视觉小 25%、面积小 40%、牌堆明显变稀疏</b>。<br>
+        根因是归一化时按 <code>OCC_H 0.804</code> 给画布四周留了透明边距。
+        而隔壁 <b>game-4《麻麻大消除》已跑通的真实工程</b>，它的 <code>TILE_GEO.BODY</code> 占坐标画布 <b>97.6%×98.2%</b> —— <b>牌体几乎填满画布</b>。<br>
+        画布 <b>192×256</b> 与显示 <b>96×128</b> 都是对的，<b>错的只是"主体占比"这一个常量</b>。</div>
+      <div class="opt">三种改法：<b>甲</b>（推荐）<code>OCC_H 0.804 → 1.0</code> 重跑归一化，占位/网格全不动，可见牌体 → 89.5×128；
+        <b>乙</b> 放大占位到 128×159，⚠ <b>96 档物理放不下</b>（5×5×4 需 812 &gt; 安全区 682）；
+        <b>丙</b> 收紧网格步进（好）→ 牌堆整体变小、台面留白变多；<b>丁</b> 不改。</div>
+    </div>
+
+    <div class="q">
+      <div class="qh">A5 · 主包体积超限 1215 KB，怎么处理？</div>
+      <div class="ac">既有 2882 KB + 规则页 739 KB + 牌面 192×256 共 1690.3 KB = <b>5311 KB &gt; 4096 KB</b>。
+        牌面已从 39.9 MB 压到 1690.3 KB（<b>降 95.9%</b>），仍差 1215 KB。</div>
+      <div class="opt">可选：① 转 WebP（约再省 60~70%）② 分包（把牌面放分包）③ 减牌面张数 ④ 规则页/桌图再压。</div>
+    </div>
+
+    <div class="q">
+      <div class="qh">A6-b · 万字 9 张牌体形状不统一，返工吗？</div>
+      <div class="ac">条/筒 18 张归一化后<b>完全一致（恒 144×206）</b>；<b>万字 9 张占宽 72.9%~88.0%（spread 15.1%）</b>，
+        三张万子并排仍看得出来不齐。归一化<b>只能对齐外框，消不掉形状差异</b>。</div>
+      <div class="opt">可选：① 重出万字批次 ② 单独给万字一套内缩系数 ③ 接受（万子多在规则图里不并排出现）。</div>
+    </div>
+
+    <div class="q">
+      <div class="qh">A8-④ · 96 档「三张各压一点、累加越线」判死 1 张，判定口径要不要改？</div>
+      <div class="ac">牌 #71（层2）被 3 张上层牌分别压 1.8% + 13.4% + 5.1% = <b>20.3%</b> → 越过 18% 线被判死；
+        <b>单张最大只压它 13.4%</b>，视觉上"看着能点却点不动"。<br>
+        ⚠ 这条与 <b>A8-②</b> 强相关：一旦放开「同层可瓦叠」，覆盖判定必然要重写，
+        正好一起定口径 —— <b>「累加」还是「取单张最大」</b>。</div>
+      <div class="opt">可选：判定改为"单张最大覆盖 ≥18%" / 提高阈值 / 接受现状。</div>
+    </div>
+  </div>
+
+  <h2>四·补 · 旧待定项核账 <span>第 28 轮逐条核过：3 条已结清、1 条仍有效</span></h2>
+  <div class="qs">
+
+    <div class="q">
+      <div class="qh" style="opacity:.55">✔ 规则弹层 —— <b style="color:var(--teal)">已拍板定稿（第 27 轮整页合并）</b></div>
+      <div class="qb"><b>字体 = 丙</b>（标题/表头/和值列宋体 + 正文与数字系统无衬线）· <b>布局 = A（6 行）</b> ·
+        <b>整页合并为一张图</b>（标题栏 + 碰/吃 区 + 点数表区 + 页脚）· <b>点数表下方说明行已删除</b>。</div>
+      <div class="opt">成品：<code>rule-完整规则页.png</code> <b>1264×2040 @2x</b>（CSS 632×1020 · 739 KB）
+        <i>· 源稿 <code>game-5-规则弹层-内容图-源稿.html</code> 保留，随时可改可重出
+        · 预览页 <code>game-5-规则页-完整预览.html</code></i></div>
+    </div>
+
+    <div class="q">
+      <div class="qh" style="opacity:.55">✔ 统一后处理（原 A1 / A2）—— <b style="color:var(--teal)">第 28 轮已完成</b></div>
+      <div class="qb">判据定为<b>边缘密度法</b>（与背景 L1 距离 / 色偏 / 连通域三种旧判据实测全部失效）；
+        27 张归一化到 <b>192×256 @2x</b>；<b>条/筒 18 张完全一致（恒 144×206）</b>。
+        ⚠ <b>万字 9 张仍不齐</b>（占宽 72.9%~88.0%）—— 归一化只能对齐外框、消不掉形状差异，<b>已单列为 A6-b 待拍板</b>。</div>
+      <div class="opt">成品 <code>assets/game-play/tiles/{wan,tiao,tong}/</code> · 源图保留 <code>assets/_src/game-play/tiles/</code>
+        <i>· 验收板 <code>50-牌面归一化-验收板.png</code></i></div>
+    </div>
+
+    <div class="q">
+      <div class="qh" style="opacity:.55">✔ 体积降规格（原 A5 的建议）—— <b style="color:var(--teal)">第 28 轮已压到 192×256（1690.3 KB）</b></div>
+      <div class="qb">「先把 PNG 降到 192×256、源图不能删除」已执行：<b>39.9 MB → 1690.3 KB（降 95.9%）</b>。
+        但主包<b>仍超限 1215 KB</b>（5311 &gt; 4096）→ 是否再上 WebP / 走分包，<b>已单列为 A5 待拍板</b>。</div>
+      <div class="opt">已按你第 23 轮「体积暂不处理」的口径只做"降到 192×256"这一步，<b>没有擅自上 WebP</b></div>
+    </div>
+
+    <div class="q">
+      <div class="qh">音效 / BGM（下下轮）的素材来源，先定个调？</div>
+      <div class="qb">J1 规则早已定稿（对标截取、无缝循环判据、疲劳防控、音量配平、附录 A 音效清单齐全），
+        但<b>主玩页一个音效都没接</b> —— 至今只接了开局页那颗骰子。这是"魔性爽感"上最大的一块空缺。</div>
+      <div class="opt">建议：<b>沿用你此前的偏好「真实录音、可商用优先」</b>（开局页音效就是这么选的）
+        <i>· 到那一轮我会先把候选做成试听页，等你说通过再嵌入</i></div>
+    </div>
+
+  </div>
+
+  <footer>
+    依据：<code>assets/game-play/manifest.md</code> · <code>game-5-主玩页-规格.md</code> ·
+    <code>game-5 · 设计规则.md</code>（P1–P3 / G1–G4 / J1–J3 / V1–V7）<br>
+    第 26 轮更新 · 字牌 7 张剔除（全量口径撤回 27 张）· <b>规则弹层两图定稿并固化为 PNG</b>（字体 丙 / 布局 A 6 行 / 零 AI 出图）· 排期重排。
+    本清单不改变任何既有拍板结论，只是把"还没定稿的"摊开。
+  </footer>
+
+</div>
+</body>
+</html>

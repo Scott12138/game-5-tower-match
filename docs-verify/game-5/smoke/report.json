@@ -1,0 +1,194 @@
+{
+  "results": [
+    {
+      "name": "启动页已进入（PageManager 打点 splash）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "启动页阶段调试桥未挂载（只有主玩页才挂）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "启动页自动跳到首页",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "此刻场景里只有 首页（Page_home）",
+      "pass": true,
+      "detail": "活着的页面节点：Page_home"
+    },
+    {
+      "name": "首页主按钮 BtnStart 存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "真实点击「开始游戏」→ 开局页",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "此刻场景里只有 开局页（Page_gameStart）",
+      "pass": true,
+      "detail": "活着的页面节点：Page_gameStart"
+    },
+    {
+      "name": "开局页赠礼按钮 BtnGo 出现",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "真实点击「开始挑战」→ 主玩页",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "此刻场景里只有 主玩页（Page_game）",
+      "pass": true,
+      "detail": "活着的页面节点：Page_game"
+    },
+    {
+      "name": "第 1 关已装载（remaining == total）",
+      "pass": true,
+      "detail": "remaining=12 total=12"
+    },
+    {
+      "name": "开局槽位为空、上限为 8",
+      "pass": true,
+      "detail": "slots=0 slotMax=8"
+    },
+    {
+      "name": "本局未结束 / 未锁",
+      "pass": true,
+      "detail": "over=false locked=false"
+    },
+    {
+      "name": "开局有可点牌",
+      "pass": true,
+      "detail": "8 张"
+    },
+    {
+      "name": "可点牌屏幕坐标落在视口内（坐标口径正确）",
+      "pass": true,
+      "detail": "x∈[271,495] y∈[531,819]"
+    },
+    {
+      "name": "真实点击 1 张牌 → 槽内 +1",
+      "pass": true,
+      "detail": "0 → 1（点了「一条」）"
+    },
+    {
+      "name": "真实点击凑成 3 张同面 → 牌被消除",
+      "pass": true,
+      "detail": "连点「二万」3 张 → cleared 0 → 3（槽内剩 1 张）"
+    },
+    {
+      "name": "真实点击道具格 → 生效（或前置条件不满足，属正确）",
+      "pass": true,
+      "detail": "Tool_move 生效：剩余 8→9 槽 1→0 上限 8→8"
+    },
+    {
+      "name": "连点把槽填满（或本局已结束）",
+      "pass": true,
+      "detail": "slots=6/8（牌堆里已挑不出不会凑成的牌）"
+    },
+    {
+      "name": "槽满负向链路（本关不适用）",
+      "pass": true,
+      "detail": "slots=6/8 —— 可点牌里已挑不出\"不会凑成\"的牌，教学关牌面种类 < 槽位数，按定稿本就填不满（负向链路改在第 12 关验证）"
+    },
+    {
+      "name": "收尾过程有实际进展（消除数上升）",
+      "pass": true,
+      "detail": "cleared=12"
+    },
+    {
+      "name": "本局走完后弹出结算弹层（胜或负）",
+      "pass": true,
+      "detail": "over=true remaining=0 cleared=12"
+    },
+    {
+      "name": "结算弹层形态自洽（胜带「下一关」／负带「重新挑战」）",
+      "pass": true,
+      "detail": "胜态 · 节点：BtnNext, BtnShare"
+    },
+    {
+      "name": "点「下一关」→ 回到开局页（闭环合上）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "此刻场景里只有 开局页（Page_gameStart）",
+      "pass": true,
+      "detail": "活着的页面节点：Page_gameStart"
+    }
+  ],
+  "shots": [
+    "/tmp/g5-smoke-logfix/01-splash.png",
+    "/tmp/g5-smoke-logfix/02-home.png",
+    "/tmp/g5-smoke-logfix/03-game-start-gift.png",
+    "/tmp/g5-smoke-logfix/04-game-board.png",
+    "/tmp/g5-smoke-logfix/05-game-after-match.png",
+    "/tmp/g5-smoke-logfix/06-game-after-tool.png",
+    "/tmp/g5-smoke-logfix/07-slot-full.png",
+    "/tmp/g5-smoke-logfix/08-final.png",
+    "/tmp/g5-smoke-logfix/09-result-final.png",
+    "/tmp/g5-smoke-logfix/10-loop-back.png"
+  ],
+  "errors": [],
+  "consoleErrors": [],
+  "logs": [
+    "[log] [Bootstrap] 自举模块已执行（《叠塔消消》）",
+    "[timeEnd] LoadScene db://assets/scenes/Main.scene: 17.0478515625 ms",
+    "[log] [GameRoot] 《叠塔消消》v0.1.0-cocos 启动",
+    "[log] [GameRoot] 可视尺寸 750×1334（设计 750×1334 · fitWidth）",
+    "[log] [GameRoot] [1/6] buildUIRoot 完成",
+    "[log] [AudioService] 声道池已建立：BGM 1 + 音效 8",
+    "[log] [GameRoot] [2/6] AudioService.init 完成",
+    "[log] [GameRoot] [3/6] PageManager.create 完成",
+    "[log] [GameRoot] 已注册页面：splash, home, gameStart, game",
+    "[log] [GameRoot] [4/6] registerPages 完成",
+    "[log] [GameRoot] 存档：关卡 1 / 最高 0 / 金币 0 / 局数 0",
+    "[log] [GameRoot] [5/6] preloadData 完成",
+    "[log] [PageManager] → splash",
+    "[log] [GameRoot] [6/6] open(splash) 完成",
+    "[log] [Bootstrap] GameRoot 已挂载到 \"Canvas\"",
+    "[log] [Bootstrap] 引擎性能面板：已关闭",
+    "[warning] [AudioService] 音频加载失败：audio/tile_pick Bundle resources doesn't contain audio/tile_pick（已记为缺省，不再重试）",
+    "[warning] [AudioService] 音频加载失败：audio/match_pop Bundle resources doesn't contain audio/match_pop（已记为缺省，不再重试）",
+    "[warning] [AudioService] 音频加载失败：audio/tool_use Bundle resources doesn't contain audio/tool_use（已记为缺省，不再重试）",
+    "[warning] [AudioService] 音频加载失败：audio/button Bundle resources doesn't contain audio/button（已记为缺省，不再重试）",
+    "[log] [PageManager] → home",
+    "[log] [PageManager] → gameStart",
+    "[log] [GamePage] 可点 8 张 · 桌上剩 12 · 当前段 0",
+    "[log] [GamePage] 关卡 1 · 12 张 / 2 层 / 1 段",
+    "[log] [PageManager] → game",
+    "[log] [GamePage] 可点 8 张 · 桌上剩 12 · 当前段 0",
+    "[log] [GamePage] 调试桥已挂载：globalThis.__game5",
+    "[log] [GamePage] 入场完成 · 开局可点 8 张",
+    "[warning] [AudioService] 音频加载失败：audio/slot_warn Bundle resources doesn't contain audio/slot_warn（已记为缺省，不再重试）",
+    "[warning] [AudioService] 音频加载失败：audio/shuffle Bundle resources doesn't contain audio/shuffle（已记为缺省，不再重试）",
+    "[warning] [AudioService] 音频加载失败：audio/revive Bundle resources doesn't contain audio/revive（已记为缺省，不再重试）",
+    "[log] [GamePage] 可点 7 张 · 桌上剩 11 · 当前段 0",
+    "[log] [GamePage] 可点 6 张 · 桌上剩 10 · 当前段 0",
+    "[log] [GamePage] 可点 6 张 · 桌上剩 9 · 当前段 0",
+    "[log] [GamePage] 可点 7 张 · 桌上剩 8 · 当前段 0",
+    "[log] [GamePage] 移出：牌 #3 回到桌上",
+    "[log] [GamePage] 可点 8 张 · 桌上剩 9 · 当前段 0",
+    "[log] [GamePage] 可点 7 张 · 桌上剩 8 · 当前段 0",
+    "[log] [GamePage] 可点 6 张 · 桌上剩 7 · 当前段 0",
+    "[log] [GamePage] 可点 5 张 · 桌上剩 6 · 当前段 0",
+    "[log] [GamePage] 可点 4 张 · 桌上剩 5 · 当前段 0",
+    "[log] [GamePage] 可点 3 张 · 桌上剩 4 · 当前段 0",
+    "[log] [GamePage] 可点 3 张 · 桌上剩 3 · 当前段 0",
+    "[log] [GamePage] 可点 2 张 · 桌上剩 2 · 当前段 0",
+    "[log] [GamePage] 可点 1 张 · 桌上剩 1 · 当前段 0",
+    "[log] [GamePage] 可点 0 张 · 桌上剩 0 · 当前段 -1",
+    "[log] [GamePage] 结算弹层：胜",
+    "[warning] [AudioService] 音频加载失败：audio/win Bundle resources doesn't contain audio/win（已记为缺省，不再重试）",
+    "[log] [PageManager] → gameStart"
+  ]
+}

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>game-5 · 启动页细磨 v6 · 纯净绒布 + 标题双候选</title>
+<style>
+:root{
+  --cream:#FFF7E6; --cream-dim:#D8E8DC;
+  --gold:#F6C445; --gold-hi:#FFE08A; --ink:#4A2B18;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#141613;font-family:"PingFang SC","Hiragino Sans GB",sans-serif;
+  padding:34px 30px 60px;color:var(--cream)}
+.hd{max-width:1240px;margin:0 auto 26px}
+.hd h1{font-size:26px;font-weight:800}
+.hd h1 em{font-style:normal;color:var(--gold)}
+.hd p{font-size:13px;color:#93A59A;margin-top:8px;line-height:1.8}
+.stage{display:flex;gap:44px;justify-content:center;align-items:flex-start;flex-wrap:wrap;max-width:1240px;margin:0 auto}
+.slot{text-align:center}
+.slot .tag{display:inline-block;margin-bottom:14px;padding:8px 22px;border-radius:20px;
+  font-size:15px;font-weight:700;background:#243627;color:var(--gold);border:1px solid #3A5243}
+/* 手机框：750×1334 → 372×660 */
+.frame{width:372px;height:660px;overflow:hidden;border-radius:18px;
+  box-shadow:0 18px 44px rgba(0,0,0,.6);flex:none;position:relative}
+.screen{width:750px;height:1334px;transform:scale(.48);transform-origin:0 0;position:relative;overflow:hidden}
+/* ── 背景层：纯净绿绒布（无任何杂物） ── */
+.tablebg{position:absolute;inset:0;background:url("docs-verify/game-5/splash/bg-felt-clean.png") center/cover no-repeat}
+.tablebg::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(150% 100% at 50% 40%, transparent 52%, rgba(0,0,0,.30) 100%)}
+/* ── LOGO 层 ── */
+.logoL{position:absolute;top:170px;left:0;right:0;display:flex;justify-content:center;z-index:3}
+.logoL img{width:700px;filter:drop-shadow(0 16px 22px rgba(0,0,0,.45))}
+/* ── 吉祥物层 ── */
+.mascotL{position:absolute;top:530px;left:0;right:0;display:flex;justify-content:center;z-index:3}
+.mascotL img{width:500px;filter:drop-shadow(0 24px 16px rgba(0,0,0,.34))}
+/* ── 点缀：金骰子 / 铜钱 ── */
+.diceL{position:absolute;top:430px;right:52px;width:112px;z-index:4;transform:rotate(-9deg);
+  filter:drop-shadow(0 10px 12px rgba(0,0,0,.4))}
+.coinL{position:absolute;top:470px;left:52px;width:80px;z-index:4;transform:rotate(-14deg);
+  filter:drop-shadow(0 8px 10px rgba(0,0,0,.4))}
+/* ── 进度条 + 忠告 ── */
+.loadwrap{position:absolute;left:110px;right:110px;top:1102px;z-index:3}
+.loadtrack{height:44px;border-radius:24px;background:rgba(8,34,26,.82);border:3px solid rgba(255,255,255,.30);
+  box-shadow:inset 0 4px 8px rgba(0,0,0,.5);position:relative;overflow:hidden}
+.loadfill{position:absolute;left:5px;top:5px;bottom:5px;width:16%;border-radius:18px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold) 60%,#DFA02A);
+  box-shadow:0 0 14px rgba(246,196,69,.55)}
+.loadpct{position:absolute;left:0;right:0;top:52px;text-align:center;font-size:26px;font-weight:800;color:var(--cream);
+  text-shadow:0 2px 4px rgba(0,0,0,.5)}
+.notice{position:absolute;left:60px;right:60px;top:1216px;text-align:center;color:var(--cream);z-index:3}
+.notice b{display:block;font-size:24px;letter-spacing:2px;margin-bottom:10px;text-shadow:0 2px 4px rgba(0,0,0,.5)}
+.notice p{font-size:18px;line-height:1.65;color:var(--cream-dim);text-shadow:0 1px 3px rgba(0,0,0,.5)}
+/* ── 素材栏 ── */
+.assets{display:flex;flex-direction:column;gap:18px;width:430px}
+.asset{background:#23281F;border:1px solid #38402F;border-radius:14px;padding:15px}
+.asset h3{font-size:14px;color:var(--gold);margin-bottom:10px;font-weight:700}
+.asset .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.asset .chip{background:#1B1F16;border-radius:10px;padding:8px;display:flex;justify-content:center;min-width:160px}
+.asset img{display:block}
+.asset .note{font-size:12px;color:#93A59A;line-height:1.7;margin-top:9px}
+.asset .note b{color:#C9C4B4}
+</style>
+</head>
+<body>
+<div class="hd">
+  <h1>启动页细磨 <em>v6 · 纯净绒布 + 标题双候选</em> ·《麻麻大消除》</h1>
+  <p>本轮执行：① 背景 = 纯麻将桌绿绒布材质（无牌、无木沿、无任何杂物，裁除 AI 水印）；② 标题按 image-pro 技能的提示词规范重出两个方向 —— A「奶油白+深棕挤出+金线」/ B「软糖质感+墨绿描边+金线」，左 A 右 B 同层叠对比，拍板留一个。</p>
+</div>
+<div class="stage">
+  <div class="slot">
+    <span class="tag">候选 A · 奶油白 × 深棕挤出 × 金线（拱形排列 · 暖调）</span>
+    <div class="frame"><div class="screen">
+      <div class="tablebg"></div>
+      <div class="logoL"><img src="docs-verify/game-5/splash/logo-v4a-alpha.png" draggable="false"></div>
+      <img class="diceL" src="docs-verify/game-5/splash/dice.png" draggable="false">
+      <img class="coinL" src="docs-verify/game-5/splash/coin.png" draggable="false">
+      <div class="mascotL"><img src="docs-verify/game-5/splash/mascot-user-alpha.png" draggable="false"></div>
+      <div class="loadwrap">
+        <div class="loadtrack"><div class="loadfill"></div></div>
+        <div class="loadpct">16%</div>
+      </div>
+      <div class="notice">
+        <b>健康游戏忠告</b>
+        <p>抵制不良游戏，拒绝盗版游戏。注意自我保护，谨防受骗上当。<br>适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。</p>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="slot">
+    <span class="tag">候选 B · 软糖质感 × 墨绿描边 × 金线（与桌布同色系）</span>
+    <div class="frame"><div class="screen">
+      <div class="tablebg"></div>
+      <div class="logoL"><img src="docs-verify/game-5/splash/logo-v4b-alpha.png" draggable="false"></div>
+      <img class="diceL" src="docs-verify/game-5/splash/dice.png" draggable="false">
+      <img class="coinL" src="docs-verify/game-5/splash/coin.png" draggable="false">
+      <div class="mascotL"><img src="docs-verify/game-5/splash/mascot-user-alpha.png" draggable="false"></div>
+      <div class="loadwrap">
+        <div class="loadtrack"><div class="loadfill"></div></div>
+        <div class="loadpct">16%</div>
+      </div>
+      <div class="notice">
+        <b>健康游戏忠告</b>
+        <p>抵制不良游戏，拒绝盗版游戏。注意自我保护，谨防受骗上当。<br>适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。</p>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="assets">
+    <div class="asset">
+      <h3>层 1 · 背景（AI · 纯净绿绒布）</h3>
+      <div class="row"><div class="chip"><img src="docs-verify/game-5/splash/bg-felt-clean.png" width="110"></div>
+      <div class="note"><b>本轮整改</b>：只保留绒布织纹 + 中心亮四周暗的自然暗角；散牌 / 木沿 / 缝线全部去除；底部 AI 水印条直接裁除</div></div>
+    </div>
+    <div class="asset">
+      <h3>层 2 · 标题候选 A（AI high · 已抠透明）</h3>
+      <div class="row"><div class="chip"><img src="docs-verify/game-5/splash/logo-v4a-alpha.png" width="200"></div>
+      <div class="note"><b>特点</b>：拱形排列沉稳；奶油白字面贴近麻将牌的象牙白；深棕挤出与吉祥物描边同族；金线提亮。暖调，和金骰子/铜钱最搭</div></div>
+    </div>
+    <div class="asset">
+      <h3>层 3 · 标题候选 B（AI high · 已抠透明）</h3>
+      <div class="row"><div class="chip"><img src="docs-verify/game-5/splash/logo-v4b-alpha.png" width="200"></div>
+      <div class="note"><b>特点</b>：软糖果冻质感活泼；墨绿描边与背景绿绒布同色系，融入感最强；金线勾边与进度条呼应。冷调，和绿桌最搭</div></div>
+    </div>
+    <div class="asset">
+      <h3>层 4 · 吉祥物 + 点缀（沿用上轮拍板）</h3>
+      <div class="row"><div class="chip"><img src="docs-verify/game-5/splash/mascot-user-alpha.png" width="120"><img src="docs-verify/game-5/splash/dice.png" width="42"><img src="docs-verify/game-5/splash/coin.png" width="34"></div>
+      <div class="note"><b>不变</b>：吉祥物（rembg 抠图版）/ 金骰子 / 铜钱 / 金色进度条 / 《健康游戏忠告》</div></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

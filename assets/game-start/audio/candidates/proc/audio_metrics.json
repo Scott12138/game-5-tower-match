@@ -1,0 +1,180 @@
+{
+  "サイコロを振る・二個.mp3": {
+    "dur_s": 2.064,
+    "sr": 44100,
+    "samples": 91008,
+    "peak": 0.9286,
+    "rms": 0.0498,
+    "peak_dbfs": -0.6,
+    "rms_dbfs": -26.1,
+    "onset_ms": 80.0,
+    "tail_ms": 1420.0,
+    "pulses": 9,
+    "pulse_at_ms": [
+      8,
+      11,
+      20,
+      28,
+      31,
+      37,
+      42,
+      45,
+      51
+    ],
+    "zcr": 0.0808,
+    "low_ratio": 0.1498,
+    "env_len": 206
+  },
+  "サイコロ二個を振る_その１.mp3": {
+    "dur_s": 1.933,
+    "sr": 44100,
+    "samples": 85248,
+    "peak": 0.8543,
+    "rms": 0.0298,
+    "peak_dbfs": -1.4,
+    "rms_dbfs": -30.5,
+    "onset_ms": 110.0,
+    "tail_ms": 1600.0,
+    "pulses": 1,
+    "pulse_at_ms": [
+      11
+    ],
+    "zcr": 0.04,
+    "low_ratio": 0.3765,
+    "env_len": 193
+  },
+  "サイコロ二個を振る_その２.mp3": {
+    "dur_s": 1.933,
+    "sr": 44100,
+    "samples": 85248,
+    "peak": 0.8599,
+    "rms": 0.0446,
+    "peak_dbfs": -1.3,
+    "rms_dbfs": -27.0,
+    "onset_ms": 130.0,
+    "tail_ms": 1440.0,
+    "pulses": 2,
+    "pulse_at_ms": [
+      13,
+      24
+    ],
+    "zcr": 0.034,
+    "low_ratio": 0.2752,
+    "env_len": 193
+  },
+  "サイコロ二個を振る_その３.mp3": {
+    "dur_s": 1.933,
+    "sr": 44100,
+    "samples": 85248,
+    "peak": 0.8749,
+    "rms": 0.0367,
+    "peak_dbfs": -1.2,
+    "rms_dbfs": -28.7,
+    "onset_ms": 100.0,
+    "tail_ms": 1700.0,
+    "pulses": 2,
+    "pulse_at_ms": [
+      10,
+      21
+    ],
+    "zcr": 0.0462,
+    "low_ratio": 0.2425,
+    "env_len": 193
+  },
+  "チンチロ_サイコロを振る_小丼_その１.mp3": {
+    "dur_s": 3.056,
+    "sr": 44100,
+    "samples": 134784,
+    "peak": 0.8838,
+    "rms": 0.0377,
+    "peak_dbfs": -1.1,
+    "rms_dbfs": -28.5,
+    "onset_ms": 60.0,
+    "tail_ms": 2210.0,
+    "pulses": 8,
+    "pulse_at_ms": [
+      6,
+      13,
+      25,
+      30,
+      39,
+      42,
+      48,
+      52
+    ],
+    "zcr": 0.1188,
+    "low_ratio": 0.0644,
+    "env_len": 305
+  },
+  "チンチロ_サイコロを振る_小丼_その２.mp3": {
+    "dur_s": 2.821,
+    "sr": 44100,
+    "samples": 124416,
+    "peak": 0.8927,
+    "rms": 0.0539,
+    "peak_dbfs": -1.0,
+    "rms_dbfs": -25.4,
+    "onset_ms": 70.0,
+    "tail_ms": 1620.0,
+    "pulses": 10,
+    "pulse_at_ms": [
+      7,
+      13,
+      21,
+      34,
+      38,
+      42,
+      52,
+      55,
+      62,
+      78
+    ],
+    "zcr": 0.1655,
+    "low_ratio": 0.0739,
+    "env_len": 282
+  },
+  "チンチロ_サイコロを振る_小丼_その３.mp3": {
+    "dur_s": 3.5,
+    "sr": 44100,
+    "samples": 154368,
+    "peak": 0.9192,
+    "rms": 0.0414,
+    "peak_dbfs": -0.7,
+    "rms_dbfs": -27.7,
+    "onset_ms": 90.0,
+    "tail_ms": 2450.0,
+    "pulses": 9,
+    "pulse_at_ms": [
+      9,
+      14,
+      18,
+      24,
+      34,
+      41,
+      60,
+      93,
+      98
+    ],
+    "zcr": 0.1259,
+    "low_ratio": 0.067,
+    "env_len": 350
+  },
+  "麻雀牌.mp3": {
+    "dur_s": 0.313,
+    "sr": 44100,
+    "samples": 13824,
+    "peak": 0.9792,
+    "rms": 0.0552,
+    "peak_dbfs": -0.2,
+    "rms_dbfs": -25.2,
+    "onset_ms": 10.0,
+    "tail_ms": 240.0,
+    "pulses": 1,
+    "pulse_at_ms": [
+      1
+    ],
+    "zcr": 0.1366,
+    "low_ratio": 0.0667,
+    "env_len": 31
+  }
+}

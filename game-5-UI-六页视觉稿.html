@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>game-5 · 六页 UI 视觉稿（B 案 · 清爽质感）</title>
+<style>
+  :root{
+    --bg-base:#F7F4EE; --bg-card:#FFFFFF;
+    --jade-600:#2E8B6F; --jade-400:#55B79A; --jade-100:#E4F2EC;
+    --gold-500:#D9A94A; --gold-200:#F2E2BC;
+    --cinnabar:#C8452F;
+    --ink-900:#2B2B2B; --ink-500:#7A7A7A;
+    --line:#E3DDD2; --shadow:rgba(43,43,43,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg-base);color:var(--ink-900);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;padding-bottom:90px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px;}
+  header{padding:52px 0 30px;border-bottom:1px solid var(--line);}
+  header .kicker{font-size:13px;letter-spacing:.18em;color:var(--jade-600);font-weight:700;}
+  header h1{margin:10px 0 8px;font-size:32px;}
+  header .sub{color:var(--ink-500);font-size:14.5px;line-height:1.8;max-width:820px;}
+  .tags{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;}
+  .tag{font-size:12px;padding:5px 12px;border-radius:999px;background:var(--jade-100);color:var(--jade-600);font-weight:600;}
+
+  section{padding:42px 0;border-bottom:1px solid var(--line);}
+  h2{font-size:20px;margin-bottom:6px;display:flex;align-items:center;gap:10px;}
+  h2 .no{font-size:12px;color:var(--jade-600);border:1px solid var(--jade-400);border-radius:6px;padding:2px 7px;font-weight:700;}
+  .note{color:var(--ink-500);font-size:13.5px;line-height:1.8;margin-bottom:26px;max-width:860px;}
+  .note b{color:var(--ink-900);}
+
+  /* ===== 牌面规格 ===== */
+  .specgrid{display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;}
+  .spec-tiles{display:flex;gap:26px;}
+  .spec-tile{position:relative;}
+  .spec-cap{text-align:center;font-size:12px;color:var(--ink-500);margin-top:10px;}
+  .anno{position:absolute;font-size:11px;color:var(--jade-600);font-weight:600;white-space:nowrap;}
+  .anno .ln{display:inline-block;width:34px;height:1px;background:var(--jade-400);vertical-align:middle;margin-right:5px;}
+  table.spec{border-collapse:collapse;font-size:12.5px;min-width:430px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  table.spec th,table.spec td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;}
+  table.spec th{font-size:11.5px;color:var(--jade-600);letter-spacing:.05em;background:#FCFAF6;}
+  table.spec td.v{font-family:ui-monospace,Menlo,monospace;font-weight:600;white-space:nowrap;}
+  table.spec tr:last-child td{border-bottom:none;}
+
+  /* ===== 六页 ===== */
+  .pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:30px;}
+  .pagebox .cap{font-size:13px;font-weight:700;margin-bottom:8px;}
+  .pagebox .cap small{font-weight:400;color:var(--ink-500);margin-left:8px;font-size:11.5px;}
+  .frame{width:360px;height:640px;overflow:hidden;border-radius:22px;border:1px solid var(--line);
+    box-shadow:0 8px 22px rgba(43,43,43,.10);background:var(--bg-base);position:relative;}
+  .screen{width:750px;height:1334px;transform:scale(.48);transform-origin:top left;position:absolute;top:0;left:0;}
+  .pgnote{font-size:11.5px;color:var(--ink-500);line-height:1.7;margin-top:10px;}
+
+  footer{padding:34px 0 0;color:var(--ink-500);font-size:12px;line-height:1.9;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">GAME-5 · UI 定稿预览</div>
+  <h1>六页 UI 视觉稿 · B 案清爽质感</h1>
+  <p class="sub">
+    全部按《设计规则》§四 V 的规格值 1:1 绘制（页面画布 750×1334，坐标即规格表数值）。本稿为<b>静态视觉稿</b>，
+    用于六页定稿拍板；定稿后才建 Cocos 工程。图中「游戏名」为占位字样，正式名待三项实查后定。
+  </p>
+  <div class="tags">
+    <span class="tag">750×1334 / 8pt 栅格</span>
+    <span class="tag">玉质厚牌 96×128</span>
+    <span class="tag">槽位 68×92 · 9 格上限</span>
+    <span class="tag">朱红 ≤3%</span>
+  </div>
+</header>
+
+<!-- ============ 牌面规格试样 ============ -->
+<section>
+  <h2><span class="no">V2</span>玉质厚牌 · 规格试样</h2>
+  <p class="note">
+    万 / 条 / 筒各一张完整规格牌（放大 2.5 倍展示）。牌面 = <b>渐变底 + 厚度暗边 + 透光高光 + 柔影</b>四层结构，
+    符号线条统一青玉描线 + 深墨芯，🀄️ 唯一用朱红。锁定这张规格后，27 张按同一函数批量产出。
+  </p>
+  <div class="specgrid">
+    <div class="spec-tiles" id="specTiles"></div>
+    <table class="spec">
+      <tr><th>属性</th><th>规格</th></tr>
+      <tr><td>牌底渐变</td><td class="v">#FFFFFF → #F4EFE6（自上而下）</td></tr>
+      <tr><td>厚度暗边</td><td class="v">下/右 6px #DDD5C8（@2x）</td></tr>
+      <tr><td>透光高光</td><td class="v">上/左 2px #FFFFFF 内描边</td></tr>
+      <tr><td>描边</td><td class="v">2px #E3DDD2（暖淡线，非朱红）</td></tr>
+      <tr><td>圆角</td><td class="v">16px（@2x，即 8pt）</td></tr>
+      <tr><td>柔影</td><td class="v">y+4 blur 8 rgba(43,43,43,.10)</td></tr>
+      <tr><td>符号</td><td class="v">青玉 #2E8B6F 描线 + 深墨 #2B2B2B 芯</td></tr>
+      <tr><td>牌堆尺寸</td><td class="v">96×128（大关缩 80×107）</td></tr>
+      <tr><td>槽内尺寸</td><td class="v">68×92</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 六页 ============ -->
+<section>
+  <h2><span class="no">P1</span>六页视觉稿（含结算页双态）</h2>
+  <p class="note">顺序 = 玩家动线：① 启动 → ② 首页 → ③ 开局 → ④ 主玩 → ⑤ 结算（胜 / 负）→ ⑥ 奖励。④ 为信息密度最高的一页，重点看牌堆「乱而可读」与槽位「齐而清楚」的对比。</p>
+  <div class="pages" id="pages"></div>
+</section>
+
+<footer>
+  《game-5 · 设计规则.md》§四 视觉规范 V 的实现预览 · 静态稿，非工程产物 · Cocos Creator 3.8.8 实现待六页定稿后开始
+</footer>
+</div>
+
+<script>
+/* ================= 玉质厚牌绘制 ================= */
+const JADE='#2E8B6F', INK='#2B2B2B', RED='#C8452F';
+function tileDefs(id){
+  return `<defs>
+    <linearGradient id="tf-${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F4EFE6"/></linearGradient>
+    <linearGradient id="tj-${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#55B79A"/><stop offset="1" stop-color="#2E8B6F"/></linearGradient>
+  </defs>`;
+}
+/* 一张牌：w×h 任意尺寸，face = 符号 SVG 内容 */
+function tileSVG(id,w,h,face,extra=''){
+  const r=Math.min(16,w*0.16);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" ${extra}>
+    ${tileDefs(id)}
+    <rect x="6" y="8" width="${w-12}" height="${h-10}" rx="${r}" fill="#DDD5C8"/>
+    <rect x="0" y="0" width="${w-6}" height="${h-6}" rx="${r}" fill="url(#tf-${id})" stroke="#E3DDD2" stroke-width="2"/>
+    <rect x="2" y="2" width="${w-10}" height="${h-10}" rx="${r-2}" fill="none" stroke="#FFFFFF" stroke-opacity=".85" stroke-width="2"/>
+    <g transform="translate(${(w-6)/2},${(h-6)/2})">${face(w-6,h-6)}</g>
+  </svg>`;
+}
+const CN=['一','二','三','四','五','六','七','八','九'];
+/* 万：数字 + 萬 */
+function faceWan(n){return (w,h)=>`
+  <rect x="${-w*0.19}" y="${-h*0.36}" width="${w*0.38}" height="${h*0.075}" rx="${h*0.037}" fill="url(#tj-x)"/>
+  <text x="0" y="${h*0.30}" text-anchor="middle" font-family="Songti SC,STSong,serif" font-weight="700"
+    font-size="${h*0.42}" fill="${INK}">萬</text>`;}
+/* 条：竖竹条，按行分布 */
+const TIAO_ROWS={1:[1],2:[2],3:[3],4:[2,2],5:[2,1,2],6:[3,3],7:[3,3,1],8:[4,4],9:[3,3,3]};
+function faceTiao(n){return (w,h)=>{
+  const rows=TIAO_ROWS[n], bw=Math.max(w*0.14,7), bh=h*0.62*(rows.length>2?0.9:1);
+  let s=''; const gap=bw*0.55;
+  rows.forEach((cnt,ri)=>{
+    const rowW=cnt*bw+(cnt-1)*gap, y=-bh/2+(ri-(rows.length-1)/2)*(bh*0.42+6);
+    for(let i=0;i<cnt;i++){
+      const x=-rowW/2+i*(bw+gap)+bw/2;
+      s+=`<rect x="${x-bw/2}" y="${y}" width="${bw}" height="${bh}" rx="${bw/2}" fill="url(#tj-x)"/>
+          <rect x="${x-bw/2+bw*0.18}" y="${y+bh*0.06}" width="${bw*0.2}" height="${bh*0.88}" rx="${bw*0.1}" fill="#fff" opacity=".45"/>`;
+    }});
+  return s;};}
+/* 筒：圆圈 */
+const TONG_ROWS={1:[1],2:[2],3:[3],4:[2,2],5:[2,1,2],6:[3,3],7:[3,4],8:[4,4],9:[3,3,3]};
+function faceTong(n){return (w,h)=>{
+  const rows=TONG_ROWS[n], R=Math.min(w,h)*0.115;
+  let s='';
+  rows.forEach((cnt,ri)=>{
+    const y=(ri-(rows.length-1)/2)*R*2.9;
+    for(let i=0;i<cnt;i++){
+      const x=(i-(cnt-1)/2)*R*2.9;
+      s+=`<circle cx="${x}" cy="${y}" r="${R}" fill="#fff" stroke="${JADE}" stroke-width="${R*0.3}"/>
+          <circle cx="${x}" cy="${y}" r="${R*0.34}" fill="${JADE}"/>`;
+    }});
+  return s;};}
+/* 红中 */
+function faceZhong(){return (w,h)=>`
+  <rect x="${-w*0.34}" y="${-h*0.40}" width="${w*0.68}" height="${h*0.80}" rx="${w*0.09}" fill="none" stroke="${RED}" stroke-width="${w*0.045}"/>
+  <text x="0" y="${h*0.20}" text-anchor="middle" font-family="Songti SC,STSong,serif" font-weight="700"
+    font-size="${h*0.52}" fill="${RED}">中</text>`;}
+const FACES={wan:faceWan,tiao:faceTiao,tong:faceTong,zhong:()=>faceZhong()};
+function tile(kind,n,w,h){
+  const uid='u'+Math.random().toString(36).slice(2,8);
+  let svg=tileSVG(uid,w,h,FACES[kind](n));
+  return svg.replaceAll('url(#tj-x)',`url(#tj-${uid})`);
+}
+
+/* ===== 规格试样区 ===== */
+document.getElementById('specTiles').innerHTML = [
+  ['wan',1,'一万'],['tiao',4,'四条'],['tong',6,'六筒'],['zhong',0,'🀄️ 红中']
+].map(([k,n,name])=>{
+  const s=240, h=320;
+  let marks='';
+  if(k==='wan') marks=`<div class="anno" style="left:-86px;top:44%"><span class="ln"></span>厚度 6px</div>
+                       <div class="anno" style="left:-86px;top:16%"><span class="ln"></span>高光 2px</div>`;
+  return `<div class="spec-tile" style="margin-left:${marks?86:0}px">${marks}
+    <div style="filter:drop-shadow(0 6px 10px rgba(43,43,43,.12))">${tile(k,n,s,h)}</div>
+    <div class="spec-cap">${name} · 240×320（96×128 放大 2.5x）</div></div>`;
+}).join('');
+
+/* ================= 吉祥物（矢量占位，待 AI 稿替换） ================= */
+function mascotSVG(w,pose='wave'){
+  const uid='m'+Math.random().toString(36).slice(2,8);
+  const bw=w*0.62, bh=w*0.86, x=w/2, y=w*0.30;
+  let arms='';
+  if(pose==='cheer'){
+    arms=`<rect x="${x-bw*0.72}" y="${y-bh*0.16}" width="${bw*0.24}" height="${bh*0.46}" rx="${bw*0.12}" fill="#FBF7F0" stroke="${INK}" stroke-width="${w*0.022}" transform="rotate(-28 ${x-bw*0.6} ${y+bh*0.1})"/>
+          <rect x="${x+bw*0.48}" y="${y-bh*0.16}" width="${bw*0.24}" height="${bh*0.46}" rx="${bw*0.12}" fill="#FBF7F0" stroke="${INK}" stroke-width="${w*0.022}" transform="rotate(28 ${x+bw*0.6} ${y+bh*0.1})"/>`;
+  }else{
+    arms=`<rect x="${x-bw*0.78}" y="${y+bh*0.10}" width="${bw*0.26}" height="${bh*0.40}" rx="${bw*0.13}" fill="#FBF7F0" stroke="${INK}" stroke-width="${w*0.022}" transform="rotate(18 ${x-bw*0.65} ${y+bh*0.12})"/>
+          <rect x="${x+bw*0.52}" y="${y+bh*0.10}" width="${bw*0.26}" height="${bh*0.40}" rx="${bw*0.13}" fill="#FBF7F0" stroke="${INK}" stroke-width="${w*0.022}" transform="rotate(-18 ${x+bw*0.65} ${y+bh*0.12})"/>`;
+  }
+  return `<svg width="${w}" height="${w*1.22}" viewBox="0 0 ${w} ${w*1.22}">
+    <defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F4EFE6"/></linearGradient></defs>
+    ${arms}
+    <rect x="${x-bw*0.30}" y="${y+bh*0.86}" width="${bw*0.22}" height="${w*0.16}" rx="${bw*0.11}" fill="#FBF7F0" stroke="${INK}" stroke-width="${w*0.022}"/>
+    <rect x="${x+bw*0.08}" y="${y+bh*0.86}" width="${bw*0.22}" height="${w*0.16}" rx="${bw*0.11}" fill="#FBF7F0" stroke="${INK}" stroke-width="${w*0.022}"/>
+    <rect x="${x-bw/2+bw*0.06}" y="${y+bh*0.06}" width="${bw*0.94}" height="${bh}" rx="${bw*0.2}" fill="#DDD5C8"/>
+    <rect x="${x-bw/2}" y="${y}" width="${bw}" height="${bh}" rx="${bw*0.2}" fill="url(#${uid})" stroke="${INK}" stroke-width="${w*0.026}"/>
+    <circle cx="${x-bw*0.22}" cy="${y+bh*0.26}" r="${bw*0.075}" fill="${INK}"/>
+    <circle cx="${x-bw*0.245}" cy="${y+bh*0.235}" r="${bw*0.026}" fill="#fff"/>
+    <circle cx="${x+bw*0.22}" cy="${y+bh*0.26}" r="${bw*0.075}" fill="${INK}"/>
+    <circle cx="${x+bw*0.195}" cy="${y+bh*0.235}" r="${bw*0.026}" fill="#fff"/>
+    <ellipse cx="${x-bw*0.36}" cy="${y+bh*0.40}" rx="${bw*0.085}" ry="${bw*0.055}" fill="#F6C6C6"/>
+    <ellipse cx="${x+bw*0.36}" cy="${y+bh*0.40}" rx="${bw*0.085}" ry="${bw*0.055}" fill="#F6C6C6"/>
+    ${pose==='cheer'
+      ? `<path d="M${x-bw*0.13} ${y+bh*0.36} q${bw*0.13} ${bw*0.22} ${bw*0.26} 0 z" fill="${INK}"/>`
+      : `<path d="M${x-bw*0.11} ${y+bh*0.38} q${bw*0.11} ${bw*0.10} ${bw*0.22} 0" stroke="${INK}" stroke-width="${w*0.02}" fill="none" stroke-linecap="round"/>`}
+    <text x="${x}" y="${y+bh*0.80}" text-anchor="middle" font-family="Songti SC,STSong,serif" font-weight="700"
+      font-size="${bh*0.40}" fill="${RED}">中</text>
+  </svg>`;
+}
+
+/* ================= 六页 ================= */
+const P=[];
+const S=(inner)=>`<div class="screen">${inner}</div>`;
+/* 顶部胶囊（微信右上角胶囊占位） */
+const capsule=`<div style="position:absolute;top:22px;right:24px;width:174px;height:64px;border-radius:32px;background:rgba(43,43,43,.05);border:1px solid rgba(43,43,43,.07);display:flex;align-items:center;justify-content:center;gap:16px;color:#7A7A7A;font-size:24px;">⃝ ⋯</div>`;
+const statusbar=`<div style="position:absolute;top:0;left:0;right:0;height:56px;"></div>`;
+
+/* ① 启动页 */
+P.push(['① 启动页 · Splash','AI 吉祥物 3 姿势已另行出样，此处为矢量占位；定稿后替换。', S(`
+  ${statusbar}
+  <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:var(--bg-base);"></div>
+  <div style="position:absolute;top:250px;left:0;right:0;text-align:center;">${mascotSVG(230)}</div>
+  <div style="position:absolute;top:760px;left:0;right:0;text-align:center;">
+    <div style="font-size:64px;font-weight:800;letter-spacing:.22em;color:var(--ink-900);">麻将大消除</div>
+    <div style="font-size:24px;color:var(--ink-500);letter-spacing:.34em;margin-top:16px;">点牌入槽 · 凑碰吃三连</div>
+  </div>
+  <div style="position:absolute;bottom:210px;left:190px;right:190px;height:12px;border-radius:6px;background:#EDE8DF;overflow:hidden;">
+    <div style="width:62%;height:100%;background:linear-gradient(90deg,var(--jade-400),var(--jade-600));"></div>
+  </div>
+  <div style="position:absolute;bottom:140px;left:0;right:0;text-align:center;font-size:19px;color:#B9B2A6;">健康游戏忠告 · 抵制不良游戏 拒绝盗版游戏</div>
+  <div style="position:absolute;bottom:56px;left:0;right:0;text-align:center;font-size:17px;color:#C9C2B6;">v0.1.0 · 工作代号 game-5</div>
+`)]);
+
+/* ② 首页 */
+const iconBtn=(t,c,bg)=>`<div style="width:96px;height:96px;border-radius:22px;background:#fff;border:2px solid #E3DDD2;box-shadow:0 4px 10px rgba(43,43,43,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+  <div style="font-size:38px;font-weight:800;color:${c};line-height:1;">${t[0]}</div>
+  <div style="font-size:18px;color:#7A7A7A;">${t[1]}</div></div>`;
+P.push(['② 首页 · Home','左列签到/商城、右列排行/邀战（结构位，功能后置）；主按钮唯一。', S(`
+  ${statusbar}${capsule}
+  <div style="position:absolute;top:180px;left:0;right:0;text-align:center;">${mascotSVG(180)}</div>
+  <div style="position:absolute;top:520px;left:0;right:0;text-align:center;font-size:56px;font-weight:800;letter-spacing:.2em;">麻将大消除</div>
+  <div style="position:absolute;top:640px;left:135px;right:135px;height:112px;border-radius:56px;background:linear-gradient(180deg,var(--jade-400),var(--jade-600));box-shadow:0 10px 22px rgba(46,139,111,.30);display:flex;align-items:center;justify-content:center;color:#fff;font-size:38px;font-weight:700;letter-spacing:.16em;">开始游戏</div>
+  <div style="position:absolute;top:820px;left:135px;right:135px;height:88px;border-radius:44px;background:#fff;border:2px solid var(--jade-400);display:flex;align-items:center;justify-content:center;color:var(--jade-600);font-size:30px;font-weight:600;">继 续 第 12 关</div>
+  <div style="position:absolute;left:40px;top:800px;display:flex;flex-direction:column;gap:36px;">${iconBtn(['签','签到'],'#D9A94A')}${iconBtn(['商','商城'],'#2E8B6F')}</div>
+  <div style="position:absolute;right:40px;top:800px;display:flex;flex-direction:column;gap:36px;">${iconBtn(['榜','排行'],'#2E8B6F')}${iconBtn(['邀','邀战'],'#C8452F')}</div>
+  <div style="position:absolute;left:40px;bottom:64px;width:72px;height:72px;border-radius:50%;background:#fff;border:2px solid #E3DDD2;display:flex;align-items:center;justify-content:center;font-size:32px;color:#7A7A7A;">🔇</div>
+  <div style="position:absolute;right:40px;bottom:74px;font-size:18px;color:#C9C2B6;">v0.1.0</div>
+`)]);
+
+/* ③ 开局页 */
+P.push(['③ 开局页 · 过场','固定 🀄️ 主题符号放大入场，停留 1–2s 可点跳过。', S(`
+  <div style="position:absolute;inset:0;background:var(--bg-base);"></div>
+  <div style="position:absolute;top:300px;left:0;right:0;display:flex;justify-content:center;filter:drop-shadow(0 18px 26px rgba(43,43,43,.16));">${tile('zhong',0,240,320)}</div>
+  <div style="position:absolute;top:700px;left:0;right:0;text-align:center;font-size:40px;color:var(--ink-500);">第 <span style="font-size:64px;font-weight:800;color:var(--jade-600);">12</span> 关</div>
+  <div style="position:absolute;top:820px;left:0;right:0;text-align:center;font-size:26px;color:var(--ink-500);">篇章二 · 进阶</div>
+  <div style="position:absolute;bottom:120px;left:0;right:0;text-align:center;font-size:22px;color:#C9C2B6;">点击任意位置跳过</div>
+`)]);
+
+/* ④ 主玩页（重点） */
+(function(){
+  const faces=[['wan',1],['tiao',3],['tong',5],['zhong',0],['wan',9],['tiao',7],['tong',2],['wan',5],['tiao',1],['tong',8],['wan',3],['tiao',9],['tong',4],['wan',7],['tiao',5],['tong',6],['wan',2],['tiao',8]];
+  /* 手摆牌堆：x,y,可点,旋转 — 压着的无影、微暗；可点的上浮+影 */
+  const layout=[
+    [40,20,0,-3],[196,14,0,2],[352,22,0,-2],[508,12,0,3],[90,120,0,-2],[250,126,1,2],[410,118,0,-3],[548,128,0,2],
+    [30,232,1,-2],[186,238,0,3],[344,230,1,-1],[502,236,0,2],[104,344,0,2],[262,350,1,-2],[420,342,0,3],[560,352,0,-2],
+    [48,456,1,-2],[210,462,0,2],[368,454,1,-1],[526,460,0,3],[140,560,0,1],[300,566,0,-2],[452,558,0,2]
+  ];
+  let pile='';
+  layout.forEach((p,i)=>{
+    const [x,y,live,rot]=p, f=faces[i%faces.length];
+    pile+=`<div style="position:absolute;left:${x}px;top:${y}px;transform:rotate(${rot}deg) ${live?'translateY(-10px)':''};filter:${live?'drop-shadow(0 12px 14px rgba(43,43,43,.20))':'none'};${live?'':'opacity:.96;'}">${tile(f[0],f[1],96,128)}</div>`;
+  });
+  let slots='';
+  const slotFills=[['wan',1],['zhong',0],['tiao',3]];
+  for(let i=0;i<8;i++){
+    const f=slotFills[i];
+    slots+= f
+      ? `<div style="width:68px;height:92px;">${tile(f[0],f[1],68,92)}</div>`
+      : `<div style="width:68px;height:92px;border-radius:12px;background:var(--jade-100);border:2px solid #D8EAE2;"></div>`;
+  }
+  const items=[['✕','消除',2],['⇱','移出',1],['⇄','洗牌',1],['＋','加槽',0]];
+  const itemBar=items.map(([ic,lb,cnt])=>`
+    <div style="position:relative;width:112px;height:112px;border-radius:24px;background:linear-gradient(180deg,#fff,#F4EFE6);border:2px solid #DDD5C8;box-shadow:0 4px 8px rgba(43,43,43,.09);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div style="font-size:44px;font-weight:800;color:${cnt? 'var(--jade-600)':'#B9B2A6'};line-height:1;">${ic}</div>
+      <div style="font-size:18px;color:#7A7A7A;margin-top:4px;">${lb}</div>
+      <div style="position:absolute;top:-12px;right:-12px;min-width:44px;height:44px;border-radius:22px;background:var(--gold-500);color:#fff;font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;border:3px solid #fff;">×${cnt}</div>
+    </div>`).join('');
+  P.push(['④ 主玩页 · Play','信息密度最高：牌堆「乱而可读」（可点牌上浮带影 / 压着的无影），槽位「齐而清楚」，道具热区 56pt。', S(`
+    ${statusbar}${capsule}
+    <div style="position:absolute;top:64px;left:40px;display:flex;align-items:center;gap:20px;">
+      <div style="width:64px;height:64px;border-radius:50%;background:#fff;border:2px solid #E3DDD2;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--ink-900);font-weight:700;">‖</div>
+      <div style="font-size:32px;font-weight:700;">第 12 关 · 阶段 1/3</div>
+    </div>
+    <div style="position:absolute;top:176px;left:40px;right:220px;display:flex;align-items:center;gap:36px;font-size:26px;color:var(--ink-500);">
+      <span>已清 <b style="color:var(--ink-900);">18</b>/48</span>
+      <span style="color:var(--jade-600);font-weight:800;font-size:34px;">01:24</span>
+      <span style="margin-left:auto;">规则</span>
+    </div>
+    <div style="position:absolute;top:250px;left:24px;right:24px;height:620px;">${pile}</div>
+    <div style="position:absolute;top:930px;left:45px;display:flex;gap:6px;padding:14px;background:var(--jade-100);border-radius:22px;">${slots}</div>
+    <div style="position:absolute;top:1096px;left:98px;display:flex;gap:32px;">${itemBar}</div>
+  `)]);
+})();
+
+/* ⑤a 结算 · 胜 */
+(function(){
+  let coins='';
+  for(let i=0;i<26;i++){
+    const l=2+Math.random()*96, t=Math.random()*46, s=16+Math.random()*22;
+    coins+=`<div style="position:absolute;left:${l}%;top:${t}%;width:${s}px;height:${s}px;border-radius:50%;
+      background:${Math.random()>.42?'var(--gold-200)':'var(--gold-500)'};box-shadow:0 2px 4px rgba(217,169,74,.4);opacity:.95;"></div>`;
+  }
+  P.push(['⑤a 结算页 · 胜','唯一峰值 = 金币雨（金币 + 元宝，中式讨彩头口径），吉祥物「欢呼」态可加在标题旁。', S(`
+    <div style="position:absolute;inset:0;background:var(--bg-base);"></div>
+    <div style="position:absolute;inset:0;background:rgba(247,244,238,.66);"></div>
+    <div style="position:absolute;inset:0;">${coins}</div>
+    <div style="position:absolute;left:82px;right:82px;top:330px;background:#fff;border-radius:40px;border:2px solid var(--line);box-shadow:0 20px 44px rgba(43,43,43,.16);padding:60px 48px 56px;text-align:center;">
+      <div style="position:absolute;top:-100px;left:50%;transform:translateX(-50%);">${mascotSVG(150,'cheer')}</div>
+      <div style="font-size:52px;font-weight:800;color:var(--jade-600);letter-spacing:.18em;margin-top:40px;">通 关 啦</div>
+      <div style="font-size:26px;color:var(--ink-500);margin-top:18px;">第 12 关 · 阶段 3/3 · 用时 01:24</div>
+      <div style="display:flex;justify-content:center;gap:14px;margin-top:36px;">
+        ${['coin','coin','coin'].map(()=>`<div style="width:76px;height:76px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--gold-200),var(--gold-500));border:4px solid #C99A38;"></div>`).join('')}
+      </div>
+      <div style="margin-top:44px;height:112px;border-radius:56px;background:linear-gradient(180deg,var(--jade-400),var(--jade-600));box-shadow:0 10px 20px rgba(46,139,111,.28);display:flex;align-items:center;justify-content:center;color:#fff;font-size:36px;font-weight:700;">下一关</div>
+      <div style="margin-top:20px;height:88px;border-radius:44px;background:#F4EFE6;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink-500);font-size:28px;">返回首页</div>
+      <div style="margin-top:24px;font-size:24px;color:var(--gold-500);font-weight:700;">看广告 · 金币翻倍</div>
+    </div>
+  `)]);
+})();
+
+/* ⑤b 结算 · 负 */
+P.push(['⑤b 结算页 · 负','失败不炸：牌堆淡出收走；复活 = 槽内最后 4 张直消（唯一大额广告位，1 次/局）。', S(`
+  <div style="position:absolute;inset:0;background:var(--bg-base);"></div>
+  <div style="position:absolute;inset:0;background:rgba(43,43,43,.10);"></div>
+  <div style="position:absolute;left:82px;right:82px;top:400px;background:#fff;border-radius:40px;border:2px solid var(--line);box-shadow:0 20px 44px rgba(43,43,43,.16);padding:60px 48px 56px;text-align:center;">
+    <div style="position:absolute;top:-110px;left:50%;transform:translateX(-50%);">${mascotSVG(150)}</div>
+    <div style="font-size:50px;font-weight:800;color:var(--ink-900);letter-spacing:.16em;margin-top:44px;">差 一 点</div>
+    <div style="font-size:26px;color:var(--ink-500);margin-top:18px;">已清 42/48 · 槽位已满</div>
+    <div style="margin-top:40px;height:112px;border-radius:56px;background:linear-gradient(180deg,var(--gold-500),#C99A38);box-shadow:0 10px 20px rgba(217,169,74,.30);display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;font-weight:700;">▶ 看广告复活</div>
+    <div style="margin-top:14px;font-size:22px;color:var(--ink-500);">复活后：槽内最后 4 张直接消除</div>
+    <div style="margin-top:26px;height:88px;border-radius:44px;background:#F4EFE6;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink-500);font-size:28px;">放弃本局</div>
+  </div>
+`)]);
+
+/* ⑥ 奖励页 */
+(function(){
+  let days='';
+  for(let i=0;i<7;i++){
+    const done=i<3, can=i===3;
+    const bg=done?'var(--jade-100)':(can?'#FAF1DC':'#F4EFE6');
+    const fg=done?'var(--jade-600)':(can?'var(--gold-500)':'#B9B2A6');
+    const ic=done?'✓':(can?'🎁':(i+1));
+    days+=`<div style="aspect-ratio:1;border-radius:16px;background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:${fg};">
+      ${ic}<div style="font-size:16px;font-weight:400;color:#7A7A7A;margin-top:4px;">${['消除','移出','洗牌','加槽','双份','双份','任选'][i]}</div></div>`;
+  }
+  P.push(['⑥ 奖励页 · 签到','七格日历：已领青玉勾 / 可领暖金呼吸 / 未到灰；奖励全为四件套道具。', S(`
+    <div style="position:absolute;inset:0;background:rgba(247,244,238,.72);"></div>
+    <div style="position:absolute;left:96px;right:96px;top:430px;background:#fff;border-radius:36px;border:2px solid var(--line);box-shadow:0 18px 40px rgba(43,43,43,.15);padding:48px 44px;">
+      <div style="font-size:36px;font-weight:800;text-align:center;letter-spacing:.14em;">七 日 签 到</div>
+      <div style="font-size:22px;color:var(--ink-500);text-align:center;margin-top:10px;">连续签到不清零，满 7 日循环</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:36px;">${days}</div>
+      <div style="margin-top:36px;height:100px;border-radius:50px;background:linear-gradient(180deg,var(--jade-400),var(--jade-600));display:flex;align-items:center;justify-content:center;color:#fff;font-size:32px;font-weight:700;">领取今日奖励</div>
+    </div>
+  `)]);
+})();
+
+document.getElementById('pages').innerHTML = P.map(([cap,note,html])=>`
+  <div class="pagebox">
+    <div class="cap">${cap}<small>${note}</small></div>
+    <div class="frame">${html}</div>
+  </div>`).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{
+ "A": {
+  "axis": 20,
+  "powIn": 1.8,
+  "tauOut": 100,
+  "sweep": 245,
+  "spinRim": 1010,
+  "squashAmp": 0.17
+ },
+ "B": {
+  "sep0": 150,
+  "lock": 60,
+  "sep1": 122,
+  "mid0": 275,
+  "midSpan": 480,
+  "dip": 0.09,
+  "spinRate": 1400,
+  "sepPow": 1.5,
+  "squashAmp": 0.15
+ },
+ "C": {
+  "twA": 190,
+  "twB": 230,
+  "recoil": 30,
+  "r0k": 0.62,
+  "gap0": 0.55,
+  "powOut": 1.6,
+  "swPow": 1.45,
+  "spinRate": 900,
+  "dir": 1,
+  "dip": 0.12,
+  "squashAmp": 0.16
+ }
+}

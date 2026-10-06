@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>game-5 · 启动页 v7-B ·《麻麻大消除》</title>
+<style>
+/* ============================================================
+   启动页 v7 · 设计画布 750×1334（1:1 设计值，坐标可直抄进 Cocos）
+   风格定位：奢华精致 × 趣味玩具（麻将桌绿绒 + 象牙白 + 金）
+   记忆点：吉祥物悬浮呼吸 + 绒布光池；进场交错动画
+   ============================================================ */
+:root{
+  --cream:#FFF7E6; --cream-dim:#D8E8DC;
+  --gold:#F6C445; --gold-hi:#FFE08A;
+  --ink:#4A2B18; --felt:#20694E;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#12140F;font-family:"PingFang SC","Hiragino Sans GB",sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:26px 16px;gap:16px}
+/* 手机框：750×1334 → 372×660 */
+.frame{width:372px;height:660px;overflow:hidden;border-radius:20px;
+  box-shadow:0 24px 60px rgba(0,0,0,.65),0 4px 14px rgba(0,0,0,.5);position:relative;flex:none}
+.screen{width:750px;height:1334px;transform:scale(.48);transform-origin:0 0;position:relative;overflow:hidden;background:var(--felt)}
+
+/* ── 背景层：绒布资产 + 三层氛围（暗角/顶光/光池） ── */
+.tablebg{position:absolute;inset:0;background:url("assets/splash/bg_felt.jpg") center/cover no-repeat}
+.vignette{position:absolute;inset:0;
+  background:radial-gradient(150% 100% at 50% 40%, transparent 52%, rgba(0,0,0,.32) 100%)}
+.toplight{position:absolute;inset:0;
+  background:linear-gradient(180deg, rgba(255,251,230,.07), transparent 22%)}
+.lightpool{position:absolute;left:65px;top:720px;width:620px;height:460px;
+  background:radial-gradient(closest-side, rgba(255,244,200,.13), rgba(255,244,200,.05) 45%, transparent 72%)}
+
+/* ── 进场动画（交错延迟，600ms 内完成不拖沓） ── */
+@keyframes settle{from{opacity:0;transform:translateY(26px) scale(.96)}to{opacity:1;transform:none}}
+.settle{opacity:0;animation:settle .55s cubic-bezier(.22,.9,.32,1.2) forwards}
+
+/* ── LOGO 层 ── */
+.logoL{position:absolute;top:160px;left:25px;width:700px;z-index:3}
+.logoL img{width:100%;display:block;filter:drop-shadow(0 14px 18px rgba(0,0,0,.42))}
+
+/* ── 点缀：骰子 / 铜钱（非对称排布，呼应标题拱形的两端） ── */
+.diceL{position:absolute;top:468px;left:566px;width:108px;z-index:4;transform:rotate(-10deg);
+  filter:drop-shadow(0 10px 12px rgba(0,0,0,.4))}
+.diceL.settle{animation-name:settleDice}
+@keyframes settleDice{from{opacity:0;transform:translateY(26px) rotate(-2deg) scale(.9)}
+  to{opacity:1;transform:rotate(-10deg)}}
+.coinL{position:absolute;top:502px;left:84px;width:76px;z-index:4;transform:rotate(-14deg);
+  filter:drop-shadow(0 8px 10px rgba(0,0,0,.4))}
+.coinL.settle{animation-name:settleCoin}
+@keyframes settleCoin{from{opacity:0;transform:translateY(26px) rotate(-4deg) scale(.9)}
+  to{opacity:1;transform:rotate(-14deg)}}
+
+/* ── 吉祥物：外层进场 + 内层悬浮呼吸；光池与接触投影配套 ── */
+.mascotWrap{position:absolute;top:560px;left:0;width:750px;z-index:3}
+.mascotFloat{animation:floaty 3.4s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.mascotFloat img{width:480px;display:block;margin:0 auto;
+  filter:drop-shadow(0 20px 16px rgba(0,0,0,.30))}
+.contactShadow{position:absolute;top:968px;left:205px;width:340px;height:56px;z-index:2;
+  background:radial-gradient(closest-side, rgba(0,0,0,.38), rgba(0,0,0,.16) 55%, transparent 75%);
+  animation:shadowPulse 3.4s ease-in-out infinite;transform-origin:center}
+@keyframes shadowPulse{0%,100%{transform:scaleX(1);opacity:1}50%{transform:scaleX(.85);opacity:.62}}
+
+/* ── 进度条：轨道/填充用切好的 UI 资产 ── */
+.loadwrap{position:absolute;left:110px;top:1104px;width:530px;z-index:3}
+.loadtrack{width:530px;height:44px;position:relative;
+  background:url("assets/splash/ui_progress_track@2x.png") 0 0/530px 44px no-repeat}
+.loadfill{position:absolute;left:5px;top:5px;width:85px;height:34px;
+  background:url("assets/splash/ui_progress_fill@2x.png") 0 0/85px 34px no-repeat}
+.loadsweep{position:absolute;top:6px;left:0;width:150px;height:32px;overflow:hidden;border-radius:16px}
+.loadsweep::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(105deg, transparent 12%, rgba(255,255,255,.16) 46%, transparent 78%);
+  animation:sweep 2.8s ease-in-out infinite}
+@keyframes sweep{0%{transform:translateX(-170px)}55%,100%{transform:translateX(660px)}}
+.loadpct{margin-top:10px;text-align:center;font-size:26px;font-weight:800;letter-spacing:2px;
+  color:var(--gold);text-shadow:0 2px 4px rgba(0,0,0,.5)}
+
+/* ── 忠告：金色细线 + 字距排版 ── */
+.notice{position:absolute;left:60px;right:60px;top:1200px;text-align:center;z-index:3;color:var(--cream)}
+.notice .rule{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.notice .rule::before,.notice .rule::after{content:"";flex:1;height:1px;
+  background:linear-gradient(90deg, transparent, rgba(246,196,69,.55))}
+.notice .rule::after{background:linear-gradient(90deg, rgba(246,196,69,.55), transparent)}
+.notice .rule b{font-size:24px;font-weight:700;letter-spacing:6px;color:var(--cream);
+  text-shadow:0 2px 4px rgba(0,0,0,.5);white-space:nowrap}
+.notice p{font-size:18px;line-height:1.7;letter-spacing:.5px;color:var(--cream-dim);
+  text-shadow:0 1px 3px rgba(0,0,0,.5)}
+
+/* 延迟编排：标题→点缀→吉祥物→进度→忠告 */
+.d1{animation-delay:.08s}.d2{animation-delay:.22s}.d3{animation-delay:.34s}
+.d4{animation-delay:.48s}.d5{animation-delay:.62s}.d6{animation-delay:.74s}
+
+.cap{font-size:13px;color:#8A967F;letter-spacing:1px}
+.cap em{font-style:normal;color:var(--gold);font-weight:700}
+</style>
+</head>
+<body>
+<div class="frame"><div class="screen">
+  <!-- 背景：绒布 + 氛围三层 -->
+  <div class="tablebg"></div>
+  <div class="vignette"></div>
+  <div class="toplight"></div>
+  <div class="lightpool"></div>
+
+  <!-- 接触投影（随吉祥物呼吸缩放） -->
+  <div class="contactShadow"></div>
+
+  <!-- 标题 -->
+  <div class="logoL settle d1"><img src="assets/splash/logo_b.png" draggable="false"></div>
+
+  <!-- 点缀 -->
+  <img class="diceL settle d3" src="assets/splash/dice.png" draggable="false">
+  <img class="coinL settle d4" src="assets/splash/coin.png" draggable="false">
+
+  <!-- 吉祥物（进场 + 悬浮呼吸） -->
+  <div class="mascotWrap settle d2"><div class="mascotFloat">
+    <img src="assets/splash/mascot.png" draggable="false">
+  </div></div>
+
+  <!-- 进度条 + 百分比 -->
+  <div class="loadwrap settle d5">
+    <div class="loadtrack"><div class="loadfill"></div><div class="loadsweep"></div></div>
+    <div class="loadpct">16%</div>
+  </div>
+
+  <!-- 健康游戏忠告 -->
+  <div class="notice settle d6">
+    <div class="rule"><b>健康游戏忠告</b></div>
+    <p>抵制不良游戏，拒绝盗版游戏。注意自我保护，谨防受骗上当。<br>适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。</p>
+  </div>
+</div></div>
+<div class="cap">启动页 v7 · 标题 <em>B</em> 版 · 备选存档 · 750×1334 设计值 1:1</div>
+</body>
+</html>

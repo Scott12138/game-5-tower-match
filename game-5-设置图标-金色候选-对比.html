@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>设置图标 · 金色风格候选 3 版 · 待拍板</title>
+<style>
+  :root{
+    --felt1:#0d2b1e; --felt2:#082015;
+    --gold:#f6c445; --gold-hi:#ffe08a; --cream:#fff7e6;
+    --ink:#0a1a12;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(900px 520px at 50% -10%, rgba(246,196,69,.10), transparent 70%),
+      linear-gradient(180deg,#071410,#04100b);
+    color:#e8f0e9;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    padding:38px 40px 56px}
+  h1{margin:0 0 6px;font-size:26px;letter-spacing:3px;color:var(--gold-hi);
+     text-shadow:0 2px 10px rgba(246,196,69,.28)}
+  .sub{font-size:13px;color:rgba(232,240,233,.55);letter-spacing:1px;margin-bottom:26px}
+  h2{font-size:15px;letter-spacing:2px;color:rgba(255,224,138,.92);margin:34px 0 14px;
+     padding-left:11px;border-left:3px solid rgba(246,196,69,.7)}
+  /* ── 候选卡 ── */
+  .grid{display:flex;gap:18px;flex-wrap:wrap}
+  .card{width:268px;border-radius:16px;overflow:hidden;
+    background:linear-gradient(180deg,rgba(9,45,31,.9),rgba(5,24,16,.95));
+    border:1px solid rgba(246,196,69,.22);box-shadow:0 12px 26px rgba(0,0,0,.45)}
+  .card .hd{padding:11px 14px;font-size:13.5px;letter-spacing:1px;color:var(--cream);
+    border-bottom:1px solid rgba(246,196,69,.16);display:flex;justify-content:space-between;align-items:center}
+  .card .hd em{font-style:normal;font-size:11px;color:rgba(255,224,138,.8)}
+  .card.cur .hd{color:#cfe0d4}
+  .card.cur{opacity:.82}
+  .stage{position:relative;height:246px;display:flex;align-items:center;justify-content:center;
+    background-image:url("assets/splash/bg_felt.jpg");background-size:cover;background-position:center}
+  .stage::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(3,14,9,.34),rgba(3,14,9,.5))}
+  .stage img{position:relative;z-index:2;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(246,196,69,.18))}
+  /* 应用内真实尺寸行（1:1 设计值） */
+  .sizes{display:flex;align-items:flex-end;justify-content:center;gap:26px;
+    padding:16px 10px 6px;background:linear-gradient(180deg,rgba(5,22,15,.95),rgba(3,15,10,.9));
+    border-top:1px solid rgba(246,196,69,.12)}
+  .sz{text-align:center}
+  .sz img{display:block;margin:0 auto;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
+  .sz span{display:block;margin-top:8px;font-size:10.5px;color:rgba(232,240,233,.42);letter-spacing:.5px}
+  .card .ft{padding:10px 14px 13px;font-size:11.5px;line-height:1.55;color:rgba(232,240,233,.62)}
+  .card .ft b{color:rgba(255,224,138,.9);font-weight:600}
+  /* ── 顶栏实测（1:1 复刻首页真实代码） ── */
+  .bars{display:flex;flex-direction:column;gap:14px}
+  .barRow{position:relative;width:750px;height:140px;border-radius:12px;overflow:hidden;
+    background-image:url("assets/splash/bg_felt.jpg");background-size:cover;background-position:center 22%;
+    border:1px solid rgba(246,196,69,.16)}
+  .barRow .tag{position:absolute;right:10px;bottom:8px;font-size:10.5px;color:rgba(255,224,138,.6);z-index:9}
+  .setBtn{position:absolute;left:24px;top:46px;width:88px;height:88px;z-index:7;
+    display:flex;align-items:center;justify-content:center}
+  .setBtn img{width:56px;display:block;opacity:.94;
+    filter:drop-shadow(0 4px 8px rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(246,196,69,.18))}
+  .wallet{position:absolute;left:114px;top:62px;z-index:6;height:56px;
+    display:flex;align-items:center;gap:12px;padding:0 22px 0 8px;border-radius:999px;
+    background:linear-gradient(180deg, rgba(9,45,31,.58), rgba(6,30,21,.72));
+    border:1px solid rgba(246,196,69,.24);
+    box-shadow:0 6px 14px rgba(0,0,0,.32)}
+  .wallet img{width:40px;display:block;flex:none;opacity:.94;filter:drop-shadow(0 3px 5px rgba(0,0,0,.45))}
+  .wallet b{font-size:26px;font-weight:700;color:rgba(255,247,230,.88);letter-spacing:.5px;
+    text-shadow:0 1px 3px rgba(0,0,0,.5);font-variant-numeric:tabular-nums}
+  /* ── 规格表 ── */
+  table{border-collapse:collapse;font-size:12.5px;margin-top:6px}
+  th,td{border:1px solid rgba(246,196,69,.18);padding:8px 13px;text-align:left;color:rgba(232,240,233,.82)}
+  th{background:rgba(246,196,69,.09);color:rgba(255,224,138,.95);font-weight:600;letter-spacing:1px}
+  td b{color:var(--gold-hi)}
+  .note{margin-top:22px;padding:14px 18px;border-radius:12px;font-size:12.5px;line-height:1.8;
+    background:rgba(246,196,69,.07);border:1px solid rgba(246,196,69,.24);color:rgba(232,240,233,.8)}
+  .note b{color:var(--gold-hi)}
+</style>
+</head>
+<body>
+
+<h1>设置图标 · 金色风格候选（3 版待拍板）</h1>
+<div class="sub">用途：微信小游戏《麻麻大消除》首页顶栏设置入口 · 显示规格 56 设计值 = 28pt · 全部 1:1 真实尺寸渲染在绒布毡面上</div>
+
+<h2>① 候选对照（含现版白齿轮）</h2>
+<div class="grid">
+  <div class="card cur">
+    <div class="hd"><span>现版（待替换）</span><em>白填充</em></div>
+    <div class="stage"><img src="assets/home/settings.png" style="width:224px"></div>
+    <div class="sizes">
+      <div class="sz"><img src="assets/home/settings.png" style="width:56px"><span>56（真实）</span></div>
+      <div class="sz"><img src="assets/home/settings.png" style="width:112px"><span>112</span></div>
+    </div>
+    <div class="ft">内芯为不透明奶油白 → 在深毡面上是一枚<b>白色齿轮</b>，与全站金色语言脱节，且白块在暗底上偏跳。</div>
+  </div>
+
+  <div class="card">
+    <div class="hd"><span>A · 极简金线</span><em>与静音/音符同族</em></div>
+    <div class="stage"><img src="docs-verify/game-5/home/cand/settings_gold_a.png" style="width:224px"></div>
+    <div class="sizes">
+      <div class="sz"><img src="docs-verify/game-5/home/cand/settings_gold_a.png" style="width:56px"><span>56（真实）</span></div>
+      <div class="sz"><img src="docs-verify/game-5/home/cand/settings_gold_a.png" style="width:112px"><span>112</span></div>
+    </div>
+    <div class="ft">纯金线镂空（10 齿 + 内环），线宽与<b>静音/音符图标完全一致</b>。最轻、最协调，静态不抢戏。</div>
+  </div>
+
+  <div class="card">
+    <div class="hd"><span>B · 立体金质</span><em>质感最强</em></div>
+    <div class="stage"><img src="docs-verify/game-5/home/cand/settings_gold_b.png" style="width:224px"></div>
+    <div class="sizes">
+      <div class="sz"><img src="docs-verify/game-5/home/cand/settings_gold_b.png" style="width:56px"><span>56（真实）</span></div>
+      <div class="sz"><img src="docs-verify/game-5/home/cand/settings_gold_b.png" style="width:112px"><span>112</span></div>
+    </div>
+    <div class="ft">实心厚金 + 錾刻倒角 + 金属拉丝，中心孔通透。与<b>金币/骰子</b>同一金属语言，体量感最强。</div>
+  </div>
+
+  <div class="card">
+    <div class="hd"><span>C · 墨绿玉钮</span><em>与四功能图标同族</em></div>
+    <div class="stage"><img src="docs-verify/game-5/home/cand/settings_gold_c.png" style="width:224px"></div>
+    <div class="sizes">
+      <div class="sz"><img src="docs-verify/game-5/home/cand/settings_gold_c.png" style="width:56px"><span>56（真实）</span></div>
+      <div class="sz"><img src="docs-verify/game-5/home/cand/settings_gold_c.png" style="width:112px"><span>112</span></div>
+    </div>
+    <div class="ft">正圆青玉钮 + 金双环 + 金齿轮，与<b>四功能图标（墨绿玉牌 + 金符号）同族</b>；玉体在暗毡上略沉，但最"整"。</div>
+  </div>
+</div>
+
+<h2>② 顶栏实测（1:1 复刻首页真实代码：齿轮 + 金币胶囊同排）</h2>
+<div class="bars">
+  <div class="barRow">
+    <div class="setBtn"><img src="assets/home/settings.png"></div>
+    <div class="wallet"><img src="assets/home/coin_icon.png"><b>1,280</b></div>
+    <div class="tag">现版 · 白色齿轮（对照）</div>
+  </div>
+  <div class="barRow">
+    <div class="setBtn"><img src="docs-verify/game-5/home/cand/settings_gold_a.png"></div>
+    <div class="wallet"><img src="assets/home/coin_icon.png"><b>1,280</b></div>
+    <div class="tag">A · 极简金线</div>
+  </div>
+  <div class="barRow">
+    <div class="setBtn"><img src="docs-verify/game-5/home/cand/settings_gold_b.png"></div>
+    <div class="wallet"><img src="assets/home/coin_icon.png"><b>1,280</b></div>
+    <div class="tag">B · 立体金质</div>
+  </div>
+  <div class="barRow">
+    <div class="setBtn"><img src="docs-verify/game-5/home/cand/settings_gold_c.png"></div>
+    <div class="wallet"><img src="assets/home/coin_icon.png"><b>1,280</b></div>
+    <div class="tag">C · 墨绿玉钮</div>
+  </div>
+</div>
+
+<h2>③ 规格与取舍</h2>
+<table>
+  <tr><th>方案</th><th>材质语言</th><th>28pt 可辨性</th><th>与全站一致性</th><th>工程体积</th><th>风险</th></tr>
+  <tr><td><b>A 极简金线</b></td><td>纯金线镂空</td><td>良好（线宽≈1.7pt）</td><td>★★★ 与静音/音符同族</td><td>15 KB</td><td>细线在极小屏偏弱</td></tr>
+  <tr><td><b>B 立体金质</b></td><td>实心厚金 + 拉丝</td><td>优秀（块面大）</td><td>★★★ 与金币/骰子同族</td><td>26 KB</td><td>体量偏重，需与金币拉开层级</td></tr>
+  <tr><td><b>C 墨绿玉钮</b></td><td>玉钮 + 金齿轮</td><td>优秀</td><td>★★★ 与四功能图标同族</td><td>34 KB</td><td>玉体与顶栏底毡近色，轮廓略糊</td></tr>
+</table>
+
+<div class="note">
+  <b>我的建议</b>：若你希望设置入口"存在但不抢金币的主"，选 <b>A 极简金线</b>（与静音/音符天然同族，最省视觉额度）；若你希望顶栏两枚图标都有分量感、质感优先，选 <b>B 立体金质</b>（与金币同族，28pt 下最清晰）。<b>C 的玉钮在深毡上轮廓偏沉</b>，除非你想让设置入口也具备"玉牌"家族身份，否则不建议放在顶栏小尺寸处。<br>
+  <b>本轮尚未改动首页</b>——等你拍板后我再把选定方案接进 <code>game-5-首页.html</code>（顺手补上"选中态/按压态"与热区复核）。
+</div>
+
+</body>
+</html>

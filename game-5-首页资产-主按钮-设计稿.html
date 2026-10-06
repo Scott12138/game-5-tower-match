@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>game-5 · 首页主按钮 · 设计稿 v2</title>
+<style>
+/* ============ 主按钮设计稿 ============
+   美学方向：奢华精致（墨绿玉 × 金）
+   核心记忆点：金渐变立体字 + 表面扫光
+   工艺：AI 玉牌底板九宫格切三段，中段水平拉伸（金线横平直、玉纹云雾状，拉伸无损）
+   ==================================== */
+:root{--gold:#F6C445;--gold-hi:#FFEFB8;--gold-dk:#C8912B;--cream:#FFF7E6;--bg:#0D120D}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:
+  radial-gradient(1200px 500px at 50% -10%, rgba(38,66,44,.35), transparent 70%),
+  var(--bg);
+  color:var(--cream);font-family:"PingFang SC","Hiragino Sans GB",sans-serif;
+  padding:36px 24px 50px;display:flex;flex-direction:column;align-items:center;gap:18px}
+h1{font-family:"Songti SC","STSong",serif;font-size:26px;font-weight:900;letter-spacing:6px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-dk));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:13px;color:#8A967F;letter-spacing:2px;margin-top:-10px}
+h2{font-size:15px;font-weight:800;letter-spacing:3px;color:var(--gold);margin-top:14px;
+  display:flex;align-items:center;gap:10px}
+h2::before,h2::after{content:"";width:34px;height:1px;background:linear-gradient(90deg,transparent,var(--gold));opacity:.5}
+h2::after{background:linear-gradient(90deg,var(--gold),transparent)}
+
+/* ---------- 九宫格按钮组件 ---------- */
+.btn{position:relative;display:flex;border-radius:999px;overflow:hidden;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5));
+  transition:transform .12s ease, filter .12s ease}
+.btn .cap{height:100%;display:block;flex:none}
+.btn .mid{flex:1;height:100%;background:url("assets/home/btn9_mid.png");background-size:100% 100%}
+.btn .txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;pointer-events:none}
+/* 主字：金渐变立体字（drop-shadow 做 Z 轴投影，避免 text-shadow 透过透明字） */
+.btn .txt b{font-weight:900;
+  background:linear-gradient(180deg,var(--gold-hi) 4%,var(--gold) 46%,#E8B33A 54%,var(--gold-dk) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 3px rgba(0,22,12,.72)) drop-shadow(0 0 14px rgba(246,196,69,.22))}
+.btn .txt i{font-style:normal;color:rgba(255,247,230,.72);text-shadow:0 2px 3px rgba(0,20,10,.6)}
+/* 记忆点：表面扫光（低透明度斜向高光，缓慢掠过） */
+.btn .sheen{position:absolute;inset:0;border-radius:999px;overflow:hidden;pointer-events:none}
+.btn .sheen::before{content:"";position:absolute;top:-25%;bottom:-25%;width:32%;left:-45%;
+  background:linear-gradient(105deg,transparent 8%,rgba(255,255,255,.15) 50%,transparent 92%);
+  animation:sheen 4.4s ease-in-out infinite}
+@keyframes sheen{0%,52%{left:-45%}88%,100%{left:115%}}
+/* 融合层：左右压暗把中段/端段接缝融进圆柱光影逻辑（拟物：中央受光、两侧转暗） */
+.btn .shade{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(2,24,13,.40),rgba(2,24,13,0) 22%,rgba(2,24,13,0) 78%,rgba(2,24,13,.40)),
+             linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0) 30%,rgba(0,20,10,.16) 88%)}
+/* 按压态 */
+.btn.pressed{transform:translateY(4px) scale(.985);filter:drop-shadow(0 3px 4px rgba(0,0,0,.55)) brightness(.93)}
+
+/* ---------- 对照区：v1 vs v2 ---------- */
+.row{display:flex;gap:26px;align-items:flex-end;flex-wrap:wrap;justify-content:center}
+.figure{display:flex;flex-direction:column;align-items:center;gap:10px}
+.figure .imgwrap{background:url("assets/splash/bg_felt.jpg") center/cover;border-radius:14px;
+  padding:26px 34px;box-shadow:0 14px 30px rgba(0,0,0,.5);position:relative}
+.figure .imgwrap::before{content:"";position:absolute;inset:0;border-radius:14px;
+  background:radial-gradient(140% 100% at 50% 35%,transparent 55%,rgba(0,0,0,.32))}
+.figure .imgwrap>*{position:relative;z-index:1}
+.figure img{display:block;filter:drop-shadow(0 10px 12px rgba(0,0,0,.45))}
+.figure .tag{font-size:12.5px;color:#A8B69C;letter-spacing:1px}
+.figure .tag b{color:var(--gold)}
+.badge{position:absolute;top:10px;left:10px;z-index:2;font-size:11px;letter-spacing:2px;
+  background:rgba(246,196,69,.14);border:1px solid rgba(246,196,69,.5);color:var(--gold);
+  border-radius:999px;padding:3px 10px}
+
+/* ---------- 三方案并排（scale .5 实测） ---------- */
+.cmp{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.cell{display:flex;flex-direction:column;align-items:center;gap:9px}
+.frame{width:375px;height:266px;position:relative;overflow:hidden;border-radius:14px;
+  background:url("assets/splash/bg_felt.jpg") center/cover;box-shadow:0 14px 30px rgba(0,0,0,.5)}
+.frame::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(140% 100% at 50% 35%,transparent 55%,rgba(0,0,0,.32));z-index:0}
+.design{position:absolute;left:0;top:0;width:750px;height:532px;transform:scale(.5);transform-origin:0 0;z-index:1}
+.cell .tag{font-size:12.5px;color:#A8B69C;letter-spacing:1px}
+.cell .tag b{color:var(--gold)}
+.cell .pick .tag{color:var(--gold)}
+
+/* ---------- 文字排版放大细节 ---------- */
+.zoom{background:url("assets/splash/bg_felt.jpg") center/cover;border-radius:14px;padding:34px 60px;
+  box-shadow:0 14px 30px rgba(0,0,0,.5);position:relative;overflow:hidden}
+.zoom::before{content:"";position:absolute;inset:0;background:radial-gradient(140% 100% at 50% 35%,transparent 55%,rgba(0,0,0,.32))}
+.zoom>*{position:relative;z-index:1}
+.zoom .btn{zoom:1.5}
+.spec{max-width:860px;background:rgba(255,255,255,.03);border:1px solid rgba(246,196,69,.25);
+  border-radius:12px;padding:16px 24px;font-size:13px;line-height:2;color:#C9D6C0;letter-spacing:.5px}
+.spec b{color:var(--gold)}
+.spec code{background:rgba(246,196,69,.1);border-radius:5px;padding:1px 7px;color:var(--gold-hi);
+  font-family:"SF Mono",Menlo,monospace;font-size:12px}
+</style>
+</head>
+<body>
+<h1>首页主按钮 · 设计稿 v2</h1>
+<div class="sub">AI 重出修长底板（≈2.4:1 出图）+ 九宫格三段拉伸 · 金渐变立体字 · 表面扫光 · 750 设计值</div>
+
+<h2>底板迭代对照</h2>
+<div class="row">
+  <div class="figure">
+    <div class="imgwrap"><img src="assets/_src/home/btn_primary.png" style="width:230px" alt=""></div>
+    <div class="tag">v1 原底板 · 885×519 · <b>1.71:1</b>（矮胖）</div>
+  </div>
+  <div class="figure">
+    <div class="imgwrap"><span class="badge">新版</span><img src="assets/_src/home/btn_primary_v2.png" style="width:230px" alt=""></div>
+    <div class="tag">v2 重出 · 890×467 · <b>1.91:1</b> → 九宫格可拉至 2.2~2.6:1</div>
+  </div>
+</div>
+
+<h2>三档尺寸方案（首页布局 ½ 缩放实测 · 文字排版已重调）</h2>
+<div class="cmp">
+  <!-- 方案一 360×150 -->
+  <div class="cell">
+    <div class="frame"><div class="design">
+      <div class="btn" style="position:absolute;left:195px;top:186px;width:360px;height:150px">
+        <img class="cap" src="assets/home/btn9_left.png" alt="">
+        <div class="mid"></div><img class="cap" src="assets/home/btn9_right.png" alt="">
+        <div class="shade"></div><div class="sheen"></div>
+        <div class="txt"><b style="font-size:40px;letter-spacing:9px;text-indent:9px">开始游戏</b>
+          <i style="font-size:14px;letter-spacing:4px">继续 · 第 3 关</i></div>
+      </div>
+    </div></div>
+    <div class="tag">方案一 · <b>360×150</b> · 2.40:1</div>
+  </div>
+  <!-- 方案二 320×140（推荐） -->
+  <div class="cell pick">
+    <div class="frame"><div class="design">
+      <div class="btn" style="position:absolute;left:215px;top:191px;width:320px;height:140px">
+        <img class="cap" src="assets/home/btn9_left.png" alt="">
+        <div class="mid"></div><img class="cap" src="assets/home/btn9_right.png" alt="">
+        <div class="shade"></div><div class="sheen"></div>
+        <div class="txt"><b style="font-size:36px;letter-spacing:8px;text-indent:8px">开始游戏</b>
+          <i style="font-size:13px;letter-spacing:4px">继续 · 第 3 关</i></div>
+      </div>
+    </div></div>
+    <div class="tag">方案二 · <b>320×140</b> · 2.29:1 · 推荐</div>
+  </div>
+  <!-- 方案三 280×124 -->
+  <div class="cell">
+    <div class="frame"><div class="design">
+      <div class="btn" style="position:absolute;left:235px;top:199px;width:280px;height:124px">
+        <img class="cap" src="assets/home/btn9_left.png" alt="">
+        <div class="mid"></div><img class="cap" src="assets/home/btn9_right.png" alt="">
+        <div class="shade"></div><div class="sheen"></div>
+        <div class="txt"><b style="font-size:32px;letter-spacing:7px;text-indent:7px">开始游戏</b>
+          <i style="font-size:12px;letter-spacing:3px">继续 · 第 3 关</i></div>
+      </div>
+    </div></div>
+    <div class="tag">方案三 · <b>280×124</b> · 2.26:1</div>
+  </div>
+</div>
+
+<h2>文字排版细节（1.5× 放大 · 方案二）</h2>
+<div class="zoom">
+  <div class="btn" style="width:320px;height:140px">
+    <img class="cap" src="assets/home/btn9_left.png" alt="">
+    <div class="mid"></div><img class="cap" src="assets/home/btn9_right.png" alt="">
+    <div class="shade"></div><div class="sheen"></div>
+    <div class="txt"><b style="font-size:36px;letter-spacing:8px;text-indent:8px">开始游戏</b>
+      <i style="font-size:13px;letter-spacing:4px">继续 · 第 3 关</i></div>
+  </div>
+</div>
+
+<h2>交互态（按压 = 下沉 + 变暗 + 投影收短）</h2>
+<div class="row">
+  <div class="figure">
+    <div class="btn" style="width:320px;height:140px">
+      <img class="cap" src="assets/home/btn9_left.png" alt="">
+      <div class="mid"></div><img class="cap" src="assets/home/btn9_right.png" alt="">
+      <div class="shade"></div><div class="sheen"></div>
+      <div class="txt"><b style="font-size:36px;letter-spacing:8px;text-indent:8px">开始游戏</b>
+        <i style="font-size:13px;letter-spacing:4px">继续 · 第 3 关</i></div>
+    </div>
+    <div class="tag">默认态</div>
+  </div>
+  <div class="figure">
+    <div class="btn pressed" style="width:320px;height:140px">
+      <img class="cap" src="assets/home/btn9_left.png" alt="">
+      <div class="mid"></div><img class="cap" src="assets/home/btn9_right.png" alt="">
+      <div class="shade"></div>
+        <div class="txt"><b style="font-size:36px;letter-spacing:8px;text-indent:8px">开始游戏</b>
+        <i style="font-size:13px;letter-spacing:4px">继续 · 第 3 关</i></div>
+    </div>
+    <div class="tag">按压态</div>
+  </div>
+</div>
+
+<div class="spec">
+  <b>本轮改动</b>：① 底板按你的意见重出——比 v1 修长、比我上轮提的 3.2:1 适当收小（出图 ≈2.4:1，实际抠得 1.91:1）；② 采用游戏 UI 标准的<b>九宫格工艺</b>（两端圆角固定、中段水平拉伸——金线横平直、玉纹云雾状，拉伸无损），任意比例零成本切换，后续 Cocos 可直接用同款九宫格；③ 文字重排：金渐变立体字（<code>background-clip:text</code> + 双层投影）+ 字距 0.22em + 副标题奶油白小字，另有表面<b>扫光呼吸</b>动效（Cocos 中用遮罩实现）；④ 四枚图标与文字标签维持上轮通过版本不动。<br>
+  <b>待你拍板</b>：三档尺寸选哪一档（我推荐方案二）？主文案用「开始游戏 / 继续游戏」动态，还是固定文案？副标题（继续·第 N 关）保留还是去掉？
+</div>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>game-5 · 规则页（合并定稿）· 完整预览</title>
+<!--
+  ============================================================================
+  规则页（合并定稿）· 完整预览（第 27 轮）
+  ============================================================================
+  用途：**一眼看到合并后的规则页完整内容** —— 打开即是定稿态（不需先点「开始挑战」）。
+        与 game-5-主玩页-排版.html 里的规则页同一份 markup / 同一张图，
+        ✕ 与点遮罩都能真实关闭，另有「重新打开」按钮。
+
+  ★ 内容 = 一张图 assets/_src/game-play/rule-figs/rule-完整规则页.png
+           （标题栏 + 一、碰/吃 示意 + 二、掷骰点数对应表 + 页脚免责声明，@2x 1264×2040）
+     —— 点数对应表**下方那行说明已按要求删除**。
+  ★ 背景里的牌桌是**示意填充**（真牌桌图在主玩页里），本页只为看规则页本身。
+  ★ 唯一可改处 = game-5-规则弹层-内容图-源稿.html；
+     重出 = node docs-verify/game-5/game-play/export_rule_page.mjs
+  ============================================================================
+-->
+<style>
+:root{
+  --cream:#FFF7E6; --gold:#F6C445; --gold-hi:#FFE08A;
+  --shell-0:#060806; --shell-1:#0B100C;
+  --sans:"PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--shell-0);color:var(--cream);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:18px;padding:26px 0 40px}
+h1{font-size:19px;font-weight:600;letter-spacing:.06em;color:var(--gold-hi)}
+h1 small{display:block;font-size:13px;font-weight:400;letter-spacing:.02em;color:#87998C;margin-top:5px}
+.bar{display:flex;gap:12px;align-items:center}
+.bar button{font-family:inherit;font-size:14px;letter-spacing:.05em;color:var(--gold-hi);
+  background:rgba(246,196,69,.10);border:1px solid rgba(246,196,69,.42);border-radius:19px;
+  padding:9px 20px;cursor:pointer}
+.bar button:active{background:rgba(246,196,69,.22)}
+.bar .note{font-size:13px;color:#87998C}
+
+/* 750×1334 设计屏：按 0.5 缩放显示（与真机 375×667 一致） */
+.stage{width:375px;height:667px;position:relative;border-radius:26px;overflow:hidden;
+  background:linear-gradient(180deg,#0C2A20,#071710 60%,#050D09);
+  box-shadow:0 18px 50px rgba(0,0,0,.7), 0 0 0 1px rgba(246,196,69,.16)}
+/* 牌桌示意（真牌桌图见主玩页） */
+.stage::after{content:"";position:absolute;left:50%;top:150px;transform:translateX(-50%);
+  width:330px;height:330px;border-radius:50%;
+  background:radial-gradient(circle at 50% 40%, #1E5C46, #0C2A1F 62%, #071710);
+  border:2px solid rgba(246,196,69,.20)}
+.stage .tips{position:absolute;left:0;right:0;bottom:18px;text-align:center;
+  font-size:11px;color:rgba(201,216,204,.34);letter-spacing:.05em}
+
+/* ── 规则页（与主稿逐字同源）── */
+.ruleOver{position:absolute;inset:0;z-index:58;opacity:0;pointer-events:none;transition:opacity .26s ease}
+.ruleOver.on{opacity:1;pointer-events:auto}
+.ruleOver .rscrim{position:absolute;inset:0;background:rgba(3,8,5,.82);backdrop-filter:blur(3px)}
+.ruleCard{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.5);
+  transform-origin:center;width:632px;border-radius:30px;overflow:hidden;
+  box-shadow:0 30px 70px rgba(0,0,0,.8)}
+.ruleCard img{display:block;width:100%;height:auto}
+.ruleCloseHit{position:absolute;right:18px;top:20px;width:56px;height:56px;border-radius:50%;cursor:pointer}
+</style>
+</head>
+<body>
+
+<h1>规则页（合并定稿）· 完整预览
+  <small>标题栏 + 一、麻将配对消除（碰 / 吃 示意）+ 二、掷骰点数对应表 + 页脚免责声明 —— 已合并为一张图 · 点数表下方说明行已删除</small>
+</h1>
+
+<div class="bar">
+  <button id="btnOpen">重新打开规则页</button>
+  <span class="note">✕ 点击图中右上角关闭按钮 · 或点击卡片外的遮罩，均可关闭</span>
+</div>
+
+<div class="stage">
+  <div class="tips">背景牌桌为示意填充（真牌桌图在主玩页）</div>
+  <!-- 规则页（与 game-5-主玩页-排版.html 同一份 markup） -->
+  <div class="ruleOver on" id="ruleOver">
+    <div class="rscrim" id="ruleScrim"></div>
+    <div class="ruleCard" id="ruleCard">
+      <img class="rulePage" src="./assets/_src/game-play/rule-figs/rule-完整规则页.png"
+           alt="游戏规则。一、麻将配对消除：碰 = 三张完全相同的牌，不限花色，凑齐三张即自动消除；吃 = 同一花色连号三张，凑齐三张即自动消除；被压住的牌不可点，槽位塞满仍未成组则本局失败。二、掷骰点数对应表：和值 2·12 复活档赠复活×1；3·11 加槽档赠加槽×1；4·10 常规档赠移出×1；5·9 常规档赠消除×1；6·8 常规档赠移出×1；7 常规档赠消除×1。页脚：赠礼道具「仅限本局使用」—— 本局结束或提前退出即作废，不计入累积。"
+           width="632" height="1020">
+      <div class="ruleCloseHit" id="btnRuleClose" title="关闭"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var $ = function (id) { return document.getElementById(id); };
+/* 与主稿同名同语义：✕ 热区关闭 · 点遮罩关闭 */
+$('btnRuleClose').addEventListener('click', function () { $('ruleOver').classList.remove('on'); });
+$('ruleScrim').addEventListener('click', function () { $('ruleOver').classList.remove('on'); });
+$('btnOpen').addEventListener('click', function () { $('ruleOver').classList.add('on'); });
+</script>
+</body>
+</html>

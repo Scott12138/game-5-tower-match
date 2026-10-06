@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>game-5 · 六页视觉稿 v2 · 墨绿典藏</title>
+<style>
+/* ============ 设计令牌 · 墨绿典藏（对标竞品方向） ============ */
+:root{
+  --bg-core:#20694E;        /* 场景中心绿 */
+  --bg-mid:#155440;
+  --bg-edge:#0A3327;        /* 暗角边缘 */
+  --ivory:#FDFAF0;          /* 牌面象牙白 */
+  --ivory-2:#F0E7CF;
+  --tile-edge:#E2D4AE;      /* 牌面描边 */
+  --tile-thick:#C7B58B;     /* 牌厚度暗边 */
+  --tile-back:#2E8C63;      /* 牌背面绿 */
+  --ink:#4A2B18;            /* 深棕描边 */
+  --cream:#FFF7E6;          /* 主文字奶油白 */
+  --cream-dim:#CFE5D8;      /* 次级文字 */
+  --gold:#F6C445;           /* 金 */
+  --gold-hi:#FFE08A;
+  --gold-deep:#C98F1F;
+  --red:#D8432F;            /* 红中朱红 */
+  --jade:#3BA97D;
+  --ribbon:#4FA3E0;         /* 吉祥物丝带蓝 */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#232019;
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  padding:34px 30px 60px;
+  color:var(--cream);
+}
+.hd{max-width:1240px;margin:0 auto 26px}
+.hd h1{font-size:26px;font-weight:800;letter-spacing:1px}
+.hd h1 em{font-style:normal;color:var(--gold)}
+.hd p{font-size:13px;color:#9AA79E;margin-top:8px;line-height:1.7}
+.chips{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:7px;background:#2E2B22;border:1px solid #3E3A2C;
+  border-radius:20px;padding:6px 13px;font-size:12px;color:#C9C4B4}
+.chip i{width:16px;height:16px;border-radius:5px;display:inline-block}
+.gallery{display:flex;flex-wrap:wrap;gap:30px;justify-content:center;max-width:1240px;margin:0 auto}
+.wrap{width:372px;flex:none}
+.cap{font-size:13.5px;font-weight:700;color:#E8E2CF;margin-bottom:10px;letter-spacing:.5px}
+.cap small{font-weight:400;color:#8D998F;margin-left:8px;font-size:11.5px}
+/* 手机框：750×1334 设计值，scale(.48) 缩进 372px 宽 */
+.frame{width:372px;height:660px;overflow:hidden;border-radius:18px;
+  box-shadow:0 18px 44px rgba(0,0,0,.5);position:relative}
+.screen{width:750px;height:1334px;transform:scale(.48);transform-origin:0 0;position:relative;overflow:hidden}
+
+/* ============ 通用：墨绿场景底 ============ */
+.felt{position:absolute;inset:0;
+  background:
+    radial-gradient(120% 90% at 50% 38%, var(--bg-core) 0%, var(--bg-mid) 55%, var(--bg-edge) 100%);
+}
+.felt::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(150% 110% at 50% 45%, transparent 58%, rgba(0,0,0,.42) 100%);}
+.leaves{position:absolute;inset:0;opacity:.5}
+
+/* ============ 立体描边亮面标题 ============ */
+.logo{font-weight:900;color:var(--cream);letter-spacing:2px;line-height:1.08;
+  -webkit-text-stroke:0;
+  text-shadow:
+    3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 3px 0 var(--ink), 0 -3px 0 var(--ink),
+    2px 2px 0 var(--ink), -2px 2px 0 var(--ink), 2px -2px 0 var(--ink), -2px -2px 0 var(--ink),
+    0 9px 0 #5C361D, 0 14px 22px rgba(0,0,0,.5);
+}
+.logo .l2{display:block}
+
+/* ============ 玉质厚牌（3D） ============ */
+.tile{
+  background:linear-gradient(160deg,#FFFDF6 0%,var(--ivory) 55%,var(--ivory-2) 100%);
+  border:2.5px solid var(--tile-edge);border-radius:18px;
+  box-shadow:
+    inset 0 3px 4px rgba(255,255,255,.95),
+    inset 0 -3px 5px rgba(180,160,110,.35),
+    0 7px 0 var(--tile-thick),
+    0 16px 20px rgba(0,0,0,.38);
+  display:flex;align-items:center;justify-content:center;
+  color:#245C41;font-weight:900;
+}
+.tile.back{background:linear-gradient(160deg,#3FA377 0%,var(--tile-back) 60%,#1F6B4A 100%);
+  border-color:#1F6B4A;box-shadow:inset 0 3px 5px rgba(255,255,255,.35),0 7px 0 #144D35,0 15px 18px rgba(0,0,0,.35)}
+
+/* 金色立体按钮 */
+.btn-gold{
+  background:linear-gradient(180deg,var(--gold-hi) 0%,var(--gold) 45%,#E8A92E 100%);
+  border:3px solid #8A5A10;border-radius:60px;color:#5C3610;
+  font-weight:900;letter-spacing:6px;
+  box-shadow:0 8px 0 #9A6A15,0 18px 26px rgba(0,0,0,.45),inset 0 3px 4px rgba(255,255,255,.7);
+  display:flex;align-items:center;justify-content:center;
+}
+.btn-ghost{
+  border:3px solid rgba(255,247,230,.55);border-radius:60px;color:var(--cream);
+  background:rgba(0,0,0,.18);font-weight:700;letter-spacing:4px;
+  display:flex;align-items:center;justify-content:center;
+}
+/* 圆形功能钮（首页列/顶栏） */
+.icon-bub{
+  border-radius:50%;
+  background:linear-gradient(180deg,#2C8261,#175844);
+  border:3px solid rgba(255,255,255,.35);
+  box-shadow:0 6px 0 rgba(0,0,0,.28),inset 0 3px 5px rgba(255,255,255,.28);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  color:var(--cream);font-weight:800;
+}
+.icon-bub .ic{font-size:34px;line-height:1}
+.icon-bub .lb{font-size:19px;letter-spacing:1px}
+
+/* ============ ① 启动页 ============ */
+#p1 .logo{position:absolute;top:258px;left:0;right:0;text-align:center;font-size:128px;z-index:3}
+#p1 .logo .l2{margin-top:6px}
+#p1 .logo .tileDeco{position:absolute;display:flex}
+#p1 .mascotSlot{position:absolute;left:0;right:0;top:640px;display:flex;justify-content:center;z-index:3}
+.loadwrap{position:absolute;left:110px;right:110px;top:1108px;z-index:3}
+.loadtrack{height:44px;border-radius:24px;background:#0D2C22;border:3px solid rgba(255,255,255,.28);
+  box-shadow:inset 0 4px 8px rgba(0,0,0,.5);position:relative;overflow:hidden}
+.loadfill{position:absolute;left:5px;top:5px;bottom:5px;width:16%;border-radius:18px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold) 60%,#DFA02A);
+  box-shadow:0 0 14px rgba(246,196,69,.55)}
+.loadpct{position:absolute;left:0;right:0;top:52px;text-align:center;font-size:26px;font-weight:800;color:var(--cream)}
+.notice{position:absolute;left:60px;right:60px;top:1218px;text-align:center;color:var(--cream);z-index:3}
+.notice b{display:block;font-size:24px;letter-spacing:2px;margin-bottom:10px}
+.notice p{font-size:18px;line-height:1.65;color:var(--cream-dim)}
+
+/* ============ ② 首页 ============ */
+.colL{position:absolute;left:26px;top:190px;display:flex;flex-direction:column;gap:26px;z-index:4}
+.colR{position:absolute;right:26px;top:190px;display:flex;flex-direction:column;gap:26px;z-index:4}
+.icon-bub{width:104px;height:104px}
+#p2 .logo{position:absolute;top:180px;left:0;right:0;text-align:center;font-size:104px;z-index:3}
+#p2 .mascotSlot{position:absolute;left:0;right:0;top:520px;display:flex;justify-content:center;z-index:3}
+#p2 .btn-gold{position:absolute;left:175px;right:175px;top:1050px;height:112px;font-size:44px;z-index:4}
+#p2 .btn-ghost{position:absolute;left:255px;right:255px;top:1180px;height:78px;font-size:30px;z-index:4}
+#p2 .ver{position:absolute;bottom:18px;left:0;right:0;text-align:center;font-size:17px;color:rgba(255,247,230,.5);z-index:4}
+.coinbar{position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:4;
+  background:rgba(0,0,0,.28);border:2.5px solid rgba(255,255,255,.3);border-radius:30px;
+  padding:10px 26px;font-size:26px;font-weight:800;color:var(--gold);display:flex;align-items:center;gap:10px}
+.coin{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--gold-hi),var(--gold) 60%,var(--gold-deep));
+  border:2px solid #8A5A10;display:inline-block}
+
+/* ============ ③ 开局页 ============ */
+#p3 .lvtag{position:absolute;top:420px;left:0;right:0;text-align:center;z-index:3}
+#p3 .lvtag .zh{font-size:44px;letter-spacing:8px;color:var(--cream-dim);font-weight:700}
+#p3 .lvtag .num{font-size:150px;font-weight:900;line-height:1.1}
+#p3 .bigtile{position:absolute;left:0;right:0;top:700px;display:flex;justify-content:center;z-index:3}
+#p3 .bigtile .tile{width:220px;height:290px;font-size:130px;position:relative}
+#p3 .hint{position:absolute;top:1130px;left:0;right:0;text-align:center;font-size:28px;
+  color:var(--cream-dim);letter-spacing:4px;z-index:3;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+.glowring{position:absolute;width:340px;height:340px;border-radius:50%;left:205px;top:675px;z-index:2;
+  background:radial-gradient(circle,rgba(246,196,69,.28) 0%,transparent 65%)}
+
+/* ============ ④ 主玩页 ============ */
+.topbar{position:absolute;top:58px;left:36px;right:170px;height:76px;display:flex;align-items:center;gap:18px;z-index:5}
+.pillbtn{width:76px;height:76px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#2C8261,#175844);border:3px solid rgba(255,255,255,.35);
+  box-shadow:0 5px 0 rgba(0,0,0,.28);font-size:34px;font-weight:900;color:var(--cream)}
+.lvbadge{background:rgba(0,0,0,.28);border:2.5px solid rgba(255,255,255,.3);border-radius:40px;
+  height:66px;padding:0 30px;display:flex;align-items:center;font-size:30px;font-weight:800;letter-spacing:2px}
+.subbar{position:absolute;top:150px;left:36px;right:36px;display:flex;gap:14px;z-index:5}
+.stat{background:rgba(0,0,0,.26);border:2px solid rgba(255,255,255,.22);border-radius:16px;
+  height:58px;padding:0 22px;display:flex;align-items:center;gap:10px;font-size:24px;font-weight:700;color:var(--cream)}
+.stat b{color:var(--gold);font-size:28px}
+.stat.time b{color:#FF8A5C}
+.rulebtn{margin-left:auto;width:58px;height:58px;border-radius:14px;background:rgba(0,0,0,.26);
+  border:2px solid rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:900;color:var(--cream)}
+/* 牌堆区 */
+.stackzone{position:absolute;top:250px;left:40px;right:40px;height:640px;z-index:2}
+.stk{position:absolute;width:118px;height:152px}
+.stk .tile{width:100%;height:100%;font-size:60px}
+.stk.small{transform:scale(.86)}
+/* 槽位托盘 */
+.tray{position:absolute;left:32px;right:32px;bottom:196px;height:132px;z-index:5;
+  background:rgba(6,34,26,.55);border:3px solid rgba(255,255,255,.22);border-radius:24px;
+  display:flex;align-items:center;gap:9px;padding:0 12px;box-shadow:inset 0 4px 10px rgba(0,0,0,.35)}
+.slot{width:68px;height:92px;border-radius:12px;background:rgba(255,255,255,.10);
+  border:2px dashed rgba(255,255,255,.28);flex:none}
+.slot.filled{border:none;background:none;box-shadow:none}
+.slot.filled .tile{width:68px;height:92px;font-size:38px;border-radius:12px;
+  box-shadow:inset 0 2px 3px rgba(255,255,255,.9),0 4px 0 var(--tile-thick),0 8px 10px rgba(0,0,0,.35)}
+/* 道具栏 */
+.props{position:absolute;left:32px;right:32px;bottom:52px;height:112px;display:flex;justify-content:space-around;z-index:5}
+.prop{width:104px;height:104px;border-radius:24px;position:relative;
+  background:linear-gradient(180deg,#2C8261,#175844);border:3px solid rgba(255,255,255,.35);
+  box-shadow:0 6px 0 rgba(0,0,0,.28),inset 0 3px 5px rgba(255,255,255,.25);
+  display:flex;align-items:center;justify-content:center;font-size:48px}
+.prop .plus{position:absolute;right:-8px;top:-8px;width:40px;height:40px;border-radius:50%;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold));border:3px solid #8A5A10;
+  color:#5C3610;font-weight:900;font-size:28px;display:flex;align-items:center;justify-content:center}
+.prop .cnt{position:absolute;left:-6px;top:-8px;min-width:36px;height:36px;border-radius:18px;
+  background:#0D2C22;border:2px solid rgba(255,255,255,.35);color:var(--cream);
+  font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 8px}
+
+/* ============ ⑤ 结算弹层（胜/负） ============ */
+.dim{position:absolute;inset:0;background:rgba(4,20,15,.6);z-index:6}
+.modal{position:absolute;left:65px;right:65px;top:360px;z-index:7;border-radius:36px;
+  background:linear-gradient(180deg,#1B6047,#123F30);
+  border:5px solid var(--gold);box-shadow:0 0 0 3px #0A3327,0 24px 50px rgba(0,0,0,.55),inset 0 3px 8px rgba(255,255,255,.18);
+  padding:44px 40px 40px;text-align:center;overflow:visible}
+.modal .ribbonTop{position:absolute;top:-34px;left:50%;transform:translateX(-50%);
+  font-size:88px;font-weight:900;color:var(--cream);letter-spacing:4px;white-space:nowrap;
+  text-shadow:3px 0 0 var(--ink),-3px 0 0 var(--ink),0 3px 0 var(--ink),0 -3px 0 var(--ink),
+    2px 2px 0 var(--ink),-2px -2px 0 var(--ink),0 8px 0 #5C361D,0 14px 20px rgba(0,0,0,.5)}
+.modal .mascotSlot{height:250px;display:flex;justify-content:center;margin-top:30px}
+.modal .desc{font-size:28px;color:var(--cream-dim);margin:6px 0 30px;letter-spacing:2px}
+.modal .btn-gold{height:100px;font-size:40px;margin-bottom:20px}
+.modal .btn-ghost{height:76px;font-size:28px;margin:0 40px}
+.coins{position:absolute;inset:0;pointer-events:none;z-index:8;overflow:hidden}
+.coinfall{position:absolute;width:34px;height:34px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,var(--gold-hi),var(--gold) 60%,var(--gold-deep));
+  border:2.5px solid #8A5A10;box-shadow:0 4px 8px rgba(0,0,0,.4)}
+.rewardrow{display:flex;justify-content:center;gap:22px;margin-bottom:30px}
+.reward{background:rgba(0,0,0,.26);border:2.5px solid rgba(255,255,255,.3);border-radius:18px;
+  width:130px;height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.reward .ic{font-size:48px}
+.reward .tx{font-size:20px;color:var(--cream-dim)}
+
+/* ============ ⑥ 七日签到 ============ */
+#p6 .mtitle{position:absolute;top:430px;left:0;right:0;text-align:center;z-index:7;
+  font-size:64px;font-weight:900;color:var(--cream);letter-spacing:6px;
+  text-shadow:2px 0 0 var(--ink),-2px 0 0 var(--ink),0 2px 0 var(--ink),0 -2px 0 var(--ink),0 7px 0 #5C361D}
+.signgrid{position:absolute;top:560px;left:70px;right:70px;display:flex;flex-wrap:wrap;gap:22px;z-index:7}
+.day{width:184px;height:200px;border-radius:22px;background:linear-gradient(180deg,#1E6049,#144534);
+  border:3px solid rgba(255,255,255,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;position:relative}
+.day .d{font-size:22px;color:var(--cream-dim);letter-spacing:2px}
+.day .ic{font-size:52px}
+.day .tx{font-size:20px;color:var(--cream)}
+.day.done{opacity:.55}
+.day.done::after{content:"✓";position:absolute;right:12px;top:8px;width:38px;height:38px;border-radius:50%;
+  background:var(--jade);color:#fff;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.day.today{border-color:var(--gold);box-shadow:0 0 0 3px rgba(246,196,69,.35),0 10px 22px rgba(0,0,0,.4);
+  background:linear-gradient(180deg,#2C7A5B,#175844)}
+.day.today .d{color:var(--gold);font-weight:800}
+#p6 .btn-gold{position:absolute;left:165px;right:165px;top:1075px;height:100px;font-size:40px;z-index:7}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <h1>game-5 · 六页视觉稿 <em>v2 · 墨绿典藏</em></h1>
+  <p>风格对标：你给的参考截图（深墨绿毡面 + 立体描边亮面标题 + 3D 质感厚牌 + 金色点缀）。画布 750×1334 设计值 1:1，坐标可直接抄进 Cocos 工程。吉祥物为矢量占位（风格已对齐参考图：發牌身 + 星星眼 + 丝带手），定稿后用 AI 按同款 3D 质感重出。</p>
+  <div class="chips">
+    <span class="chip"><i style="background:#20694E"></i>场景绿 core</span>
+    <span class="chip"><i style="background:#0A3327"></i>暗角 edge</span>
+    <span class="chip"><i style="background:#FDFAF0"></i>象牙牌面</span>
+    <span class="chip"><i style="background:#F6C445"></i>点缀金</span>
+    <span class="chip"><i style="background:#D8432F"></i>红中朱红</span>
+    <span class="chip"><i style="background:#4FA3E0"></i>丝带蓝</span>
+  </div>
+</div>
+
+<div class="gallery">
+
+<!-- ① 启动页 -->
+<div class="wrap">
+  <div class="cap">① 启动页<small>对标参考图 · 进度条 + 忠告</small></div>
+  <div class="frame"><div class="screen" id="p1">
+    <div class="felt"></div>
+    <svg class="leaves" viewBox="0 0 750 1334">
+      <g fill="rgba(255,255,255,.05)">
+        <path d="M60,150 Q140,90 230,120 Q170,190 60,150Z"/>
+        <path d="M120,220 Q220,190 280,240 Q200,280 120,220Z"/>
+        <path d="M620,1050 Q700,1000 720,1080 Q640,1110 620,1050Z"/>
+      </g>
+      <g fill="rgba(0,0,0,.14)">
+        <path d="M600,120 Q690,80 730,150 Q640,190 600,120Z"/>
+        <path d="M40,1080 Q120,1030 190,1080 Q110,1140 40,1080Z"/>
+        <path d="M640,240 Q700,220 720,280 Q660,300 640,240Z"/>
+      </g>
+    </svg>
+    <div class="logo">麻将<small class="l2">对对消</small></div>
+    <div style="position:absolute;top:250px;right:96px;z-index:4;transform:rotate(14deg)">
+      <div class="tile" style="width:104px;height:136px;font-size:56px;color:var(--red)">中</div>
+    </div>
+    <div style="position:absolute;top:438px;left:96px;z-index:4;transform:rotate(-12deg)">
+      <div class="tile" style="width:96px;height:126px;font-size:44px">九</div>
+    </div>
+    <div class="mascotSlot" data-mascot style="width:340px"></div>
+    <div class="loadwrap">
+      <div class="loadtrack"><div class="loadfill"></div></div>
+      <div class="loadpct">10%</div>
+    </div>
+    <div class="notice">
+      <b>《健康游戏忠告》</b>
+      <p>抵制不良游戏，拒绝盗版游戏。注意自我保护，谨防受骗上当。<br>适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。</p>
+    </div>
+  </div></div>
+</div>
+
+<!-- ② 首页 -->
+<div class="wrap">
+  <div class="cap">② 首页<small>左列：签到+商城 · 右列：排行+邀战</small></div>
+  <div class="frame"><div class="screen" id="p2">
+    <div class="felt"></div>
+    <svg class="leaves" viewBox="0 0 750 1334">
+      <g fill="rgba(255,255,255,.05)">
+        <path d="M520,300 Q610,250 660,320 Q570,360 520,300Z"/>
+        <path d="M100,900 Q180,850 240,910 Q160,950 100,900Z"/>
+      </g>
+      <g fill="rgba(0,0,0,.12)">
+        <path d="M80,300 Q150,260 200,310 Q130,350 80,300Z"/>
+        <path d="M580,980 Q660,930 700,1000 Q620,1040 580,980Z"/>
+      </g>
+    </svg>
+    <div class="coinbar"><span class="coin"></span>128</div>
+    <div class="logo">麻将<small class="l2">对对消</small></div>
+    <div class="colL">
+      <div class="icon-bub"><span class="ic">📅</span><span class="lb">签到</span></div>
+      <div class="icon-bub"><span class="ic">🛍️</span><span class="lb">商城</span></div>
+    </div>
+    <div class="colR">
+      <div class="icon-bub"><span class="ic">🏆</span><span class="lb">排行</span></div>
+      <div class="icon-bub"><span class="ic">友</span><span class="lb">邀战</span></div>
+    </div>
+    <div class="mascotSlot" data-mascot style="width:360px"></div>
+    <div class="btn-gold">开始游戏</div>
+    <div class="btn-ghost">继续</div>
+    <div class="ver">v0.1.0 · 工作代号 game-5</div>
+  </div></div>
+</div>
+
+<!-- ③ 开局页 -->
+<div class="wrap">
+  <div class="cap">③ 开局页<small>固定红中主题符号 · 1–2s 可跳过</small></div>
+  <div class="frame"><div class="screen" id="p3">
+    <div class="felt"></div>
+    <div class="glowring"></div>
+    <div class="lvtag">
+      <div class="zh">第 七 关</div>
+      <div class="num logo">39 张</div>
+    </div>
+    <div class="bigtile"><div class="tile">中</div></div>
+    <div class="hint">点击任意位置开始</div>
+  </div></div>
+</div>
+
+<!-- ④ 主玩页 -->
+<div class="wrap">
+  <div class="cap">④ 主玩页<small>牌堆该乱 · 槽位该清楚 · 道具热区 56pt</small></div>
+  <div class="frame"><div class="screen" id="p4">
+    <div class="felt"></div>
+    <div class="topbar">
+      <div class="pillbtn">‖</div>
+      <div class="lvbadge">第 7 关 · 阶段 1/2</div>
+    </div>
+    <div class="subbar">
+      <div class="stat">已清 <b>6/39</b></div>
+      <div class="stat time">⏱ <b>02:40</b></div>
+      <div class="rulebtn">?</div>
+    </div>
+    <div class="stackzone" id="stack"></div>
+    <div class="tray" id="tray"></div>
+    <div class="props">
+      <div class="prop">✂<span class="cnt">1</span></div>
+      <div class="prop">⇱<span class="cnt">1</span></div>
+      <div class="prop">⟳<span class="cnt">2</span></div>
+      <div class="prop">＋<span class="plus">▶</span></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ⑤ 结算 胜 -->
+<div class="wrap">
+  <div class="cap">⑤ 结算 · 胜态<small>金币雨 = 全局唯一峰值（元宝/铜钱口径）</small></div>
+  <div class="frame"><div class="screen" id="p5">
+    <div class="felt"></div>
+    <div class="dim"></div>
+    <div class="modal">
+      <div class="ribbonTop">通关啦！</div>
+      <div class="mascotSlot" data-mascot></div>
+      <div class="desc">第 7 关 · 用时 02:40</div>
+      <div class="rewardrow">
+        <div class="reward"><span class="coin" style="width:52px;height:52px"></span><span class="tx">麻豆 ×20</span></div>
+        <div class="reward"><span class="ic">✂</span><span class="tx">消除 ×1</span></div>
+      </div>
+      <div class="btn-gold">下一关</div>
+      <div class="btn-ghost">分享</div>
+    </div>
+    <div class="coins" id="coinrain"></div>
+  </div></div>
+</div>
+
+<!-- ⑤b 结算 负 -->
+<div class="wrap">
+  <div class="cap">⑤b 结算 · 负态<small>复活 = 槽内最后 4 张直消</small></div>
+  <div class="frame"><div class="screen" id="p5b">
+    <div class="felt"></div>
+    <div class="dim"></div>
+    <div class="modal">
+      <div class="ribbonTop">就差一点！</div>
+      <div class="mascotSlot" data-mascot></div>
+      <div class="desc">还剩 5 张 · 槽位已满</div>
+      <div class="btn-gold">看广告复活</div>
+      <div class="btn-ghost">重新挑战</div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ⑥ 七日签到 -->
+<div class="wrap">
+  <div class="cap">⑥ 七日签到<small>左列入口联动 · 奖励全为四件套道具</small></div>
+  <div class="frame"><div class="screen" id="p6">
+    <div class="felt"></div>
+    <div class="dim" style="background:rgba(4,20,15,.35)"></div>
+    <div class="mtitle">七日签到</div>
+    <div class="signgrid" id="days"></div>
+    <div class="btn-gold">今日签到</div>
+  </div></div>
+</div>
+
+</div>
+
+<script>
+/* ===== 吉祥物（矢量占位 · 对齐参考图：發牌身+星星眼+丝带） ===== */
+function mascotSVG(){
+  return '<svg width="300" height="330" viewBox="0 0 300 330">'
+  + '<defs>'
+  + '<linearGradient id="mgBody" x1="0" y1="0" x2="0" y2="1">'
+  + '<stop offset="0" stop-color="#FFFEF8"/><stop offset=".55" stop-color="#FBF5E4"/><stop offset="1" stop-color="#EFE2C2"/>'
+  + '</linearGradient>'
+  + '<radialGradient id="mgBlush" cx=".5" cy=".5" r=".5">'
+  + '<stop offset="0" stop-color="#F79892" stop-opacity=".95"/><stop offset="1" stop-color="#F79892" stop-opacity="0"/>'
+  + '</radialGradient>'
+  + '</defs>'
+  + '<ellipse cx="150" cy="308" rx="90" ry="15" fill="rgba(0,0,0,.32)"/>'
+  /* 丝带：对称双飘带，藏身后只露两端 */
+  + '<path d="M78,170 C30,150 18,200 52,222 C24,230 30,268 66,258" fill="none" stroke="#4FA3E0" stroke-width="15" stroke-linecap="round"/>'
+  + '<path d="M222,170 C270,150 282,200 248,222 C276,230 270,268 234,258" fill="none" stroke="#3E90CE" stroke-width="15" stroke-linecap="round"/>'
+  /* 腿 */
+  + '<rect x="106" y="274" width="28" height="34" rx="14" fill="#6B3F23"/>'
+  + '<rect x="166" y="274" width="28" height="34" rx="14" fill="#6B3F23"/>'
+  /* 手：贴身侧的小圆手 */
+  + '<circle cx="70" cy="210" r="19" fill="#6B3F23"/>'
+  + '<circle cx="230" cy="210" r="19" fill="#6B3F23"/>'
+  /* 牌身（象牙白渐变、宽身圆角） */
+  + '<rect x="64" y="46" width="172" height="238" rx="34" fill="url(#mgBody)" stroke="#6B3F23" stroke-width="6"/>'
+  + '<rect x="82" y="62" width="136" height="34" rx="17" fill="rgba(255,255,255,.65)"/>'
+  /* 發 字 */
+  + '<text x="150" y="262" text-anchor="middle" font-size="64" font-weight="900" fill="#1E7A4F" font-family="PingFang SC,Hiragino Sans GB">發</text>'
+  /* 眼睛：大圆深棕 + 小星芒 + 高光点 */
+  + '<circle cx="112" cy="128" r="30" fill="#4A2B18"/>'
+  + '<circle cx="188" cy="128" r="30" fill="#4A2B18"/>'
+  + '<path d="M112,110 L117,123 L130,128 L117,133 L112,146 L107,133 L94,128 L107,123 Z" fill="#fff"/>'
+  + '<path d="M188,110 L193,123 L206,128 L193,133 L188,146 L183,133 L170,128 L183,123 Z" fill="#fff"/>'
+  + '<circle cx="126" cy="114" r="6.5" fill="#fff" opacity=".95"/>'
+  + '<circle cx="202" cy="114" r="6.5" fill="#fff" opacity=".95"/>'
+  /* 大腮红 */
+  + '<ellipse cx="78" cy="168" rx="20" ry="13" fill="url(#mgBlush)"/>'
+  + '<ellipse cx="222" cy="168" rx="20" ry="13" fill="url(#mgBlush)"/>'
+  /* 张嘴笑 */
+  + '<path d="M132,164 Q150,190 168,164 Q150,174 132,164 Z" fill="#4A2B18"/>'
+  + '<path d="M140,172 Q150,181 160,172 Q150,176 140,172 Z" fill="#F08080"/>'
+  + '</svg>';
+}
+document.querySelectorAll('[data-mascot]').forEach(function(el){
+  /* 整页场景大 · 弹层内小 */
+  var big = /width:3/.test(el.getAttribute('style')||'');
+  var sz = big ? 400 : 250;
+  /* AI 3D 质感吉祥物（参考图风格 img2img，已抠透明底）；矢量版 mascotSVG() 保留作兜底 */
+  el.innerHTML = '<img src="docs-verify/game-5/mascot-3d-alpha.png" style="width:'+sz+'px;height:'+sz+'px;object-fit:contain;filter:drop-shadow(0 14px 10px rgba(0,0,0,.28))" draggable="false">';
+});
+
+/* ===== ④ 牌堆：乱而可读（两层） ===== */
+(function(){
+  var chars=[
+    ['二','萬'],['五','條'],['七','筒'],['九','萬'],['三','條'],['一','筒'],
+    ['八','萬'],['四','條'],['六','筒'],['二','條'],['九','筒'],['五','萬']
+  ];
+  /* [x, y, rotate, isBack, scale] */
+  var pos=[
+    [30,10,-9,0,1],[190,0,7,1,1],[350,18,-5,0,1],[510,4,10,1,1],
+    [90,120,6,1,1],[260,110,-8,0,1],[430,124,4,1,1],[580,116,-11,0,.92],
+    [20,240,8,0,.92],[170,236,-6,1,.92],[330,252,9,0,1],[500,240,-4,0,.9],
+    [110,368,-7,1,.9],[280,378,5,0,.92],[450,362,-9,0,.9],[590,370,6,1,.88],
+    [50,488,4,0,.88],[220,496,-5,0,.9],[400,486,8,1,.88],[540,498,-6,0,.86]
+  ];
+  var h='';
+  pos.forEach(function(p,i){
+    var back = p[3]===1;
+    var tx = back ? '' : (chars[i%chars.length][0]+'<span style="font-size:.5em">'+chars[i%chars.length][1]+'</span>');
+    h+='<div class="stk" style="left:'+p[0]+'px;top:'+p[1]+'px;z-index:'+Math.round(10+p[1]/10)+';transform:rotate('+p[2]+'deg) scale('+p[4]+')">'
+      +'<div class="tile'+(back?' back':'')+'" style="flex-direction:column;gap:2px">'+tx+'</div></div>';
+  });
+  document.getElementById('stack').innerHTML=h;
+})();
+
+/* ===== ④ 槽位：8 格，3 实 5 虚 ===== */
+(function(){
+  var filled=['一<span style="font-size:.5em">萬</span>','三<span style="font-size:.5em">條</span>','五<span style="font-size:.5em">筒</span>'];
+  var h='';
+  for(var i=0;i<8;i++){
+    h+= i<3 ? '<div class="slot filled"><div class="tile">'+filled[i]+'</div></div>' : '<div class="slot"></div>';
+  }
+  document.getElementById('tray').innerHTML=h;
+})();
+
+/* ===== ⑤ 金币雨（静态帧示意） ===== */
+(function(){
+  var h='';
+  var pts=[[60,40,20],[180,10,-30],[320,60,45],[460,20,-15],[580,70,30],[120,150,-40],[400,140,25],[560,170,-20],[250,200,10],[500,240,-35],[90,260,35],[340,300,-10]];
+  pts.forEach(function(p){
+    h+='<div class="coinfall" style="left:'+p[0]+'px;top:'+p[1]+'px;transform:rotate('+p[2]+'deg)"></div>';
+  });
+  document.getElementById('coinrain').innerHTML=h;
+})();
+
+/* ===== ⑥ 七日签到格 ===== */
+(function(){
+  var items=[['🀄','红中牌'],['✂','消除×1'],['⇱','移出×1'],['⟳','洗牌×1'],['➕','加槽×1'],['🎁','麻豆×50'],['👑','大奖牌']];
+  var h='';
+  for(var i=0;i<7;i++){
+    var cls='day'+(i<3?' done':(i===3?' today':''));
+    var d='第 '+(i+1)+' 天';
+    h+='<div class="'+cls+'"><span class="d">'+d+'</span><span class="ic">'+items[i][0]+'</span><span class="tx">'+items[i][1]+'</span></div>';
+  }
+  document.getElementById('days').innerHTML=h;
+})();
+</script>
+</body>
+</html>

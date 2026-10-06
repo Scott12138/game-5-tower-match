@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>game-5 · 主玩页（④）排版稿 ·《麻麻大消除》</title>
+<style>
+/* ============================================================
+   主玩页（④）· 排版稿  v2（第 16 轮 · 2026-10-05）
+   ├ 本轮 4 项调整：① 暂停/关卡上移对齐胶囊避让 ② 移除「＋看广告得」独立位
+   │               ③ 道具格 96×96 → 126×112（4 格） ④「?」→ 规则按钮 + 规则弹层（内容图待出图）
+   ├ 第 25 轮：规则弹层两区由「待出图」占位 → 填实内容（两区高度仍锁 300 / 360，几何一字未动）
+   │   ① 碰 / 吃 示意图：牌面直接复用 tiles/ 按牌体 bbox 裁出的贴图（make_rule_figs.py），零新增出图
+   │   ② 掷骰点数对应表：第 13 轮定稿映射表，按"对称和值"合并为 6 行（2·12 / 3·11 …）
+   ├ 第 26 轮：上述两区**固化为 PNG 素材图**（用户拍板）——
+   │   ① 字体方案定为**丙**（标题/表头/和值列宋体 + 正文与数字系统无衬线，见 --serif/--sans）
+   │   ② 图片 = assets/_src/game-play/rule-figs/rule-碰吃示意.png / rule-点数对应表.png
+   │      （@2x 1136×600 / 1136×720，由 export_rule_figs.mjs 从源稿页导出、两轮 md5 零漂移）
+   │   ③ 源稿（可改、可重出）= game-5-规则弹层-内容图-源稿.html；本稿只留 <img> 引用
+   ├ 第 27 轮：规则页**整页合并为一张图**（用户拍板）——
+   │   ① 标题栏 + 两区 + 页脚免责声明一起烘焙 = rule-完整规则页.png（@2x 1264×2040）
+   │      重出 = node docs-verify/game-5/game-play/export_rule_page.mjs
+   │      （Chrome --screenshot 直出，不用 CDP；两轮 md5 零漂移 + 四角透明 +
+   │        「被删的那行」双向真值标定，全部在脚本里自证）
+   │   ⑤ **第 28 轮：本图正式入资产库** —— 工程版 `assets/game-play/rule-完整规则页.png`
+   │      （本页即引用此份），设计母版仍留 `assets/_src/game-play/rule-figs/`（不删）
+   │   ② **删除点数对应表下方那行说明**（原 .diceFoot「和值 2–12：左右对称…」）→
+   │      .figDice 改 justify-content:center 让表格居中；区高仍锁 360，整卡高度未变
+   │   ③ ✕ 关闭已烘焙进图 → 页内改用同尺寸**透明热区** .ruleCloseHit 承接点击
+   │   ④ 规则页内部样式（.ruleHead/.ruleBody/.ruleSec/.ruleFoot/.ph/.figRules/.figDice/
+   │      .diceTbl/.frRow/.rvIc/.tagT…）**全部从本稿移除**，完整形态保存在源稿页
+   ├ 底带高度冲突已解：桌面 750×750 完全不动，底带两栏压扁
+   │   槽位条   y 1058~1138（高 80）· 槽位格 68×80 · 8 格 · 间距 16 → 总宽 656 · left 47
+   │   道具栏   y 1150~1262（高 112）· 道具格 126×112 · 4 格 · 间距 24 → 总宽 576 · left 87
+   │   占用 16 + 80 + 12 + 112 = 220 ≤ 可用 224（底带 292 − 安全区 68）✓ 余 4
+   ├ 三带：顶带 0~292 / 桌面 292~1042 / 底带 1042~1334
+   ├ 美学：奢华精致（墨绿典藏 × 金）—— 与启动页 / 首页 / 开局页同源
+   ├ ★ 第 32 轮（2026-10-05）：牌堆改为**真实关卡卡位表**（用户第 4 条拍板）——
+   │   ① 演示档位不再写死「36 → 12 → 96」；改为**真实关卡 L1 / L10 / L30**
+   │      （12 / 93 / 138 张，2 / 7 / 10 层），张数·层数·牌体尺寸·逐张卡位与朝向
+   │      全部取自 levels.json（由 inject_pile_data.py 注入 <script id="pileData">）
+   │   ② **横牌改纯旋转**：元素恒为牌体 w×h，只加 transform:rotate(90deg)。
+   │      旧版是「换宽高 + 图片 100%×100%」→ 牌面被横向拉伸 1.33 倍（非等比缩放）
+   │   ③ 单关内牌体尺寸与长宽比**唯一**（用户第 5 条）；跨关 112 → 88
+   ├ ★ 第 33 轮（2026-10-05）：牌面母版升规格 + 主包转 WebP（用户 L1 / L2 / L4 三条拍板）——
+   │   ① **L1**：27 张母版 **192×256 → 224×298**（从 _src 1024 级源图**重新导出，不重画美术**）；
+   │      各关由 CSS 缩，缩比 = w / 112 = 1.000 ~ 0.786 ⇒ **规格唯一**
+   │   ② **L4**：占位口径 `OCC_H 0.804 → 1.0`，实现为**内切 contain** `k = min(CW/bw, CH/bh)` ——
+   │      条/筒贴高（208×298）、万字 7 张贴宽（224×273~296）；**27/27 零裁切**
+   │      （字面「占高 100%」会让最宽「九万」244.9px > 画布 224 ⇒ 裁掉 20.9px，故取内切）
+   │      效果：可见牌体占布局盒面积 **60.3% → 92.9%**（+54%），牌堆更密、贴合 game-4 观感
+   │   ③ **L2**：资产转 **WebP q=92** 另出 `*-webp/` 目录，**原 PNG 一字未改**（57 文件 md5 全等）；
+   │      主包 **6552.2 KB → 1115.6 KB**（超限 4096 → 达标）。回退：删 `*-webp/` 即完全复原
+   │   ④ **L3（万字形状不齐）用户决定暂不处理**（先试玩再定），本轮未做任何形状修正
+   └ 牌面：@2x **224×298** 真母版（27 张，万/条/筒各 9，第 33 轮重出）
+   ============================================================ */
+:root{
+  --cream:#FFF7E6; --cream-dim:#C9D8CC; --cream-mute:#87998C;
+  --gold:#F6C445; --gold-hi:#FFE08A; --gold-dk:#C8912B;
+  --jade:#2E8B6F; --jade-hi:#55B79A;
+  --green:#20694E; --green-dk:#0A3327;
+  --ivory:#FDFAF0; --edge:#C7B58B; --brown:#4A2B18;
+  --red:#D8432F;
+  --shell-0:#060806; --shell-1:#0B100C; --shell-2:#121A15;
+  --hair:rgba(246,196,69,.16);
+  --serif:"Songti SC","STSong","Noto Serif SC",serif;
+  --sans:"PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif;
+  --sc:0.50; --scInv:2.0000;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--shell-0)}
+body{
+  font-family:var(--sans);
+  color:var(--cream);min-height:100vh;
+  background:
+    radial-gradient(1100px 520px at 22% -6%, rgba(38,80,54,.42), transparent 68%),
+    radial-gradient(900px 480px at 96% 108%, rgba(120,88,26,.16), transparent 66%),
+    var(--shell-0);
+  padding:26px 26px 46px;
+}
+.grain{position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.035;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+
+header{max-width:1180px;margin:0 auto 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:14px}
+.brand h1{font-family:var(--serif);font-size:29px;font-weight:600;letter-spacing:.06em;
+  background:linear-gradient(96deg,#FFF7E6 8%,var(--gold-hi) 46%,var(--gold-dk) 96%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.brand .tag{font-size:12px;letter-spacing:.22em;color:var(--cream-mute);text-transform:uppercase}
+.meta{display:flex;gap:24px;font-size:12.5px;color:var(--cream-mute);letter-spacing:.04em}
+.meta b{display:block;color:var(--cream-dim);font-size:15px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
+
+main{max-width:1180px;margin:0 auto;display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.stageCol{flex:none;display:flex;flex-direction:column;gap:13px}
+.frame{width:calc(750px * var(--sc));height:calc(1334px * var(--sc));overflow:hidden;border-radius:19px;
+  position:relative;flex:none;
+  box-shadow:0 30px 70px rgba(0,0,0,.72), 0 3px 12px rgba(0,0,0,.55),
+             0 0 0 1px rgba(246,196,69,.13), 0 0 0 7px rgba(10,14,10,.9)}
+.screen{width:750px;height:1334px;transform:scale(var(--sc));transform-origin:0 0;
+  position:relative;overflow:hidden;background:#040604}
+
+/* ── 桌外深色环境（沿用开局页）── */
+.env{position:absolute;inset:0;
+  background:radial-gradient(58% 42% at 50% 50%, #0C110D 0%, #070A07 58%, #030403 100%)}
+.envTop{position:absolute;left:0;right:0;top:0;height:300px;
+  background:linear-gradient(180deg, rgba(255,247,230,.05), transparent 78%)}
+.envGround{position:absolute;left:0;right:0;bottom:0;height:340px;
+  background:linear-gradient(180deg, transparent, rgba(0,0,0,.42) 90%)}
+
+/* ── 麻将桌（750×750 落点 y=292）── */
+.tableWrap{position:absolute;left:0;top:292px;width:750px;height:750px;
+  box-shadow:0 0 74px 26px rgba(0,0,0,.8)}
+.tableImg{position:absolute;left:0;top:0;width:750px;height:750px;display:block}
+
+/* ── 牌堆（桌面内安全区 682×682：x 34~716 / y 326~1008）── */
+.pile{position:absolute;left:0;top:0;width:750px;height:750px}
+
+.tile{position:absolute;width:96px;height:128px;border-radius:14px;
+  background:linear-gradient(172deg,#FFFDF6 0%,var(--ivory) 46%,#F2EAD8 100%);
+  border:1.5px solid rgba(74,43,24,.28);
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,.95),
+    inset -3px -4px 0 var(--edge),
+    0 5px 12px rgba(0,0,0,.42), 0 1px 3px rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:center;
+  transform-origin:50% 50%;will-change:transform,opacity;
+  transition:transform .16s cubic-bezier(.34,1.4,.64,1), box-shadow .16s, filter .16s}
+/* 可点 = 上浮 + 影加深 + 亮；被压 = 无影（靠"无影=压着"表达，不靠灰化） */
+.tile.live{cursor:pointer;
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,1),
+    inset -3px -4px 0 var(--edge),
+    0 12px 20px rgba(0,0,0,.55), 0 0 0 2px rgba(246,196,69,.42)}
+.tile.live::after{content:"";position:absolute;inset:-6px;border-radius:18px;
+  background:radial-gradient(closest-side, rgba(246,196,69,.20), transparent 76%);pointer-events:none}
+.tile.dead{filter:saturate(.74) brightness(.85);
+  box-shadow:inset 1px 1px 0 rgba(255,255,255,.6), inset -3px -4px 0 #B8A67C, 0 1px 2px rgba(0,0,0,.3)}
+.tile.fly{transition:transform .34s cubic-bezier(.4,0,.2,1), opacity .34s;opacity:0;pointer-events:none}
+.tile svg{width:74px;height:104px;display:block}
+/* 牌面模式 'img'：直接用 AI 样张整张铺满牌位（图片自带金边与厚度，故去掉 CSS 牌的底与边框） */
+.tile .faceImg{width:100%;height:100%;display:block;border-radius:14px;object-fit:fill}
+.tile.imgmode{background:none;border:none}
+.tile.imgmode.live{box-shadow:0 12px 20px rgba(0,0,0,.6), 0 0 0 2px rgba(246,196,69,.5)}
+.tile.imgmode.dead{filter:saturate(.74) brightness(.85);box-shadow:0 1px 2px rgba(0,0,0,.32)}
+.slot .mini .faceImg{width:100%;height:100%;display:block;border-radius:7px;object-fit:fill}
+.slot .mini.imgmode{background:none;border:none}
+
+/* ── 顶带 HUD（0~292）── */
+.hudTop{position:absolute;inset:0 0 auto 0;height:292px;pointer-events:none}
+.hudTop>*{pointer-events:auto}
+/* 暂停键与关卡胶囊：垂直中心对齐右侧「微信胶囊避让」区（避让区 y88~152 · 中心 120）
+   → 暂停 88 高 → top = 120−44 = 76；胶囊 64 高 → top = 120−32 = 88（两者同步上移 20） */
+.pause{position:absolute;left:40px;top:76px;width:88px;height:88px;border-radius:26px;
+  background:rgba(4,20,14,.62);border:2px solid rgba(246,196,69,.25);
+  box-shadow:0 6px 16px rgba(0,0,0,.4);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:11px;
+  transition:transform .12s, background .12s}
+.pause:active{transform:translateY(2px);background:rgba(4,20,14,.8)}
+.pause i{width:9px;height:32px;border-radius:2.5px;background:rgba(255,247,230,.9);display:block}
+.lv{position:absolute;left:150px;top:88px;height:64px;padding:0 32px;border-radius:999px;
+  display:flex;align-items:center;background:rgba(4,20,14,.5);
+  border:2px solid rgba(246,196,69,.22);font-size:30px;letter-spacing:.14em;color:var(--cream)}
+.lv b{font-size:34px;color:var(--gold-hi);font-weight:700;margin:0 6px;font-variant-numeric:tabular-nums}
+.capsule{position:absolute;right:30px;top:88px;width:174px;height:64px;border-radius:32px;
+  border:1px dashed rgba(201,216,204,.22);display:flex;align-items:center;justify-content:center;
+  font-size:15px;color:rgba(201,216,204,.34);letter-spacing:.08em}
+.infoRow{position:absolute;left:40px;right:40px;top:190px;height:68px}
+/* 进度条 + 条内嵌「已清 n/m」—— 原先文字浮在条上方，与暂停按钮垂直+水平双向重叠，已修 */
+.progWrap{position:absolute;left:0;top:16px;width:230px;height:28px;border-radius:14px;
+  background:rgba(4,20,14,.62);border:1.5px solid rgba(246,196,69,.22);overflow:hidden}
+.progFill{position:absolute;left:0;top:0;bottom:0;width:43%;border-radius:13px;
+  background:linear-gradient(90deg,var(--jade),var(--jade-hi));
+  box-shadow:inset 0 0 12px rgba(85,183,154,.5)}
+.progTxt{position:absolute;left:14px;top:0;height:28px;line-height:28px;
+  font-size:19px;color:rgba(255,247,230,.94);letter-spacing:.03em;z-index:2;
+  font-variant-numeric:tabular-nums;text-shadow:0 1px 4px rgba(0,0,0,.85)}
+.progTxt b{font-weight:600;color:#FFF9EC}
+.timer{position:absolute;left:50%;top:0;transform:translateX(-50%);
+  font-size:42px;font-weight:600;color:var(--cream);letter-spacing:.06em;
+  font-variant-numeric:tabular-nums;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.timer.warn{color:var(--red);animation:beat 1s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.055)}}
+/* 规则按钮（原「?」圆形图标 → 书页图标 + 「规则」文字胶囊） */
+.ruleBtn{position:absolute;right:0;top:2px;height:60px;padding:0 22px 0 18px;border-radius:30px;
+  border:2px solid rgba(246,196,69,.26);background:rgba(4,20,14,.55);
+  display:flex;align-items:center;gap:9px;font-size:23px;letter-spacing:.1em;
+  color:rgba(255,247,230,.88);cursor:pointer;
+  transition:background .12s, border-color .12s, transform .12s}
+.ruleBtn svg{width:26px;height:26px;display:block;flex:none}
+.ruleBtn:active{background:rgba(4,20,14,.82);border-color:rgba(246,196,69,.52);transform:translateY(1px)}
+
+/* ── 底带 HUD（1042~1334）── 道具栏放大版 */
+.hudBottom{position:absolute;left:0;right:0;top:1042px;height:292px}
+/* 槽位条：y1058~1138（高 80）· 8 格 68×80 · 间距 16 · 总宽 656 · left 47 */
+.slots{position:absolute;left:47px;top:16px;width:656px;height:80px}
+.slot{position:absolute;top:0;width:68px;height:80px;border-radius:10px;
+  background:rgba(4,20,14,.5);border:2px solid rgba(46,139,111,.30);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.05);
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.slot.empty::after{content:"";width:22px;height:2px;border-radius:1px;background:rgba(46,139,111,.34)}
+.slot .mini{width:52px;height:70px;border-radius:7px;
+  background:linear-gradient(172deg,#FFFDF6,#F2EAD8);border:1px solid rgba(74,43,24,.3);
+  box-shadow:inset -2px -3px 0 var(--edge), 0 2px 5px rgba(0,0,0,.4);
+  display:flex;align-items:center;justify-content:center}
+.slot .mini.fresh{animation:dropIn .26s cubic-bezier(.34,1.5,.64,1)}
+@keyframes dropIn{from{transform:translateY(-16px) scale(1.22);opacity:.2}to{transform:none;opacity:1}}
+.slot .mini svg{width:40px;height:56px}
+/* 满槽告警（槽位将满：色 + 抖动 + 心跳音，三通道） */
+.slots.danger .slot{border-color:rgba(216,67,47,.62)}
+.slots.danger{animation:shake .4s ease-in-out infinite}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2.5px)}75%{transform:translateX(2.5px)}}
+/* 道具栏：y1150~1262（高 112）· **4 格**（「＋看广告得」独立位已移除）· 126×112 · 间距 24
+   总宽 4×126 + 3×24 = 576 → 居中 left = (750−576)/2 = 87（与上方槽位条同心）
+   底边 1262 → 距屏幕底 1334−1262 = 72 ≥ safeBottom 68 ✓ */
+.items{position:absolute;left:87px;top:108px;width:576px;height:112px}
+.item{position:absolute;top:0;width:126px;height:112px;border-radius:24px;
+  background:rgba(4,20,14,.58);border:2px solid rgba(246,196,69,.20);
+  box-shadow:0 6px 14px rgba(0,0,0,.32);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .12s, background .12s, border-color .12s}
+.item:active{transform:translateY(2px);background:rgba(4,20,14,.78)}
+.item img{width:78px;height:78px;object-fit:contain;display:block}
+.item .nm{position:absolute;bottom:7px;left:0;right:0;text-align:center;
+  font-size:19px;color:rgba(201,216,204,.66);letter-spacing:.06em}
+.item .cnt{position:absolute;right:-6px;top:-6px;min-width:42px;height:42px;padding:0 10px;border-radius:21px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold-dk));color:#4A2B18;
+  font-size:25px;line-height:42px;text-align:center;font-weight:700;
+  box-shadow:0 3px 8px rgba(0,0,0,.45)}
+/* 本局数量 = 0 → 不置灰，改为「可获得」态：金色虚线框 + 角标变 ＋ + 轻呼吸
+   （点击即直接走看广告获得流程，不再有独立的「＋看广告得」按钮） */
+.item.zero{border-style:dashed;border-color:rgba(246,196,69,.26)}
+.item.zero img{opacity:.58;filter:grayscale(.5)}
+.item.zero .cnt{background:linear-gradient(180deg,var(--gold-hi),var(--gold-dk));color:#4A2B18;
+  font-size:26px;animation:adPulse 2s ease-in-out infinite}
+@keyframes adPulse{0%,100%{box-shadow:0 3px 8px rgba(0,0,0,.45),0 0 0 0 rgba(246,196,69,.5)}
+  55%{box-shadow:0 3px 8px rgba(0,0,0,.45),0 0 0 9px rgba(246,196,69,0)}}
+/* 复活机会（不入道具栏 —— 独立小牌）
+   ⚠ 位置修正（第 16 轮实测）：原挂在槽位条右侧（x 507.6~714 / y 1056~1140），
+   会**压住第 6、7、8 个槽位（实测重叠 3 格）**，上一轮无断言覆盖故未被发现。
+   现移到顶带首行空档（关卡胶囊 320 ↔ 胶囊避让 546 之间），与暂停/关卡同高居中。 */
+.revive{position:absolute;left:344px;top:88px;height:64px;padding:0 18px 0 14px;border-radius:18px;
+  display:flex;align-items:center;gap:10px;pointer-events:none;
+  background:linear-gradient(180deg, rgba(216,67,47,.30), rgba(216,67,47,.15));
+  border:2px solid rgba(216,67,47,.58);box-shadow:0 6px 16px rgba(0,0,0,.4);
+  animation:revPulse 2.4s ease-in-out infinite}
+@keyframes revPulse{0%,100%{box-shadow:0 6px 16px rgba(0,0,0,.4),0 0 0 0 rgba(216,67,47,.4)}
+  50%{box-shadow:0 6px 16px rgba(0,0,0,.4),0 0 0 9px rgba(216,67,47,0)}}
+.revive .ricon{width:38px;height:38px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 34% 30%,#FF8E76,var(--red) 62%,#8E2317);
+  box-shadow:inset 0 -3px 6px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.4);
+  display:flex;align-items:center;justify-content:center;font-size:20px;color:#FFEDE7;font-weight:700}
+.revive .rtx{font-size:16px;line-height:1.3;color:#FFDDD4;letter-spacing:.04em;white-space:nowrap}
+.revive .rtx b{display:block;font-size:19px;color:#FFF2EE;font-weight:600}
+
+/* ── 规则弹层（第 27 轮：**整页合并为一张图**）──────────────────────────────
+   ★ 内容 = 标题栏「游 戏 规 则」+ 一、碰/吃示意 + 二、掷骰点数对应表 + 页脚免责声明，
+     全部烘焙进 **一张**素材图：
+       assets/_src/game-play/rule-figs/rule-完整规则页.png
+       @2x 1264×2040 = CSS 632×1020（尺寸由脚本按像素实测，不写死）
+   ★ 唯一可改处 = 源稿页 game-5-规则弹层-内容图-源稿.html；
+     重出 = node docs-verify/game-5/game-play/export_rule_page.mjs
+     （两轮 md5 零漂移 + 四角透明 + 「被删的那行」双向真值标定，全在脚本里自证）
+   ★ 容器不再画 border / background —— 图里已含金色描边与深绿底，再画就是"双层边框"。
+     但 **投影必须留在本稿**：导出截的是卡片 border-box，阴影在图外。
+   ★ ✕ 关闭按钮也已烘焙进图；页内用**透明热区** .ruleCloseHit 承接点击，
+     几何对齐图中 ✕（right 18 / 56×56 / 垂直中心落在标题栏 96 的中点 y=48）。
+   ★ 两区原来的 HTML 活内容与样式（.ruleHead h3 / .ruleSec h4 / .ruleBody / .ruleFoot /
+     .ph / .figRules / .figDice / .diceTbl / .frRow / .frTiles / .rvIc / .tagT …）
+     已随整页固化从本稿移除 —— **完整可用形态保存在源稿页**，要改内容改源稿页，
+     不要在本稿里改。 */
+.ruleOver{position:absolute;inset:0;z-index:58;opacity:0;pointer-events:none;transition:opacity .26s ease}
+.ruleOver.on{opacity:1;pointer-events:auto}
+.ruleOver .rscrim{position:absolute;inset:0;background:rgba(3,8,5,.82);
+  backdrop-filter:blur(3px)}
+.ruleCard{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:632px;border-radius:30px;overflow:hidden;
+  box-shadow:0 30px 70px rgba(0,0,0,.8)}
+.ruleCard img{display:block;width:100%;height:auto}
+.ruleCloseHit{position:absolute;right:18px;top:20px;width:56px;height:56px;
+  border-radius:50%;cursor:pointer}
+/* ⚠ 已随「整页合并为一张图」从本稿移除（第 27 轮）—— 以下选择器原属规则页内部，
+   现全部烘焙进 rule-完整规则页.png；完整可用形态见源稿页：
+     .ruleHead / .ruleHead h3 / .ruleClose / .ruleBody / .ruleSec h4(::before) /
+     .ph(.tag/.sub/.dim) / .ruleFoot / .figRules / .figDice / .diceTbl / .diceFoot /
+     .frRow / .frTiles / .frTx / .frNm / .frDs / .frFoot / .rvIc / .tagT
+   ⚠ 字体方案「丙」（第 26 轮拍板）也一并进图：标题/表头/和值列宋体、正文与数字无衬线，
+     定义在源稿页的 --serif / --sans。 */
+
+/* ── 看广告获得道具（道具不足时自动触发）── */
+.adOver{position:absolute;inset:0;z-index:56;opacity:0;pointer-events:none;transition:opacity .22s ease}
+.adOver.on{opacity:1;pointer-events:auto}
+.adOver .ascrim{position:absolute;inset:0;background:rgba(3,8,5,.88)}
+.adBox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:560px;border-radius:28px;padding:34px 30px 30px;text-align:center;
+  background:linear-gradient(178deg,#0E2A1F,#081711 64%,#050D09);
+  border:2px solid rgba(246,196,69,.32);
+  box-shadow:0 26px 60px rgba(0,0,0,.78)}
+.adBox .adCap{font-size:19px;letter-spacing:.22em;color:rgba(201,216,204,.5)}
+.adBox .adIcon{width:170px;height:170px;margin:20px auto 12px;border-radius:26px;
+  background:rgba(4,20,14,.6);border:2px solid rgba(246,196,69,.2);
+  display:flex;align-items:center;justify-content:center}
+.adBox .adIcon img{width:104px;height:104px;object-fit:contain;display:block}
+.adBox .adName{font-size:32px;color:var(--cream);letter-spacing:.1em;margin-bottom:6px}
+.adBox .adName em{font-style:normal;color:var(--gold-hi);font-weight:700}
+.adBox .adNote{font-size:18px;color:rgba(201,216,204,.5);line-height:1.6;margin-bottom:20px}
+.adBox .adBar{height:14px;border-radius:7px;background:rgba(4,20,14,.7);
+  border:1.5px solid rgba(246,196,69,.2);overflow:hidden;margin-bottom:14px}
+.adBox .adBar i{display:block;height:100%;width:0%;
+  background:linear-gradient(90deg,var(--gold-dk),var(--gold-hi));border-radius:6px}
+.adBox .adStat{font-size:19px;color:rgba(246,196,69,.85);letter-spacing:.08em;
+  font-variant-numeric:tabular-nums}
+.adBox .adStat b{color:var(--gold-hi);font-weight:700}
+.adBox .adOk{margin-top:20px;display:none;width:100%;height:96px;border-radius:48px;border:none;
+  font-family:var(--serif);font-size:32px;letter-spacing:.14em;cursor:pointer;
+  background:linear-gradient(180deg,#2C8A66,#1B5C43);color:#FFF9EC;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 8px 20px rgba(0,0,0,.5)}
+.adBox.done .adOk{display:block}
+.adBox.done .adBar,.adBox.done .adStat{display:none}
+
+/* ── 赠礼层（过场 + 落位）── */
+.giftOver{position:absolute;inset:0;z-index:40;opacity:0;pointer-events:none;
+  transition:opacity .34s ease}
+.giftOver.on{opacity:1;pointer-events:auto}
+.giftOver .scrim{position:absolute;inset:0;
+  background:radial-gradient(56% 40% at 50% 44%, rgba(14,46,32,.80) 0%, rgba(5,14,10,.94) 50%, rgba(2,4,3,.99) 100%)}
+.giftOver .ring{position:absolute;left:50%;top:520px;width:640px;height:640px;margin:-320px 0 0 -320px;
+  border-radius:50%;opacity:.5;
+  background:radial-gradient(closest-side, rgba(246,196,69,.20), rgba(246,196,69,.05) 56%, transparent 76%)}
+.giftOver .rays{position:absolute;left:50%;top:520px;width:900px;height:900px;margin:-450px 0 0 -450px;
+  opacity:.44;animation:spinSlow 34s linear infinite;
+  background:conic-gradient(from 0deg, transparent 0 7deg, rgba(246,196,69,.34) 7deg 9deg, transparent 9deg 30deg,
+    rgba(246,196,69,.26) 30deg 32deg, transparent 32deg 60deg, rgba(246,196,69,.3) 60deg 62deg, transparent 62deg 90deg,
+    rgba(246,196,69,.22) 90deg 92deg, transparent 92deg 130deg, rgba(246,196,69,.3) 130deg 132deg, transparent 132deg 190deg,
+    rgba(246,196,69,.24) 190deg 192deg, transparent 192deg 250deg, rgba(246,196,69,.3) 250deg 252deg, transparent 252deg 320deg,
+    rgba(246,196,69,.22) 320deg 322deg, transparent 322deg 360deg);
+  -webkit-mask:radial-gradient(closest-side, #000 12%, rgba(0,0,0,.5) 44%, transparent 78%);
+          mask:radial-gradient(closest-side, #000 12%, rgba(0,0,0,.5) 44%, transparent 78%)}
+@keyframes spinSlow{to{transform:rotate(360deg)}}
+.giftOver .cap{position:absolute;left:0;right:0;top:240px;text-align:center;
+  font-family:var(--serif);font-size:26px;letter-spacing:.42em;color:rgba(246,196,69,.72);text-indent:.42em}
+.giftOver h2{position:absolute;left:0;right:0;top:284px;text-align:center;
+  font-family:var(--serif);font-size:60px;font-weight:700;letter-spacing:.1em;
+  background:linear-gradient(96deg,#FFF7E6 6%,var(--gold-hi) 44%,var(--gold-dk) 96%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 4px 14px rgba(0,0,0,.6))}
+.giftOver .diceRow{position:absolute;left:0;right:0;top:386px;display:flex;align-items:center;
+  justify-content:center;gap:26px}
+.giftOver .dieImg{width:104px;height:104px;display:block;
+  filter:drop-shadow(0 10px 18px rgba(0,0,0,.62))}
+.giftOver .plusEq{font-size:34px;color:rgba(246,196,69,.66);font-weight:300}
+.giftOver .sum{font-size:62px;font-weight:700;color:var(--gold-hi);font-variant-numeric:tabular-nums;
+  text-shadow:0 0 26px rgba(246,196,69,.55), 0 4px 12px rgba(0,0,0,.6);min-width:82px;text-align:center}
+.giftCard{position:absolute;left:50%;top:528px;transform:translateX(-50%);
+  width:560px;padding:30px 30px 26px;border-radius:28px;
+  background:linear-gradient(178deg, rgba(20,52,38,.94), rgba(9,26,18,.96));
+  border:2px solid rgba(246,196,69,.42);
+  box-shadow:0 26px 60px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.1), 0 0 44px rgba(246,196,69,.14)}
+.giftCard .ribbon{position:absolute;left:50%;top:-19px;transform:translateX(-50%);
+  padding:5px 26px;border-radius:999px;font-size:19px;letter-spacing:.2em;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold-dk));color:#3A2508;font-weight:700;
+  box-shadow:0 5px 14px rgba(0,0,0,.5)}
+.giftCard .gotRow{display:flex;align-items:center;justify-content:center;gap:34px;margin-top:14px}
+.giftCard .bigIcon{width:150px;height:150px;object-fit:contain;
+  filter:drop-shadow(0 10px 20px rgba(0,0,0,.6)) drop-shadow(0 0 24px rgba(246,196,69,.34))}
+.giftCard .gotTxt{text-align:left}
+.giftCard .gotTxt .nm{font-size:44px;font-weight:700;color:var(--cream);letter-spacing:.08em}
+.giftCard .gotTxt .nm em{font-style:normal;color:var(--gold-hi);font-size:52px}
+.giftCard .gotTxt .sub{margin-top:8px;font-size:21px;color:rgba(201,216,204,.72);letter-spacing:.04em}
+.giftCard .guard{margin-top:22px;padding:14px 18px;border-radius:14px;font-size:20px;line-height:1.62;
+  background:rgba(216,67,47,.13);border:1px solid rgba(216,67,47,.4);color:#FFCDC2}
+.giftCard .guard b{color:#FF9B84}
+.giftStart{position:absolute;left:50%;top:930px;transform:translateX(-50%);
+  width:480px;height:112px;border-radius:56px;cursor:pointer;border:none;
+  background:linear-gradient(180deg,#2A9E7C,#166249);
+  box-shadow:0 12px 26px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.34), 0 0 34px rgba(46,139,111,.34);
+  font-family:inherit;font-size:38px;font-weight:700;color:#F2FFF9;letter-spacing:.14em;
+  transition:transform .12s}
+.giftStart:active{transform:translateX(-50%) translateY(3px)}
+.giftOver .hintTxt{position:absolute;left:0;right:0;bottom:150px;text-align:center;
+  font-size:21px;color:rgba(201,216,204,.5);letter-spacing:.1em}
+
+/* ── 落位飞行体 ── */
+.flyer{position:absolute;z-index:60;pointer-events:none;opacity:0}
+.flyer img{width:100%;height:100%;object-fit:contain}
+.flyer.go{opacity:1;transition:transform .78s cubic-bezier(.5,-0.1,.3,1), opacity .5s .3s}
+.toast{position:absolute;left:50%;top:960px;transform:translateX(-50%) translateY(14px);
+  z-index:55;padding:13px 30px;border-radius:999px;white-space:nowrap;
+  background:rgba(6,26,18,.9);border:1.5px solid rgba(246,196,69,.4);
+  font-size:24px;color:var(--cream);opacity:0;pointer-events:none;
+  transition:opacity .3s, transform .3s}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast b{color:var(--gold-hi)}
+
+/* ── 镜片层 ── */
+.vignette{position:absolute;inset:0;opacity:.24;pointer-events:none;z-index:30;
+  background:radial-gradient(128% 96% at 50% 46%, transparent 42%, rgba(0,0,0,.5) 100%)}
+
+/* ── 审查叠加（默认关）── */
+.ov{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .18s;z-index:70}
+.ov.on{opacity:1}
+.ov .safe{position:absolute;left:34px;top:326px;width:682px;height:682px;
+  border:2px dashed rgba(85,183,154,.66);background:rgba(85,183,154,.05)}
+.ov .bandTop{position:absolute;left:0;top:0;width:750px;height:292px;border:2px solid rgba(255,92,92,.5)}
+.ov .bandBot{position:absolute;left:0;top:1042px;width:750px;height:292px;border:2px solid rgba(255,92,92,.5)}
+.ov .safeArea{position:absolute;left:0;bottom:0;width:750px;height:68px;
+  background:repeating-linear-gradient(45deg, rgba(216,67,47,.30) 0 10px, transparent 10px 20px);
+  border-top:2px dashed rgba(216,67,47,.7)}
+.ov b{position:absolute;font-size:19px;font-weight:500;padding:3px 11px;border-radius:6px;
+  background:rgba(4,20,14,.86);white-space:nowrap;letter-spacing:.03em}
+.ov .lbl1{left:44px;top:302px;color:#B9F0DA;border:1px solid rgba(85,183,154,.55)}
+.ov .lbl2{left:12px;top:16px;color:#FFB8B1;border:1px solid rgba(255,92,92,.55)}
+.ov .lbl3{left:12px;top:1058px;color:#FFB8B1;border:1px solid rgba(255,92,92,.55)}
+/* 底带尺寸说明：文案较长，改为整幅换行（不再 nowrap 被裁切），并把 safeBottom 并进同一块 */
+.ov .lbl4{left:12px;right:12px;top:1266px;white-space:normal;line-height:1.4;text-align:left;
+  color:#FFE08A;border:1px solid rgba(246,196,69,.6)}
+.ov .ruler{position:absolute;right:16px;top:1042px;width:0;border-left:2px solid rgba(246,196,69,.85)}
+.ov .ruler::before,.ov .ruler::after{content:"";position:absolute;left:-8px;width:18px;height:2px;background:rgba(246,196,69,.85)}
+.ov .ruler::before{top:0}.ov .ruler::after{bottom:0}
+
+/* ── 控制条 ── */
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;width:calc(750px * var(--sc))}
+.btn{font:inherit;font-size:12.5px;padding:8px 14px;border-radius:9px;cursor:pointer;
+  color:var(--cream-dim);background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.14);transition:.14s;letter-spacing:.02em}
+.btn:hover{background:rgba(255,255,255,.1);color:var(--cream)}
+.btn[aria-pressed="true"]{background:rgba(246,196,69,.17);border-color:rgba(246,196,69,.55);color:var(--gold-hi)}
+.btn.primary{background:linear-gradient(180deg,#2A9E7C,#166249);border-color:rgba(85,183,154,.6);color:#F2FFF9;font-weight:600}
+
+/* ── 右侧说明 ── */
+.side{flex:1;min-width:330px;display:flex;flex-direction:column;gap:15px}
+.card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);
+  border-radius:13px;padding:16px 18px}
+.card h3{font-size:14px;letter-spacing:.12em;color:var(--gold);margin-bottom:12px;font-weight:600}
+.card p{font-size:13px;line-height:1.8;color:var(--cream-dim)}
+.card p+p{margin-top:9px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:13px;align-items:baseline}
+.kv dt{color:var(--cream-mute);white-space:nowrap}
+.kv dd{color:var(--cream);font-variant-numeric:tabular-nums}
+.ok{color:#8FE3C5;font-weight:600}
+.warn{color:#FFC98A;font-weight:600}
+table.mini{width:100%;border-collapse:collapse;font-size:12.5px}
+table.mini th,table.mini td{padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left}
+table.mini th{color:var(--cream-mute);font-weight:500;font-size:11.5px;letter-spacing:.06em}
+table.mini td.n{text-align:right;font-variant-numeric:tabular-nums}
+table.mini tr:last-child td{border-bottom:none}
+.bar{height:7px;border-radius:4px;background:rgba(255,255,255,.09);overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--jade),var(--gold))}
+.note{font-size:12px;color:var(--cream-mute);line-height:1.75}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<header>
+  <div class="brand">
+    <h1>主玩页（④）· 排版稿</h1>
+    <span class="tag">game-5 · layout v2 · 750×1334</span>
+  </div>
+  <div class="meta">
+    <div>底带占用<b id="mOcc">220 / 224 px</b></div>
+    <div>槽位 / 道具<b>68×80 · 126×112</b></div>
+    <div>牌堆<b id="mPile">36 张 · 3 层</b></div>
+  </div>
+</header>
+
+<main>
+  <div class="stageCol">
+    <div class="frame"><div class="screen" id="screen">
+      <div class="env"></div>
+      <div class="envTop"></div>
+      <div class="envGround"></div>
+
+      <!-- 麻将桌 + 牌堆 -->
+      <div class="tableWrap">
+        <img class="tableImg" src="./assets/game-start/table_default.jpg" alt="麻将桌">
+        <div class="pile" id="pile"></div>
+      </div>
+
+      <!-- 顶带 -->
+      <div class="hudTop">
+        <div class="pause" id="btnPause" title="暂停"><i></i><i></i></div>
+        <div class="lv">第 <b id="lvNum">3</b> 关</div>
+        <div class="capsule">微信胶囊避让 174×64</div>
+        <!-- 复活机会（不入道具栏）· 第 16 轮由槽位条右侧移到这里，避免压住第 6/7/8 个槽位 -->
+        <div class="revive" id="revive" style="display:none">
+          <div class="ricon">复</div>
+          <div class="rtx">本局复活<b>直消 4 张</b></div>
+        </div>
+        <div class="infoRow">
+          <div class="progWrap">
+            <div class="progFill" id="progFill"></div>
+            <div class="progTxt">已清 <b id="clrN">15</b> / <b id="clrM">36</b></div>
+          </div>
+          <div class="timer" id="timer">03:12</div>
+          <!-- 规则按钮（原「?」图标 → 书页 + 规则）· 点击开规则弹层（两区内容第 25 轮已填实） -->
+          <div class="ruleBtn" id="btnRule" title="游戏规则">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(246,196,69,.9)" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4.6A1.6 1.6 0 0 1 5.6 3H10a2 2 0 0 1 2 2v14.2a1.7 1.7 0 0 0-1.7-1.7H4z"/>
+              <path d="M20 4.6A1.6 1.6 0 0 0 18.4 3H14a2 2 0 0 0-2 2v14.2a1.7 1.7 0 0 1 1.7-1.7H20z"/>
+            </svg>
+            <span>规则</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底带 -->
+      <div class="hudBottom">
+        <div class="slots" id="slots"></div>
+        <div class="items" id="items"></div>
+      </div>
+
+      <!-- 落位飞行体 + toast -->
+      <div class="flyer" id="flyer"><img id="flyerImg" alt=""></div>
+      <div class="toast" id="toast"></div>
+
+      <div class="vignette"></div>
+
+      <!-- 赠礼层 -->
+      <div class="giftOver" id="giftOver">
+        <div class="scrim"></div>
+        <div class="rays"></div>
+        <div class="ring"></div>
+        <div class="cap">本 局 开 局 赠 礼</div>
+        <h2>掷骰定赠</h2>
+        <div class="diceRow">
+          <img class="dieImg" id="gDieA" src="./assets/game-start/dice/face_3.png" alt="骰子A">
+          <span class="plusEq">+</span>
+          <img class="dieImg" id="gDieB" src="./assets/game-start/dice/face_5.png" alt="骰子B">
+          <span class="plusEq">=</span>
+          <span class="sum" id="gSum">8</span>
+        </div>
+        <div class="giftCard">
+          <div class="ribbon" id="gRibbon">常规档</div>
+          <div class="gotRow">
+            <img class="bigIcon" id="gIcon" src="./assets/home/icon_tool_remove.png" alt="">
+            <div class="gotTxt">
+              <div class="nm" id="gName">移 出 <em>×1</em></div>
+              <div class="sub" id="gSub">本局道具栏 · 随时可用</div>
+            </div>
+          </div>
+          <div class="guard" id="gGuard">
+            <b>仅限本局使用</b> —— 本局结束或提前退出关卡时，未使用的赠礼道具立即作废，不计入累积、不跨局保留。
+          </div>
+        </div>
+        <button class="giftStart" id="btnStart">开始挑战</button>
+        <div class="hintTxt">赠礼将在进入牌局时自动收入道具栏</div>
+      </div>
+
+      <!-- 规则页（第 27 轮：**整页合并为一张图**）
+           = 标题栏「游 戏 规 则」+ 一、麻将配对消除（碰 / 吃 示意）+ 二、掷骰点数对应表 + 页脚免责声明
+           ★ 唯一可改处 = 源稿页 game-5-规则弹层-内容图-源稿.html
+           ★ 重出 = node docs-verify/game-5/game-play/export_rule_page.mjs
+             （两轮 md5 零漂移 + 四角透明 + 「被删的那行」双向真值标定，全在脚本里自证）
+           ★ ✕ 已烘焙进图；点击由下方透明热区 .ruleCloseHit 承接（点遮罩仍可关闭） -->
+      <div class="ruleOver" id="ruleOver">
+        <div class="rscrim" id="ruleScrim"></div>
+        <div class="ruleCard" id="ruleCard">
+          <img class="rulePage" src="./assets/game-play/rule-完整规则页.png"
+               alt="游戏规则。一、麻将配对消除：碰 = 三张完全相同的牌，不限花色，凑齐三张即自动消除；吃 = 同一花色连号三张，凑齐三张即自动消除；被压住的牌不可点，槽位塞满仍未成组则本局失败。二、掷骰点数对应表：和值 2·12 复活档赠复活×1；3·11 加槽档赠加槽×1；4·10 常规档赠移出×1；5·9 常规档赠消除×1；6·8 常规档赠移出×1；7 常规档赠消除×1。页脚：赠礼道具「仅限本局使用」—— 本局结束或提前退出即作废，不计入累积。"
+               width="632" height="1020">
+          <!-- ✕ 的透明热区：几何对齐图中 ✕（right 18 / 56×56 / 垂直中心 = 标题栏 96 的中点 y=48） -->
+          <div class="ruleCloseHit" id="btnRuleClose" title="关闭"></div>
+        </div>
+      </div>
+
+      <!-- 看广告获得道具（道具本局数量为 0 时，点击该道具按钮自动触发）-->
+      <div class="adOver" id="adOver">
+        <div class="ascrim"></div>
+        <div class="adBox" id="adBox">
+          <div class="adCap">看 视 频 广 告</div>
+          <div class="adIcon"><img id="adIcon" src="./assets/home/icon_tool_erase.png" alt=""></div>
+          <div class="adName" id="adName">消 除 <em>×1</em></div>
+          <div class="adNote">看完后<b>本局道具栏立即 +1</b> —— 同样「仅限本局使用」</div>
+          <div class="adBar"><i id="adBarFill"></i></div>
+          <div class="adStat">广告播放中… <b id="adSec">5</b>s</div>
+          <button class="adOk" id="btnAdOk">道 具 到 账 · 收 下</button>
+        </div>
+      </div>
+
+      <!-- 审查叠加 -->
+      <div class="ov" id="ov">
+        <div class="safe"></div>
+        <div class="bandTop"></div>
+        <div class="bandBot"></div>
+        <div class="safeArea"></div>
+        <b class="lbl1">桌面 750×750 · 安全区 682×682（x 34~716 / y 326~1008）</b>
+        <b class="lbl2">顶部 HUD 带 y 0~292</b>
+        <b class="lbl3">底部 HUD 带 y 1042~1334（292）</b>
+        <b class="lbl4">槽位条 y1058~1138（80）· 道具栏 y1150~1262（112 · 4 格 126×112）· 占用 16+80+12+112 = 220 ≤ 可用 224 ✓ 余 4
+          · safeBottom 68（最坏机型），道具栏底边距屏幕底 72 ✓</b>
+        <div class="ruler" style="height:220px"></div>
+      </div>
+    </div></div>
+
+    <div class="ctrl">
+      <button class="btn primary" id="bGift">▶ 演示：赠礼过场 → 主玩页</button>
+      <button class="btn" id="bGiftOnly">只看赠礼层</button>
+      <button class="btn" id="bPlayOnly">只看主玩页</button>
+      <button class="btn" id="bOv" aria-pressed="false">审查叠加</button>
+      <button class="btn" id="bPile" aria-pressed="false">牌堆：真实关卡档位</button>
+      <button class="btn" id="bFace" aria-pressed="true">牌面：AI 母版（27 张）</button>
+      <button class="btn" id="bSlot" aria-pressed="false">槽位：3 → 7（告警）</button>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div class="card">
+      <h3>底带高度冲突 · 已解（本轮拍板）</h3>
+      <table class="mini">
+        <tr><th>项</th><th class="n">y 范围</th><th class="n">高</th></tr>
+        <tr><td>底带总高</td><td class="n">1042 – 1334</td><td class="n">292</td></tr>
+        <tr><td>减 safeBottom</td><td class="n">—</td><td class="n">−68</td></tr>
+        <tr><td><b>可用</b></td><td class="n">—</td><td class="n ok">224</td></tr>
+        <tr><td>间距（桌底→槽位）</td><td class="n">1042 – 1058</td><td class="n">16</td></tr>
+        <tr><td>槽位条</td><td class="n">1058 – 1138</td><td class="n">80</td></tr>
+        <tr><td>间距（槽位→道具）</td><td class="n">1138 – 1150</td><td class="n">12</td></tr>
+        <tr><td>道具栏</td><td class="n">1150 – 1262</td><td class="n">112</td></tr>
+        <tr><td><b>合计占用</b></td><td class="n">—</td><td class="n ok">220 ✓</td></tr>
+        <tr><td>底部余量</td><td class="n">1262 – 1334</td><td class="n">72 ≥ 68 ✓</td></tr>
+      </table>
+      <div class="bar"><i style="width:98.2%"></i></div>
+      <p class="note" style="margin-top:9px">桌面 <b>750×750 完全不动</b>（开局页运镜与时序零改动）。旧版「槽位条距底 safeBottom+200」实测会顶进桌面 68px，本轮作废。<br>道具栏高度 96 → 112 吃掉全部余量，故把「槽位→道具」间距由 16 收到 12，底边停在 1262（距屏底 72 ≥ safeBottom 68）。</p>
+    </div>
+
+    <div class="card">
+      <h3>本轮 4 项调整（对照截图）</h3>
+      <table class="mini">
+        <tr><th>#</th><th>调整</th><th>结果</th></tr>
+        <tr><td>1</td><td>暂停 / 第 N 关上移</td><td class="n">各上移 20 → 垂直中心对齐胶囊避让（y 120）</td></tr>
+        <tr><td>2</td><td>移除「＋看广告得」</td><td class="n">改点道具本体；本局为 0 时自动走看广告</td></tr>
+        <tr><td>3</td><td>道具格放大</td><td class="n">96×96 → 126×112（4 格 · 总宽 576 不变）</td></tr>
+        <tr><td>4</td><td>「?」→ 规则按钮</td><td class="n">书页图标 + 规则；点开规则弹层（两区内容第 25 轮已填实）</td></tr>
+      </table>
+      <p class="note" style="margin-top:9px">道具为 0 时不再整格置灰：改为<b>金色虚线框 + 角标「＋」轻呼吸</b>表示「可获得」，点击即播放看广告流程，看完本局道具栏 +1。</p>
+    </div>
+
+    <div class="card">
+      <h3>模块与功能要素（6 区 · 21 项）</h3>
+      <table class="mini">
+        <tr><th>模块</th><th>功能要素</th></tr>
+        <tr><td>M1 顶条</td><td>暂停 · 第 N 关 · 胶囊避让</td></tr>
+        <tr><td>M2 状态</td><td>已清 n/m · 限时 · 规则</td></tr>
+        <tr><td>M3 牌堆</td><td>牌面 · 多层堆叠 · 可点判定 · 飞入</td></tr>
+        <tr><td>M4 槽位</td><td>8(+1) 格 · 成组消除 · 满槽告警 · 失败</td></tr>
+        <tr><td>M5 道具</td><td>四件套 · 本局角标 · 不足走看广告 · 复活机会</td></tr>
+        <tr><td>M6 赠礼</td><td>过场 · 落位 · 本局限定提示</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>资产口径（本轮拍板）</h3>
+      <dl class="kv">
+        <dt>道具四件套图标</dt><dd><span class="ok">复用</span> home/icon_tool_*.png</dd>
+        <dt>进度条</dt><dd><span class="ok">复用</span> splash/ui_progress_*@2x.png</dd>
+        <dt>牌堆底图</dt><dd><span class="ok">复用</span> game-start/table_default.jpg</dd>
+        <dt>骰子（赠礼页展示）</dt><dd><span class="ok">复用</span> game-start/dice/face_1~6.png</dd>
+        <dt>赠礼主视觉</dt><dd><span class="ok">不新增出图</span> 现有图标 + 矢量</dd>
+        <dt>牌面 27 张</dt><dd><span class="ok">已接入</span> game-play/tiles/**（@2x <b>224×298</b> 真母版，第 33 轮重新归一化 · 内切贴满 · 各关 CSS 缩 0.786~1.0）</dd>
+        <dt>规则页（M7 内容）</dt><dd><span class="ok">已入库</span> game-play/rule-完整规则页.png（@2x 1264×2040 · 整页一图）</dd>
+      </dl>
+    </div>
+  </aside>
+</main>
+
+<!-- ══ 牌堆演示数据（第 32 轮）══════════════════════════════════════════
+     由 docs-verify/game-5/game-play/inject_pile_data.py 从 levels.json 注入，**勿手改**。
+     内容 = 演示关卡（默认 L1 / L10 / L30）的逐张卡位：x/y（相对安全区中心，px）、
+     z（层）、r（朝向 0/90）、k/n（牌面）、c（被更高层覆盖比）。
+     换演示关卡：改 inject_pile_data.py 的 DEMO_TIERS 后重跑该脚本。 -->
+<script id="pileData" type="application/json">{"meta":{"coverTh":0.18,"segMax":36,"segConcurrent":true,"solveMode":"constructive-peel-triples-by-segment","src":"docs-verify/game-5/game-play/levels.json"},"levels":[{"lv":1,"name":"第 1 关","chapter":"一 教学→初阶","n":12,"L":2,"w":112,"h":149,"nl":8,"st":[12],"tiles":[{"x":12.75,"y":-4.01,"z":0,"r":0,"k":"tiao","n":4,"c":0.9609},{"x":-100.8,"y":-5.12,"z":0,"r":0,"k":"wan","n":9,"c":0.9359},{"x":8.24,"y":-156.27,"z":0,"r":90,"k":"wan","n":9,"c":1.0},{"x":10.58,"y":143.9,"z":0,"r":0,"k":"tiao","n":1,"c":0.0808},{"x":119.58,"y":-6.96,"z":0,"r":0,"k":"wan","n":9,"c":0.1026},{"x":-100.76,"y":-151.63,"z":0,"r":90,"k":"tiao","n":4,"c":1.0},{"x":-104.07,"y":142.3,"z":0,"r":0,"k":"tiao","n":4,"c":0.0835},{"x":7.46,"y":-143.9,"z":1,"r":0,"k":"wan","n":2,"c":0.0},{"x":9.11,"y":6.79,"z":1,"r":0,"k":"wan","n":2,"c":0.0},{"x":-101.21,"y":-139.55,"z":1,"r":90,"k":"wan","n":2,"c":0.0},{"x":-102.2,"y":5.64,"z":1,"r":0,"k":"tiao","n":1,"c":0.0},{"x":119.87,"y":-142.78,"z":1,"r":0,"k":"tiao","n":1,"c":0.0}]},{"lv":10,"name":"第 10 关","chapter":"一 教学→初阶","n":93,"L":7,"w":88,"h":117,"nl":19,"st":[33,30,30],"tiles":[{"x":19.18,"y":10.59,"z":0,"r":0,"k":"wan","n":5,"c":1.0},{"x":19.78,"y":127.69,"z":0,"r":0,"k":"tiao","n":1,"c":1.0},{"x":-69.88,"y":11.87,"z":0,"r":0,"k":"wan","n":4,"c":1.0},{"x":-68.17,"y":129.08,"z":0,"r":0,"k":"wan","n":4,"c":1.0},{"x":107.73,"y":12.45,"z":0,"r":0,"k":"wan","n":4,"c":1.0},{"x":107.3,"y":130.63,"z":0,"r":0,"k":"tiao","n":1,"c":1.0},{"x":19.82,"y":-104.56,"z":0,"r":0,"k":"tiao","n":1,"c":1.0},{"x":18.25,"y":244.4,"z":0,"r":0,"k":"tong","n":8,"c":1.0},{"x":-157.97,"y":12.46,"z":0,"r":90,"k":"tong","n":8,"c":1.0},{"x":-155.98,"y":130.2,"z":0,"r":0,"k":"tong","n":8,"c":1.0},{"x":195.41,"y":9.71,"z":0,"r":90,"k":"tong","n":6,"c":1.0},{"x":194.83,"y":130.82,"z":0,"r":0,"k":"tong","n":5,"c":0.5609},{"x":-68.37,"y":-107.95,"z":0,"r":90,"k":"tong","n":5,"c":1.0},{"x":-69.07,"y":244.7,"z":0,"r":0,"k":"tong","n":6,"c":1.0},{"x":106.44,"y":-107.95,"z":0,"r":90,"k":"tong","n":6,"c":1.0},{"x":106.48,"y":247.45,"z":0,"r":0,"k":"tong","n":5,"c":0.0544},{"x":-77.4,"y":2.46,"z":1,"r":0,"k":"tong","n":2,"c":1.0},{"x":-77.15,"y":122.6,"z":1,"r":0,"k":"wan","n":5,"c":1.0},{"x":10.13,"y":5.79,"z":1,"r":0,"k":"tong","n":2,"c":1.0},{"x":10.77,"y":119.83,"z":1,"r":0,"k":"tong","n":2,"c":1.0},{"x":-166.52,"y":3.08,"z":1,"r":0,"k":"tiao","n":4,"c":1.0},{"x":-163.82,"y":121.64,"z":1,"r":90,"k":"tiao","n":1,"c":1.0},{"x":-76.67,"y":-115.51,"z":1,"r":0,"k":"tiao","n":1,"c":1.0},{"x":-76.15,"y":239.56,"z":1,"r":0,"k":"tong","n":2,"c":0.8431},{"x":9.36,"y":-112.75,"z":1,"r":0,"k":"tiao","n":4,"c":1.0},{"x":10.19,"y":239.47,"z":1,"r":90,"k":"tong","n":2,"c":0.6373},{"x":100.09,"y":1.51,"z":1,"r":0,"k":"tiao","n":4,"c":1.0},{"x":98.72,"y":121.99,"z":1,"r":0,"k":"tong","n":2,"c":1.0},{"x":-165.84,"y":-114.48,"z":1,"r":90,"k":"wan","n":5,"c":1.0},{"x":-166.14,"y":238.01,"z":1,"r":0,"k":"tiao","n":1,"c":0.0754},{"x":-6.38,"y":-75.55,"z":2,"r":0,"k":"tong","n":6,"c":1.0},{"x":-7.84,"y":40.21,"z":2,"r":0,"k":"wan","n":3,"c":1.0},{"x":-95.08,"y":-76.5,"z":2,"r":0,"k":"wan","n":3,"c":1.0},{"x":-98.16,"y":41.43,"z":2,"r":0,"k":"wan","n":3,"c":1.0},{"x":81.03,"y":-75.39,"z":2,"r":0,"k":"tong","n":6,"c":1.0},{"x":78.92,"y":38.91,"z":2,"r":0,"k":"wan","n":8,"c":1.0},{"x":-6.98,"y":-194.74,"z":2,"r":0,"k":"tong","n":6,"c":1.0},{"x":-7.95,"y":156.07,"z":2,"r":0,"k":"wan","n":8,"c":1.0},{"x":-182.61,"y":-76.82,"z":2,"r":90,"k":"tiao","n":3,"c":1.0},{"x":-184.67,"y":41.32,"z":2,"r":0,"k":"wan","n":8,"c":1.0},{"x":166.73,"y":-78.45,"z":2,"r":0,"k":"tong","n":1,"c":1.0},{"x":166.7,"y":39.89,"z":2,"r":0,"k":"tong","n":1,"c":1.0},{"x":-93.95,"y":-195.79,"z":2,"r":90,"k":"tong","n":1,"c":1.0},{"x":-95.92,"y":158.01,"z":2,"r":0,"k":"tiao","n":3,"c":1.0},{"x":80.99,"y":-194.15,"z":2,"r":90,"k":"tiao","n":3,"c":1.0},{"x":8.1,"y":-49.62,"z":3,"r":0,"k":"wan","n":2,"c":1.0},{"x":7.59,"y":69.31,"z":3,"r":0,"k":"wan","n":2,"c":1.0},{"x":-78.5,"y":-51.06,"z":3,"r":0,"k":"tiao","n":6,"c":1.0},{"x":-78.86,"y":67.73,"z":3,"r":0,"k":"tong","n":4,"c":1.0},{"x":94.38,"y":-49.55,"z":3,"r":0,"k":"tong","n":4,"c":1.0},{"x":96.09,"y":67.49,"z":3,"r":0,"k":"tiao","n":6,"c":0.8209},{"x":7.19,"y":-167.04,"z":3,"r":0,"k":"tong","n":4,"c":1.0},{"x":8.54,"y":186.04,"z":3,"r":0,"k":"wan","n":1,"c":0.3043},{"x":-166.18,"y":-49.35,"z":3,"r":90,"k":"wan","n":1,"c":1.0},{"x":-167.93,"y":65.52,"z":3,"r":0,"k":"wan","n":1,"c":0.5768},{"x":185.14,"y":-49.62,"z":3,"r":0,"k":"wan","n":9,"c":0.6714},{"x":185.24,"y":67.19,"z":3,"r":0,"k":"wan","n":9,"c":0.2004},{"x":-80.85,"y":-165.27,"z":3,"r":90,"k":"wan","n":2,"c":1.0},{"x":-79.9,"y":186.12,"z":3,"r":0,"k":"wan","n":9,"c":0.2901},{"x":94.44,"y":-167.41,"z":3,"r":90,"k":"tiao","n":6,"c":1.0},{"x":-87.26,"y":-50.15,"z":4,"r":0,"k":"tong","n":9,"c":1.0},{"x":0.94,"y":-50.39,"z":4,"r":0,"k":"tong","n":3,"c":1.0},{"x":-173.11,"y":-47.88,"z":4,"r":0,"k":"tong","n":9,"c":1.0},{"x":89.58,"y":-49.43,"z":4,"r":0,"k":"tong","n":9,"c":1.0},{"x":-84.39,"y":-165.71,"z":4,"r":0,"k":"tong","n":3,"c":1.0},{"x":-83.05,"y":65.68,"z":4,"r":0,"k":"tong","n":4,"c":1.0},{"x":4.69,"y":-168.77,"z":4,"r":90,"k":"tong","n":3,"c":1.0},{"x":2.93,"y":66.11,"z":4,"r":0,"k":"tong","n":4,"c":1.0},{"x":-170.98,"y":-167.74,"z":4,"r":90,"k":"tong","n":4,"c":0.9813},{"x":15.11,"y":-91.52,"z":5,"r":0,"k":"wan","n":2,"c":1.0},{"x":-74.93,"y":-91.0,"z":5,"r":0,"k":"wan","n":8,"c":1.0},{"x":16.54,"y":-208.04,"z":5,"r":90,"k":"wan","n":2,"c":1.0},{"x":17.02,"y":29.81,"z":5,"r":0,"k":"wan","n":5,"c":0.9919},{"x":101.6,"y":-88.92,"z":5,"r":0,"k":"wan","n":5,"c":1.0},{"x":-70.91,"y":-209.11,"z":5,"r":90,"k":"wan","n":2,"c":1.0},{"x":-72.42,"y":27.46,"z":5,"r":0,"k":"wan","n":5,"c":1.0},{"x":-18.66,"y":-130.05,"z":6,"r":0,"k":"wan","n":2,"c":0.0},{"x":-19.53,"y":-15.41,"z":6,"r":0,"k":"wan","n":2,"c":0.0},{"x":-106.62,"y":-128.72,"z":6,"r":0,"k":"wan","n":2,"c":0.0},{"x":-108.77,"y":-11.52,"z":6,"r":0,"k":"tiao","n":6,"c":0.0},{"x":68.37,"y":-130.44,"z":6,"r":0,"k":"tiao","n":6,"c":0.0},{"x":67.51,"y":-15.61,"z":6,"r":0,"k":"tiao","n":6,"c":0.0},{"x":-19.68,"y":-247.43,"z":6,"r":0,"k":"tiao","n":4,"c":0.0},{"x":-19.03,"y":103.06,"z":6,"r":0,"k":"tiao","n":4,"c":0.0},{"x":-193.41,"y":-129.22,"z":6,"r":0,"k":"tiao","n":4,"c":0.0},{"x":-195.41,"y":-11.9,"z":6,"r":90,"k":"tiao","n":8,"c":0.0},{"x":156.93,"y":-129.27,"z":6,"r":90,"k":"tiao","n":8,"c":0.0},{"x":156.05,"y":-14.97,"z":6,"r":0,"k":"tiao","n":8,"c":0.0},{"x":-105.71,"y":-247.45,"z":6,"r":0,"k":"tiao","n":5,"c":0.0},{"x":-107.34,"y":102.9,"z":6,"r":0,"k":"tiao","n":5,"c":0.0},{"x":69.85,"y":-245.98,"z":6,"r":90,"k":"tiao","n":5,"c":0.0},{"x":67.75,"y":105.73,"z":6,"r":0,"k":"wan","n":8,"c":0.0},{"x":-193.17,"y":-248.27,"z":6,"r":90,"k":"wan","n":8,"c":0.0}]},{"lv":30,"name":"第 30 关","chapter":"三 终局","n":138,"L":10,"w":88,"h":117,"nl":25,"st":[36,36,33,33],"tiles":[{"x":50.68,"y":-1.0,"z":0,"r":0,"k":"tong","n":5,"c":1.0},{"x":51.44,"y":115.15,"z":0,"r":0,"k":"tong","n":1,"c":1.0},{"x":-36.19,"y":-1.86,"z":0,"r":0,"k":"tong","n":5,"c":1.0},{"x":-38.59,"y":118.64,"z":0,"r":0,"k":"tong","n":2,"c":1.0},{"x":138.37,"y":-0.62,"z":0,"r":0,"k":"tong","n":1,"c":1.0},{"x":138.42,"y":118.88,"z":0,"r":0,"k":"wan","n":8,"c":1.0},{"x":50.14,"y":-116.86,"z":0,"r":0,"k":"wan","n":8,"c":1.0},{"x":48.38,"y":234.63,"z":0,"r":0,"k":"wan","n":8,"c":1.0},{"x":-127.2,"y":-0.61,"z":0,"r":0,"k":"wan","n":1,"c":1.0},{"x":-125.51,"y":116.64,"z":0,"r":90,"k":"wan","n":1,"c":1.0},{"x":227.59,"y":1.37,"z":0,"r":90,"k":"tong","n":1,"c":1.0},{"x":224.36,"y":118.6,"z":0,"r":0,"k":"wan","n":1,"c":1.0},{"x":-37.44,"y":-119.52,"z":0,"r":0,"k":"tong","n":3,"c":1.0},{"x":-37.88,"y":234.12,"z":0,"r":0,"k":"tong","n":2,"c":1.0},{"x":136.81,"y":-115.48,"z":0,"r":90,"k":"tong","n":3,"c":1.0},{"x":135.92,"y":234.7,"z":0,"r":0,"k":"tong","n":3,"c":1.0},{"x":-127.22,"y":-118.91,"z":0,"r":90,"k":"tong","n":2,"c":1.0},{"x":-2.85,"y":10.18,"z":1,"r":0,"k":"wan","n":7,"c":1.0},{"x":-4.28,"y":130.3,"z":1,"r":0,"k":"tiao","n":1,"c":1.0},{"x":-92.53,"y":11.47,"z":1,"r":0,"k":"wan","n":7,"c":1.0},{"x":-92.95,"y":130.72,"z":1,"r":0,"k":"tiao","n":1,"c":1.0},{"x":86.37,"y":12.24,"z":1,"r":0,"k":"tiao","n":1,"c":1.0},{"x":85.87,"y":130.21,"z":1,"r":0,"k":"tong","n":6,"c":1.0},{"x":-4.32,"y":-105.57,"z":1,"r":0,"k":"wan","n":7,"c":1.0},{"x":-3.39,"y":245.01,"z":1,"r":0,"k":"wan","n":6,"c":1.0},{"x":-179.28,"y":10.66,"z":1,"r":90,"k":"tiao","n":5,"c":1.0},{"x":-178.53,"y":128.68,"z":1,"r":0,"k":"tong","n":6,"c":1.0},{"x":171.81,"y":12.69,"z":1,"r":90,"k":"tong","n":6,"c":1.0},{"x":172.88,"y":130.55,"z":1,"r":0,"k":"wan","n":6,"c":1.0},{"x":-90.49,"y":-107.2,"z":1,"r":90,"k":"wan","n":6,"c":1.0},{"x":-92.07,"y":246.86,"z":1,"r":0,"k":"tiao","n":5,"c":1.0},{"x":83.18,"y":-106.61,"z":1,"r":90,"k":"tong","n":5,"c":1.0},{"x":86.38,"y":245.98,"z":1,"r":0,"k":"tiao","n":5,"c":1.0},{"x":22.72,"y":-49.78,"z":2,"r":0,"k":"tong","n":4,"c":1.0},{"x":20.53,"y":65.65,"z":2,"r":0,"k":"tiao","n":2,"c":1.0},{"x":-66.88,"y":-51.01,"z":2,"r":0,"k":"wan","n":1,"c":1.0},{"x":-68.02,"y":65.74,"z":2,"r":0,"k":"tong","n":5,"c":1.0},{"x":111.01,"y":-49.37,"z":2,"r":0,"k":"tong","n":4,"c":1.0},{"x":108.6,"y":65.89,"z":2,"r":0,"k":"tiao","n":2,"c":1.0},{"x":21.43,"y":-168.74,"z":2,"r":0,"k":"tiao","n":5,"c":1.0},{"x":19.79,"y":184.58,"z":2,"r":0,"k":"tiao","n":5,"c":1.0},{"x":-153.67,"y":-47.85,"z":2,"r":0,"k":"tiao","n":5,"c":1.0},{"x":-155.26,"y":66.66,"z":2,"r":90,"k":"wan","n":1,"c":1.0},{"x":196.49,"y":-48.65,"z":2,"r":90,"k":"wan","n":1,"c":1.0},{"x":198.26,"y":69.25,"z":2,"r":0,"k":"tong","n":5,"c":1.0},{"x":-67.87,"y":-167.74,"z":2,"r":0,"k":"tiao","n":2,"c":1.0},{"x":-64.46,"y":183.81,"z":2,"r":0,"k":"tong","n":7,"c":1.0},{"x":110.17,"y":-165.34,"z":2,"r":90,"k":"tong","n":7,"c":1.0},{"x":110.99,"y":186.72,"z":2,"r":0,"k":"tong","n":7,"c":1.0},{"x":-155.71,"y":-166.35,"z":2,"r":90,"k":"tong","n":5,"c":1.0},{"x":36.63,"y":-4.92,"z":3,"r":0,"k":"tong","n":8,"c":1.0},{"x":36.4,"y":114.4,"z":3,"r":0,"k":"tiao","n":3,"c":1.0},{"x":-51.99,"y":-5.34,"z":3,"r":0,"k":"tong","n":8,"c":1.0},{"x":-48.49,"y":113.92,"z":3,"r":0,"k":"wan","n":5,"c":1.0},{"x":125.36,"y":-3.06,"z":3,"r":0,"k":"tong","n":8,"c":1.0},{"x":126.73,"y":113.89,"z":3,"r":0,"k":"wan","n":3,"c":1.0},{"x":37.61,"y":-121.02,"z":3,"r":0,"k":"tong","n":4,"c":1.0},{"x":37.12,"y":230.63,"z":3,"r":0,"k":"wan","n":3,"c":1.0},{"x":-139.64,"y":-3.29,"z":3,"r":90,"k":"tiao","n":3,"c":1.0},{"x":-139.29,"y":111.88,"z":3,"r":0,"k":"wan","n":3,"c":1.0},{"x":213.29,"y":-4.15,"z":3,"r":90,"k":"tiao","n":3,"c":1.0},{"x":215.34,"y":111.87,"z":3,"r":0,"k":"wan","n":5,"c":1.0},{"x":-48.49,"y":-122.27,"z":3,"r":90,"k":"tong","n":7,"c":1.0},{"x":-48.12,"y":232.29,"z":3,"r":0,"k":"tong","n":7,"c":1.0},{"x":126.87,"y":-120.45,"z":3,"r":90,"k":"tong","n":7,"c":1.0},{"x":125.28,"y":232.41,"z":3,"r":0,"k":"wan","n":5,"c":0.3063},{"x":-10.16,"y":13.81,"z":4,"r":0,"k":"tiao","n":3,"c":1.0},{"x":-101.18,"y":16.68,"z":4,"r":0,"k":"wan","n":9,"c":1.0},{"x":75.16,"y":14.73,"z":4,"r":0,"k":"tong","n":4,"c":1.0},{"x":-185.29,"y":13.7,"z":4,"r":0,"k":"tiao","n":3,"c":1.0},{"x":-9.98,"y":-101.92,"z":4,"r":0,"k":"wan","n":9,"c":1.0},{"x":-12.87,"y":133.74,"z":4,"r":0,"k":"tiao","n":3,"c":1.0},{"x":165.79,"y":17.45,"z":4,"r":0,"k":"tong","n":7,"c":1.0},{"x":-98.65,"y":-103.52,"z":4,"r":0,"k":"tong","n":7,"c":1.0},{"x":-99.11,"y":131.28,"z":4,"r":0,"k":"tong","n":7,"c":1.0},{"x":75.76,"y":-100.34,"z":4,"r":0,"k":"wan","n":9,"c":1.0},{"x":77.79,"y":131.72,"z":4,"r":90,"k":"tong","n":1,"c":1.0},{"x":-189.28,"y":-100.04,"z":4,"r":90,"k":"tong","n":1,"c":1.0},{"x":-189.17,"y":131.17,"z":4,"r":90,"k":"tong","n":1,"c":0.9086},{"x":46.44,"y":-6.38,"z":5,"r":0,"k":"wan","n":1,"c":1.0},{"x":-42.27,"y":-6.12,"z":5,"r":0,"k":"wan","n":2,"c":1.0},{"x":131.57,"y":-2.82,"z":5,"r":0,"k":"tong","n":4,"c":1.0},{"x":-132.55,"y":-5.52,"z":5,"r":0,"k":"wan","n":5,"c":1.0},{"x":47.22,"y":-122.58,"z":5,"r":0,"k":"wan","n":2,"c":1.0},{"x":44.65,"y":114.82,"z":5,"r":0,"k":"wan","n":5,"c":1.0},{"x":220.46,"y":-6.16,"z":5,"r":0,"k":"tiao","n":8,"c":1.0},{"x":-43.54,"y":-121.6,"z":5,"r":0,"k":"tong","n":4,"c":1.0},{"x":-44.33,"y":113.78,"z":5,"r":90,"k":"wan","n":5,"c":1.0},{"x":131.01,"y":-123.77,"z":5,"r":0,"k":"wan","n":2,"c":1.0},{"x":132.45,"y":112.24,"z":5,"r":90,"k":"tiao","n":8,"c":1.0},{"x":-129.51,"y":-122.76,"z":5,"r":90,"k":"tiao","n":8,"c":1.0},{"x":12.54,"y":33.38,"z":6,"r":0,"k":"tong","n":6,"c":1.0},{"x":-76.29,"y":32.28,"z":6,"r":0,"k":"tong","n":6,"c":1.0},{"x":97.41,"y":32.76,"z":6,"r":0,"k":"wan","n":1,"c":1.0},{"x":-166.46,"y":31.94,"z":6,"r":90,"k":"tiao","n":3,"c":1.0},{"x":12.43,"y":-84.51,"z":6,"r":0,"k":"tiao","n":3,"c":1.0},{"x":10.86,"y":147.8,"z":6,"r":0,"k":"wan","n":1,"c":1.0},{"x":188.78,"y":32.16,"z":6,"r":0,"k":"tong","n":6,"c":1.0},{"x":-76.0,"y":-86.88,"z":6,"r":0,"k":"tong","n":3,"c":1.0},{"x":-78.7,"y":149.08,"z":6,"r":0,"k":"tong","n":3,"c":1.0},{"x":100.82,"y":-87.04,"z":6,"r":90,"k":"tong","n":3,"c":1.0},{"x":97.8,"y":148.47,"z":6,"r":0,"k":"tiao","n":3,"c":0.8123},{"x":5.81,"y":-32.59,"z":7,"r":0,"k":"tong","n":2,"c":1.0},{"x":-82.56,"y":-34.21,"z":7,"r":0,"k":"tong","n":9,"c":1.0},{"x":5.47,"y":-150.59,"z":7,"r":0,"k":"tong","n":9,"c":1.0},{"x":5.8,"y":81.2,"z":7,"r":0,"k":"tong","n":2,"c":1.0},{"x":90.74,"y":-32.74,"z":7,"r":0,"k":"tong","n":9,"c":1.0},{"x":-82.66,"y":-152.11,"z":7,"r":90,"k":"tong","n":2,"c":0.9797},{"x":47.04,"y":-62.3,"z":8,"r":0,"k":"tong","n":3,"c":1.0},{"x":46.73,"y":52.43,"z":8,"r":0,"k":"tiao","n":5,"c":1.0},{"x":-40.45,"y":-65.42,"z":8,"r":90,"k":"tiao","n":5,"c":0.9751},{"x":-38.63,"y":54.01,"z":8,"r":0,"k":"tiao","n":5,"c":0.9805},{"x":135.27,"y":-65.21,"z":8,"r":0,"k":"tong","n":3,"c":1.0},{"x":-54.6,"y":-12.57,"z":9,"r":0,"k":"tiao","n":3,"c":0.0},{"x":35.59,"y":-14.61,"z":9,"r":0,"k":"tiao","n":3,"c":0.0},{"x":-51.55,"y":-130.91,"z":9,"r":0,"k":"tiao","n":3,"c":0.0},{"x":-55.27,"y":102.31,"z":9,"r":0,"k":"tong","n":6,"c":0.0},{"x":35.63,"y":-131.46,"z":9,"r":0,"k":"tong","n":6,"c":0.0},{"x":36.37,"y":104.4,"z":9,"r":0,"k":"tong","n":6,"c":0.0},{"x":-142.89,"y":-13.4,"z":9,"r":0,"k":"wan","n":4,"c":0.0},{"x":122.07,"y":-11.59,"z":9,"r":0,"k":"wan","n":4,"c":0.0},{"x":-141.81,"y":-132.44,"z":9,"r":0,"k":"wan","n":4,"c":0.0},{"x":-141.82,"y":104.31,"z":9,"r":0,"k":"tong","n":2,"c":0.0},{"x":122.8,"y":-130.12,"z":9,"r":0,"k":"tong","n":2,"c":0.0},{"x":123.04,"y":102.33,"z":9,"r":0,"k":"tong","n":2,"c":0.0},{"x":-227.3,"y":-14.2,"z":9,"r":90,"k":"wan","n":8,"c":0.0},{"x":209.4,"y":-14.38,"z":9,"r":90,"k":"wan","n":8,"c":0.0},{"x":-52.78,"y":-246.86,"z":9,"r":0,"k":"wan","n":8,"c":0.0},{"x":-51.45,"y":220.71,"z":9,"r":0,"k":"tiao","n":1,"c":0.0},{"x":35.07,"y":-246.56,"z":9,"r":0,"k":"tiao","n":1,"c":0.0},{"x":34.34,"y":220.86,"z":9,"r":90,"k":"tiao","n":1,"c":0.0},{"x":-227.59,"y":-132.13,"z":9,"r":90,"k":"tiao","n":3,"c":0.0},{"x":-229.77,"y":102.33,"z":9,"r":0,"k":"tiao","n":3,"c":0.0},{"x":208.43,"y":-131.52,"z":9,"r":0,"k":"tiao","n":3,"c":0.0},{"x":209.45,"y":102.28,"z":9,"r":0,"k":"wan","n":7,"c":0.0},{"x":-140.23,"y":-247.92,"z":9,"r":90,"k":"wan","n":7,"c":0.0},{"x":-141.21,"y":222.75,"z":9,"r":0,"k":"wan","n":7,"c":0.0},{"x":124.63,"y":-247.79,"z":9,"r":90,"k":"tong","n":3,"c":0.0}]}]}</script>
+<!-- ══ 牌堆演示数据 结束 ══ -->
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const SC = 0.5;
+
+/* ============ 确定性随机（沿用项目 LCG + 扩散，禁直接吃原始种子）============ */
+function scramble(x){
+  x = (x >>> 0) + 0x9E3779B9;
+  x ^= x >>> 16; x = Math.imul(x, 0x85EBCA6B) >>> 0;
+  x ^= x >>> 13; x = Math.imul(x, 0xC2B2AE35) >>> 0;
+  x ^= x >>> 16; return x >>> 0;
+}
+function makeRng(seed){
+  let s = scramble(seed) || 1;
+  return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+}
+
+/* ============ 牌库（唯一真源 · 结构性排除库外牌）============
+   ★ 第 29 轮修正：**牌库收敛为「万 / 条 / 筒 × 1~9」共 27 种**。
+   —— 上一版 buildPile 以 **8% 概率注入 `{k:'zhong'}`**，把「红中」混进了牌堆
+      （第 29 轮用户报障：截图里出现红中，但牌库只有万/条/筒）。
+      根因不是"缺素材回退矢量"，而是**生成器主动造了一张库外的牌**。
+   —— 现在只保留 DECK 这一个真源：**不在 DECK 里的牌，页面里无处可生成**。
+      字牌（东南西北中发白）本游戏不使用（第 26 轮拍板），页面内不留任何字牌通路。 */
+const CN_DIGIT = ['一','二','三','四','五','六','七','八','九'];
+const SUIT_CN  = { wan:'万', tiao:'条', tong:'筒' };
+const SUITS    = ['wan','tiao','tong'];
+const DECK     = [];                       // 27 项：{k:'wan',n:1} … {k:'tong',n:9}
+for(const k of SUITS) for(let n = 1; n <= 9; n++) DECK.push({ k, n });
+const inDeck = (k, n) => SUITS.indexOf(k) >= 0 && n >= 1 && n <= 9;
+
+/* ============ 牌面占位（'svg' 模式的回退绘制 · 仅序数牌，无字牌）============ */
+function tileSVG(kind, n){
+  if(!inDeck(kind, n)) return '';   // 库外牌 → 不画（宁可留空，也不画出牌库外的牌）
+  const ink = '#2F6E4E', red = '#D8432F';
+  const CN = CN_DIGIT;
+  if(kind === 'wan'){
+    return `<svg viewBox="0 0 74 104">
+      <text x="37" y="54" text-anchor="middle" font-family="Songti SC,serif" font-size="46" font-weight="600" fill="${ink}">${CN[n-1]}</text>
+      <text x="37" y="99" text-anchor="middle" font-family="Songti SC,serif" font-size="43" font-weight="600" fill="${red}">萬</text></svg>`;
+  }
+  /* 条 / 筒：符号铺满 54×80 的内区，避免牌面留白过多 */
+  const cols = n <= 3 ? n : (n % 3 === 0 ? 3 : (n % 3 === 1 ? 2 : 3));
+  const rows = Math.ceil(n / cols);
+  const X0 = 10, Y0 = 12, AW = 54, AH = 80;
+  const cw = AW / cols, ch = AH / rows;
+  let g = '';
+  for(let i = 0; i < n; i++){
+    const c = i % cols, r = Math.floor(i / cols);
+    const x = X0 + c * cw + cw / 2, y = Y0 + r * ch + ch / 2;
+    if(kind === 'tiao'){
+      const bw = Math.min(11, cw * 0.54), bh = Math.min(26, ch * 0.66);
+      g += `<rect x="${(x-bw/2).toFixed(1)}" y="${(y-bh/2).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="${(bw/2).toFixed(1)}" fill="${ink}"/>`;
+    } else {
+      const rr = Math.min(11.5, Math.min(cw, ch) / 2 - 2);
+      g += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rr.toFixed(1)}" fill="none" stroke="${ink}" stroke-width="3.6"/>
+            <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(rr*0.34).toFixed(1)}" fill="${red}"/>`;
+    }
+  }
+  return `<svg viewBox="0 0 74 104">${g}</svg>`;
+}
+
+/* ============ 牌面模式 ============
+   'svg' = 矢量占位（回退用）
+   'img' = **真母版（第 28 轮默认 · 第 33 轮升 224×298）** —— 27 张 @2x 224×298（万/条/筒各 9），
+           由 tile_normalize.py 从 _src 母版统一后处理产出（统一占高 80.4% + 圆角 + 抠底 + 压规格）
+   ★ 牌面映射直接由 DECK 生成 —— 库里有几张，就只可能挂上几张（27 ≠ 34，不存在字牌项）*/
+const IMG_FACE = {};
+for(const t of DECK){
+  IMG_FACE[t.k + '-' + t.n] = `./assets/game-play/tiles/${t.k}/${CN_DIGIT[t.n-1]}${SUIT_CN[t.k]}.png`;
+}
+let faceMode = 'img';
+const hasImgFace = (k, n) => faceMode === 'img' && !!IMG_FACE[k + '-' + n];
+function faceHTML(kind, n){
+  return hasImgFace(kind, n) ? `<img class="faceImg" src="${IMG_FACE[kind + '-' + n]}" alt="">` : tileSVG(kind, n);
+}
+function applyFaceMode(mode){
+  faceMode = mode;
+  tileEls.forEach(el => {
+    const k = el.dataset.kind, n = +el.dataset.num;
+    el.classList.toggle('imgmode', hasImgFace(k, n));
+    el.innerHTML = faceHTML(k, n || 1);
+    if(!hasImgFace(k, n)){
+      const svg = el.querySelector('svg');
+      if(svg){ svg.style.width = (el.offsetWidth * 0.77) + 'px'; svg.style.height = (el.offsetHeight * 0.81) + 'px'; }
+    }
+  });
+  slotFresh = -1;
+  renderSlots(slotFilled);
+}
+
+/* ============ 牌堆：真实关卡卡位表（第 32 轮）============
+   ★ 数据来源：docs-verify/game-5/game-play/levels.json（由 level_design.py 生成）
+     由 inject_pile_data.py 注入到下面这个 <script id="pileData">，**勿手改**。
+     要换演示关卡：改 inject_pile_data.py 的 DEMO_TIERS 后重跑即可。
+
+   ★ 第 32 轮两处修正（用户第 4 / 5 条拍板）
+     ① 演示档位不再是写死的 36/12/96，而是**真实关卡**（默认 L1 / L10 / L30）：
+        张数、层数、牌体尺寸、逐张卡位与朝向全部照抄关卡表；
+     ② 横牌 = **纯旋转**：元素恒为牌体 w×h，只加 transform:rotate(90deg)。
+        旧版是「换宽高 + 图片 100%×100%」→ 牌面被横向拉伸 1.33 倍（非等比缩放），已修。
+     ③ 单关内尺寸唯一：同一关所有牌共用 w×h（跨关才变，112 → 88）。
+
+   ★ 安全区坐标换算：#pile 的原点 = .tableWrap 左上角 = 屏幕 y 292；
+     安全区是屏幕 x 34~716 / y 326~1008 ⇒ 容器内 x 34~716 / y 34~716。
+     卡位 (x,y) 是「相对安全区中心」的 px ⇒ 中心在容器内 (34+341, 34+341) = (375, 375)。 */
+const PILE_DATA = JSON.parse(document.getElementById('pileData').textContent);
+const PILE_CX = 34 + 682/2;                      // 375
+const PILE_CY = (326 - 292) + 682/2;             // 375
+const COVER_TH_PAGE = 0.18;                      // 与 level_design.py 同一判压口径
+let pileIdx = 0;
+let pileCount = 0;
+let tileEls = [];
+let lastLive = 0;
+let pileOutOfDeck = 0;                           // 库外牌守卫计数（应为 0）
+function pileLevel(){ return PILE_DATA.levels[pileIdx]; }
+/* 注：inDeck / DECK / SUITS 已在上面「牌库真源」处声明，此处**不得重复声明**
+   （`const inDeck` 与 `function inDeck` 同名同作用域 = SyntaxError，页面会整页白屏） */
+
+function renderPile(idx){
+  if(idx === undefined) idx = pileIdx;
+  pileIdx = idx;
+  const l = PILE_DATA.levels[pileIdx];
+  const tileW = l.w, tileH = l.h;
+  pileCount = l.n;
+
+  const pile = $('pile');
+  pile.innerHTML = '';
+  tileEls = [];
+  pileOutOfDeck = 0;
+  l.tiles.forEach((t, i) => {
+    if(!inDeck(t.k, t.n)) pileOutOfDeck++;        // 库外牌守卫（第 29 轮口径：不在库里就不该出现）
+    const d = document.createElement('div');
+    const imgFace = hasImgFace(t.k, t.n);
+    d.className = 'tile' + (imgFace ? ' imgmode' : '');
+    d.dataset.idx = i;
+    d.dataset.z = t.z;
+    d.dataset.r = t.r;
+    /* 卡位 (x,y) = 相对安全区中心的 px → 换算到 #pile 容器坐标（中心 375,375） */
+    d.style.left = (PILE_CX + t.x - tileW/2).toFixed(1) + 'px';
+    d.style.top  = (PILE_CY + t.y - tileH/2).toFixed(1) + 'px';
+    /* ★ 单关内尺寸唯一：元素恒为牌体 w×h；横牌只加**纯旋转**，绝不改宽高
+       （改宽高 + 图片 100%×100% 会把牌面横向拉伸 1.33 倍 —— 第 32 轮第 5 条明令禁止） */
+    d.style.width = tileW + 'px'; d.style.height = tileH + 'px';
+    if(t.r === 90) d.style.transform = 'rotate(90deg)';
+    d.style.zIndex = 10 + t.z*10;
+    d.innerHTML = faceHTML(t.k, t.n);
+    // 视觉缩放：牌面 SVG 跟着牌尺寸（img 模式由 CSS 100% 铺满，不需要调）
+    if(!imgFace){
+      const svg = d.querySelector('svg');
+      if(svg){
+        svg.style.width = (tileW*0.77) + 'px';
+        svg.style.height = (tileH*0.81) + 'px';
+      }
+    }
+    d.dataset.kind = t.k; d.dataset.num = t.n;
+    /* 可点判定：直接用关卡表里逐张算好的覆盖比（与 level_design.py 同口径 ——
+       累计被更高层覆盖 < 18% 即可点，同层不参与）。
+       验证脚本会用**真实 DOM 几何**独立复算一遍并逐关对账。 */
+    const live = t.c < COVER_TH_PAGE;
+    d.classList.add(live ? 'live' : 'dead');
+    if(live) d.dataset.live = '1';
+    pile.appendChild(d);
+    tileEls.push(d);
+  });
+
+  lastLive = l.nl;
+  $('mPile').textContent = l.name + ' · ' + l.n + ' 张 · ' + l.L + ' 层 · 可点 ' + l.nl;
+  /* ★ 第 32 轮：顶带关卡号与「已清 n/m」也必须跟着**真实关卡**走
+     （旧版写死「第 3 关」+ 36 张，切档时只有侧栏变、顶带不变 ⇒ 自相矛盾） */
+  $('lvNum').textContent = l.lv;
+  $('clrM').textContent = l.n;
+  $('clrN').textContent = Math.round(l.n * 0.42);
+  $('progFill').style.width = '42%';
+}
+
+/* ============ 槽位 ============ */
+const SLOT_W = 68, SLOT_GAP = 16, SLOT_N = 8;
+let slotFresh = -1;                      // 从该下标起播放落位动画（-1 = 不播）
+function renderSlots(filled){
+  const s = $('slots');
+  s.innerHTML = '';
+  for(let i = 0; i < SLOT_N; i++){
+    const d = document.createElement('div');
+    d.className = 'slot' + (i < filled.length ? '' : ' empty');
+    d.style.left = (i*(SLOT_W+SLOT_GAP)) + 'px';
+    d.dataset.slot = i;
+    if(i < filled.length){
+      const m = document.createElement('div');
+      const imgFace = hasImgFace(filled[i].k, filled[i].n || 1);
+      m.className = 'mini' + (i >= slotFresh ? ' fresh' : '') + (imgFace ? ' imgmode' : '');
+      m.innerHTML = faceHTML(filled[i].k, filled[i].n || 1);
+      d.appendChild(m);
+    }
+    s.appendChild(d);
+  }
+  s.classList.toggle('danger', filled.length >= 7);
+}
+
+/* ============ 道具栏 ============ */
+const ITEMS = [
+  { id:'erase',   nm:'消除', img:'./assets/home/icon_tool_erase.png' },
+  { id:'remove',  nm:'移出', img:'./assets/home/icon_tool_remove.png' },
+  { id:'shuffle', nm:'洗牌', img:'./assets/home/icon_tool_shuffle.png' },
+  { id:'addslot', nm:'加槽', img:'./assets/home/icon_tool_addslot.png' }
+];
+/* 4 格 × 126 + 3 × 24 = 576（与上方槽位条同心）
+   ★ 本轮：「＋ 看广告得」独立位已移除 → 变 4 格，单格由 96 放大到 126×112 */
+const ITEM_W = 126, ITEM_GAP = 24;
+const BAG = { erase:0, remove:0, shuffle:0, addslot:0 };
+function renderItems(){
+  const box = $('items');
+  box.innerHTML = '';
+  ITEMS.forEach((it, i) => {
+    const n = BAG[it.id], zero = n <= 0;
+    const d = document.createElement('div');
+    d.className = 'item' + (zero ? ' zero' : '');
+    d.style.left = (i*(ITEM_W+ITEM_GAP)) + 'px';
+    d.dataset.item = it.id;
+    /* 本局数量 0 → 角标显示「＋」（可获得态），点击该按钮即直接走看广告流程 */
+    d.innerHTML = `<img src="${it.img}" alt="${it.nm}"><span class="nm">${it.nm}</span>`
+                + `<span class="cnt">${zero ? '＋' : n}</span>`;
+    box.appendChild(d);
+  });
+}
+
+/* ============ 看广告获得道具（道具不足时自动触发）============
+   原「＋看广告得」独立按钮已移除：点击任意数量为 0 的道具 → 直接开始看广告 →
+   看完「本局道具栏 +1」（同样仅限本局使用）。分享获得入口改挂在暂停面板内。 */
+const AD_SECONDS = 5;
+let adTimer = null, adItemId = null, adLeft = 0;
+function openAd(id){
+  adItemId = id; adLeft = AD_SECONDS;
+  $('adIcon').src = IMG[id];
+  $('adName').innerHTML = `${NM[id].replace(' ','')} <em>×1</em>`;
+  $('adBox').classList.remove('done');
+  $('adBarFill').style.width = '0%';
+  $('adSec').textContent = String(adLeft);
+  $('adOver').classList.add('on');
+  clearInterval(adTimer);
+  adTimer = setInterval(() => {
+    adLeft -= 0.1;
+    $('adBarFill').style.width = (Math.min(100, (1 - Math.max(0, adLeft)/AD_SECONDS) * 100)).toFixed(1) + '%';
+    $('adSec').textContent = String(Math.max(0, Math.ceil(adLeft)));
+    if(adLeft <= 0){ clearInterval(adTimer); adTimer = null; grantAdItem(); }
+  }, 100);
+}
+/* 道具到账：只进本局道具栏（与赠礼同规 —— 本局结束作废、不累计） */
+function grantAdItem(){
+  if(!adItemId) return;
+  BAG[adItemId]++;
+  if(RUN.open) RUN.items[adItemId] = (RUN.items[adItemId] || 0) + 1;
+  renderItems();
+  $('adBox').classList.add('done');
+}
+function closeAd(){
+  clearInterval(adTimer); adTimer = null;
+  $('adOver').classList.remove('on');
+  if(adItemId){ showToast(`看广告获得 <b>${NM[adItemId].replace(' ','')}</b> ×1 —— 仅限本局使用`); adItemId = null; }
+}
+
+/* ============ 赠礼映射表（第 13 轮定稿，一字不改）============ */
+const GIFT_TABLE = {
+  2:{tier:'复活档',items:[],revive:1}, 3:{tier:'加槽档',items:['addslot']},
+  4:{tier:'常规档',items:['remove']},  5:{tier:'常规档',items:['erase']},
+  6:{tier:'常规档',items:['remove']},  7:{tier:'常规档',items:['erase']},
+  8:{tier:'常规档',items:['remove']},  9:{tier:'常规档',items:['erase']},
+  10:{tier:'常规档',items:['remove']}, 11:{tier:'加槽档',items:['addslot']},
+  12:{tier:'复活档',items:[],revive:1}
+};
+const NM = { erase:'消 除', remove:'移 出', shuffle:'洗 牌', addslot:'加 槽' };
+const IMG = { erase:'./assets/home/icon_tool_erase.png', remove:'./assets/home/icon_tool_remove.png',
+              shuffle:'./assets/home/icon_tool_shuffle.png', addslot:'./assets/home/icon_tool_addslot.png' };
+
+/* 本局开局赠礼（供演示；真实由开局页掷骰结果带入） */
+let RUN_GIFT = { a:3, b:5, sum:8, tier:'常规档', items:['remove'], revive:0 };
+
+/* 复活档没有对应道具图标 —— 用矢量补一枚（与主玩页复活徽标同族） */
+const REVIVE_ICON = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+    <defs><radialGradient id="rg" cx="34%" cy="28%">
+      <stop offset="0" stop-color="#FF9E88"/><stop offset=".58" stop-color="#D8432F"/><stop offset="1" stop-color="#7C1B10"/>
+    </radialGradient></defs>
+    <circle cx="60" cy="62" r="50" fill="url(#rg)"/>
+    <circle cx="60" cy="62" r="50" fill="none" stroke="rgba(255,238,228,.55)" stroke-width="3"/>
+    <text x="60" y="84" text-anchor="middle" font-family="Songti SC,serif" font-size="58" font-weight="700" fill="#FFF4F0">复</text>
+  </svg>`);
+
+function paintGift(){
+  const g = RUN_GIFT;
+  $('gDieA').src = `./assets/game-start/dice/face_${g.a}.png`;
+  $('gDieB').src = `./assets/game-start/dice/face_${g.b}.png`;
+  $('gSum').textContent = g.sum;
+  $('gRibbon').textContent = g.tier;
+  if(g.revive){
+    $('gIcon').src = REVIVE_ICON;
+    $('gName').innerHTML = '复活机会 <em>×1</em>';
+    $('gSub').textContent = '不入道具栏 · 本局失败时自动直消 4 张';
+    $('gGuard').innerHTML = '<b>仅限本局使用</b> —— 复活机会不进道具栏、不能主动使用，本局失败时自动生效；未用随本局一并作废。';
+  } else {
+    const id = g.items[0];
+    $('gIcon').src = IMG[id];
+    $('gName').innerHTML = NM[id].replace(' ', '') + ' <em>×1</em>';
+    $('gSub').textContent = '本局道具栏 · 随时可用';
+    $('gGuard').innerHTML = '<b>仅限本局使用</b> —— 本局结束或提前退出关卡时，未使用的赠礼道具立即作废，不计入累积、不跨局保留。';
+  }
+}
+
+/* ============ 三动作：beginRun / runUse / endRun（本局限定护栏）============ */
+let RUN = null;
+function beginRun(gift){
+  RUN = { lv:3, items:{ erase:0, remove:0, shuffle:0, addslot:0 }, used:[], revive:gift.revive || 0, reviveUsed:0 };
+  (gift.items || []).forEach(id => { RUN.items[id] = (RUN.items[id] || 0) + 1; });
+  Object.keys(BAG).forEach(k => BAG[k] = RUN.items[k]);
+  renderItems();
+  $('revive').style.display = RUN.revive ? 'flex' : 'none';
+  return RUN;
+}
+function runUse(id){
+  if(!RUN) return false;
+  if(!RUN.items[id]) return false;
+  RUN.items[id]--; BAG[id]--; RUN.used.push(id);
+  renderItems();
+  return true;
+}
+function endRun(){
+  if(!RUN) return null;
+  const dead = { revive:(RUN.revive - RUN.reviveUsed), items:{ ...RUN.items } };
+  RUN = null;
+  Object.keys(BAG).forEach(k => BAG[k] = 0);
+  renderItems();
+  $('revive').style.display = 'none';
+  return dead;   // 未用即作废
+}
+
+/* ============ 落位：赠礼卡 → 道具栏（第 2 段）============ */
+/* 坐标一律换算到 .screen 的设计值坐标系（750×1334）。
+   不能用 offsetLeft —— 赠礼卡是 .giftCard 的子元素，offsetParent 不是 .screen，会跑偏。 */
+function centerInScreen(el){
+  const sr = $('screen').getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  return { x: (r.left + r.width/2 - sr.left) / SC, y: (r.top + r.height/2 - sr.top) / SC };
+}
+function flyToBag(id, fromEl){
+  const a = centerInScreen(fromEl);
+  const b = centerInScreen(document.querySelector(`.item[data-item="${id}"]`));
+  const fl = $('flyer'), size = 96;
+  $('flyerImg').src = IMG[id];
+  fl.style.width = size + 'px'; fl.style.height = size + 'px';
+  fl.style.left = (a.x - size/2) + 'px';
+  fl.style.top  = (a.y - size/2) + 'px';
+  fl.style.transform = 'none';
+  fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
+  requestAnimationFrame(() => {
+    fl.style.transform = `translate(${(b.x-a.x).toFixed(1)}px, ${(b.y-a.y).toFixed(1)}px) scale(.62) rotate(16deg)`;
+  });
+  setTimeout(() => { fl.classList.remove('go'); fl.style.opacity = 0; }, 800);
+  setTimeout(() => { fl.style.opacity = ''; fl.style.transform = 'none'; }, 1280);
+}
+
+function showToast(html, ms){
+  const t = $('toast');
+  t.innerHTML = html; t.classList.add('on');
+  clearTimeout(t._tm);
+  t._tm = setTimeout(() => t.classList.remove('on'), ms || 2200);
+}
+
+/* ============ 流程：赠礼过场 → 落位 → 主玩页 ============ */
+let phase = 'gift';
+function enterGift(){
+  phase = 'gift';
+  $('giftOver').classList.add('on');
+  $('bGiftOnly').setAttribute('aria-pressed', 'true');
+  paintGift();
+}
+function enterPlay(demoFly){
+  phase = 'play';
+  $('giftOver').classList.remove('on');
+  $('bGiftOnly').setAttribute('aria-pressed', 'false');
+  beginRun(RUN_GIFT);
+  if(demoFly && RUN_GIFT.revive === 0){
+    const icon = $('gIcon');
+    setTimeout(() => {
+      flyToBag(RUN_GIFT.items[0], icon);
+    }, 160);
+    setTimeout(() => {
+      showToast(`本局道具已到账：<b>${NM[RUN_GIFT.items[0]].replace(' ','')} ×1</b> —— 仅限本局使用`);
+    }, 900);
+  } else if(demoFly){
+    setTimeout(() => showToast('本局获得 <b>复活机会 ×1</b>（自动生效，不入道具栏）'), 300);
+  }
+}
+function playFlow(){
+  enterGift();
+  setTimeout(() => enterPlay(true), 1750);
+}
+
+/* ============ 点牌 → 飞入槽位（三段：飞出 → 落位 → 成组判定）============ */
+let slotFilled = [];
+function pickTile(el){
+  if(el.classList.contains('dead') || el.classList.contains('fly')) return;
+  if(slotFilled.length >= SLOT_N) return;
+
+  const tw = el.offsetWidth, th = el.offsetHeight;
+  const slotIdx = slotFilled.length;
+  const target = document.querySelector(`.slot[data-slot="${slotIdx}"]`);
+  // 目标点 = 槽位中心（屏幕系 → 桌容器系；.tableWrap 在设计值里是 left 0 / top 292）
+  const wr = document.querySelector('.tableWrap').getBoundingClientRect();
+  const sc = centerInScreen(target);
+  const tx = (sc.x - wr.left/SC) - tw/2;
+  const ty = (sc.y - wr.top /SC) - th/2;
+
+  el.classList.add('fly');
+  el.style.transform = `translate(${(tx - el.offsetLeft).toFixed(1)}px, ${(ty - el.offsetTop).toFixed(1)}px) scale(.55)`;
+
+  // 状态立即入槽（数据先行）—— 视觉等飞到再落位
+  slotFilled.push({ k: el.dataset.kind, n: +el.dataset.num });
+
+  setTimeout(() => {
+    el.style.display = 'none';
+    slotFresh = slotIdx;
+    renderSlots(slotFilled);
+
+    const done = Math.min(pileCount, +$('clrN').textContent + 1);
+    $('clrN').textContent = done;
+    $('progFill').style.width = Math.min(100, done / pileCount * 100).toFixed(1) + '%';
+
+    if(slotFilled.length >= 7) showToast('⚠ 槽位将满 —— <b>再入 1 张且不能成组即失败</b>');
+
+    // 三张同面 → 成组消除
+    const cnt = {};
+    slotFilled.forEach(t => { const k = t.k + '_' + t.n; cnt[k] = (cnt[k] || 0) + 1; });
+    const hit = Object.keys(cnt).find(k => cnt[k] >= 3);
+    if(hit){
+      setTimeout(() => {
+        let removed = 0;
+        slotFilled = slotFilled.filter(t => {
+          if(t.k + '_' + t.n === hit && removed < 3){ removed++; return false; }
+          return true;
+        });
+        slotFresh = -1;
+        renderSlots(slotFilled);
+        showToast('成组消除 <b>×3</b> —— 连锁反应，压着的牌露出来了');
+      }, 210);
+    }
+  }, 280);
+}
+
+/* ============ 交互绑定（真实事件）============ */
+$('pile').addEventListener('click', e => {
+  const el = e.target.closest('.tile');
+  if(el) pickTile(el);
+});
+$('items').addEventListener('click', e => {
+  const el = e.target.closest('.item');
+  if(!el) return;
+  const id = el.dataset.item;
+  if(BAG[id] > 0){
+    /* 本局还有 → 直接用 */
+    if(runUse(id)) showToast(`已使用 <b>${NM[id].replace(' ','')}</b> —— 剩余 ${BAG[id]}`);
+    else showToast(`<b>${NM[id].replace(' ','')}</b> 已用尽 —— 本局未使用的赠礼道具将在本局结束时作废`);
+  } else {
+    /* 本局不足 → 直接触发看广告获得流程（不再有独立「＋看广告得」按钮） */
+    openAd(id);
+  }
+});
+$('btnAdOk').addEventListener('click', closeAd);
+$('btnPause').addEventListener('click', () => showToast('暂停面板：继续 / 重开 / 返回首页（二次确认） / 声音 / <b>分享给好友得道具</b>'));
+/* 规则按钮 → 规则弹层（含「麻将配对消除」与「掷骰点数对应表」两区 · 第 25 轮两区已填实） */
+$('btnRule').addEventListener('click', () => $('ruleOver').classList.add('on'));
+$('btnRuleClose').addEventListener('click', () => $('ruleOver').classList.remove('on'));
+$('ruleScrim').addEventListener('click', () => $('ruleOver').classList.remove('on'));
+$('btnStart').addEventListener('click', () => enterPlay(true));
+$('bGift').addEventListener('click', playFlow);
+$('bGiftOnly').addEventListener('click', enterGift);
+$('bPlayOnly').addEventListener('click', () => enterPlay(false));
+$('bOv').addEventListener('click', e => {
+  const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+  $('ov').classList.toggle('on', on);
+});
+$('bPile').addEventListener('click', () => {
+  slotFilled = []; slotFresh = -1; renderSlots(slotFilled);
+  /* 循环切到下一个**真实关卡**；顶带关卡号 / 已清 n/m / 进度条都在 renderPile 里同步 */
+  renderPile((pileIdx + 1) % PILE_DATA.levels.length);
+});
+$('bFace').addEventListener('click', e => {
+  const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+  e.currentTarget.textContent = '牌面：' + (on ? 'AI 母版（27 张）' : '矢量占位');
+  applyFaceMode(on ? 'img' : 'svg');
+});
+$('bSlot').addEventListener('click', e => {
+  const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+  const n = on ? 7 : 3;
+  const rng = makeRng(7);
+  const kinds = ['wan','tiao','tong'];
+  slotFilled = [];
+  for(let i = 0; i < n; i++) slotFilled.push({ k: kinds[Math.floor(rng()*3)%3], n: 1 + Math.floor(rng()*9)%9 });
+  slotFresh = 0;
+  renderSlots(slotFilled);
+});
+
+/* ============ 倒计时（真实走秒）============ */
+let left = 192;
+setInterval(() => {
+  if(phase !== 'play') return;
+  if(left > 0) left--;
+  const m = String(Math.floor(left/60)).padStart(2,'0');
+  const s = String(left%60).padStart(2,'0');
+  $('timer').textContent = `${m}:${s}`;
+  $('timer').classList.toggle('warn', left <= 10);
+}, 1000);
+
+/* ============ 初始化 ============ */
+renderPile(0);
+/* 档位按钮文案 = 真实关卡（张数由 levels.json 决定，不再写死） */
+$('bPile').textContent = '牌堆：' + PILE_DATA.levels.map(
+  l => 'L' + l.lv + ' ' + l.n + ' 张').join(' → ');
+renderSlots([]);
+renderItems();
+enterGift();
+
+/* ============ 外挂断言接口（供无头验证）============ */
+window.__mp = {
+  phase:() => phase,
+  gift:() => ({ ...RUN_GIFT }),
+  run:() => RUN ? JSON.parse(JSON.stringify(RUN)) : null,
+  bag:() => ({ ...BAG }),
+  slots:() => slotFilled.map(t => t.k + t.n),
+  pile:() => pileCount,
+  live:() => ({ live:document.querySelectorAll('.tile.live').length,
+                dead:document.querySelectorAll('.tile.dead').length, total:tileEls.length }),
+  tiles:() => tileEls.map((el,i) => ({ i, live:el.classList.contains('live'),
+                kind:el.dataset.kind, num:+el.dataset.num, gone:el.style.display === 'none' })),
+  /* 牌堆实际占位（屏幕设计值坐标）—— 用来抓"牌堆越出安全区 / 压到底带"这类截图看不出的问题 */
+  pileBox:() => {
+    const sc = $('screen').getBoundingClientRect();
+    let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9, n = 0;
+    document.querySelectorAll('.tile').forEach(el => {
+      const r = el.getBoundingClientRect();
+      // display:none 的元素 rect 全 0，换算后会变成大负数 —— 必须剔除，否则几何测量假失败
+      if(r.width < 1 || r.height < 1) return;
+      minX = Math.min(minX, (r.left  - sc.left) / SC);
+      minY = Math.min(minY, (r.top   - sc.top ) / SC);
+      maxX = Math.max(maxX, (r.right - sc.left) / SC);
+      maxY = Math.max(maxY, (r.bottom- sc.top ) / SC);
+      n++;
+    });
+    const f = v => +v.toFixed(1);
+    const SAFE = { x:34, y:326, r:716, b:1008 };
+    return { measured:n, minX:f(minX), minY:f(minY), maxX:f(maxX), maxY:f(maxY),
+             insideSafe: minX >= SAFE.x - 0.6 && minY >= SAFE.y - 0.6 && maxX <= SAFE.r + 0.6 && maxY <= SAFE.b + 0.6,
+             clearOfBand: maxY <= 1042 };
+  },
+  giftTable:() => GIFT_TABLE,
+  pockets:() => {
+    const sc = $('screen').getBoundingClientRect();
+    const box = el => {
+      const r = el.getBoundingClientRect();
+      return { top:+((r.top-sc.top)/SC).toFixed(1), bottom:+((r.bottom-sc.top)/SC).toFixed(1),
+               left:+((r.left-sc.left)/SC).toFixed(1), right:+((r.right-sc.left)/SC).toFixed(1),
+               h:+((r.height)/SC).toFixed(1), w:+((r.width)/SC).toFixed(1) };
+    };
+    const band = { top:1042, bottom:1334, h:292, safeBottom:68, avail:224 };
+    const slots = box($('slots')), items = box($('items')), table = box(document.querySelector('.tableWrap'));
+    return {
+      band, slots, items,
+      usage: +(items.bottom - band.top).toFixed(1),          // 208
+      overBand: items.bottom > band.bottom - band.safeBottom, // 是否越过安全区
+      intoTable: slots.top < band.top,                        // 是否顶进桌面
+      tableBottom: table.bottom,
+      slotOverflow: +(slots.top - band.top).toFixed(1),
+      itemOverflow: +(items.bottom - (band.bottom - band.safeBottom)).toFixed(1)
+    };
+  },
+  runUse, endRun, beginRun, enterGift, enterPlay,
+  faceMode:() => faceMode,
+  setFace:applyFaceMode,
+  /* 顶带信息行排版断言 —— 「已清 n/m」与暂停按钮曾经双向重叠，肉眼很难发现 */
+  topRow:() => {
+    const sc = $('screen').getBoundingClientRect();
+    const b = el => { const r = el.getBoundingClientRect(); return {
+      top:+((r.top-sc.top)/SC).toFixed(1), bottom:+((r.bottom-sc.top)/SC).toFixed(1),
+      left:+((r.left-sc.left)/SC).toFixed(1), right:+((r.right-sc.left)/SC).toFixed(1) }; };
+    const prog = b(document.querySelector('.progWrap')), timer = b($('timer'));
+    const rule = b($('btnRule')), pause = b($('btnPause')), lv = b(document.querySelector('.lv'));
+    const ov = (a, c) => !(a.left >= c.right || a.right <= c.left || a.top >= c.bottom || a.bottom <= c.top);
+    return { prog, timer, rule, pause, lv,
+      progTimerGap:+(timer.left - prog.right).toFixed(1),
+      timerRuleGap:+(rule.left - timer.right).toFixed(1),
+      progHitsPause: ov(prog, pause),
+      timerHitsPause: ov(timer, pause),
+      allInTopBand: prog.bottom <= 292 && timer.bottom <= 292 && rule.bottom <= 292 && lv.right <= 546 };
+  },
+  /* 赠礼层纵向排版断言 —— 卡片高度是"内容撑开"的，靠肉眼估间距必翻车 */
+  giftBox:() => {
+    const sc = $('screen').getBoundingClientRect();
+    const b = el => { const r = el.getBoundingClientRect(); return {
+      top:+((r.top-sc.top)/SC).toFixed(1), bottom:+((r.bottom-sc.top)/SC).toFixed(1),
+      left:+((r.left-sc.left)/SC).toFixed(1), right:+((r.right-sc.left)/SC).toFixed(1),
+      h:+(r.height/SC).toFixed(1) }; };
+    const card = b(document.querySelector('.giftCard'));
+    const btn  = b(document.querySelector('.giftStart'));
+    const dice = b(document.querySelector('.diceRow'));
+    const hint = b(document.querySelector('.hintTxt'));
+    return { card, btn, dice, hint,
+      gapDiceCard:+(card.top - dice.bottom).toFixed(1),
+      gapCardBtn:+(btn.top - card.bottom).toFixed(1),
+      gapBtnHint:+(hint.top - btn.bottom).toFixed(1),
+      overlap: card.bottom > btn.top,
+      inScreen: card.bottom < 1334 && btn.bottom < 1334 && hint.bottom <= 1336 };
+  },
+  /* ── 本轮改版断言（第 16 轮：顶带对齐 / 道具栏放大 / 两弹层）── */
+  rev:() => {
+    const sc = $('screen').getBoundingClientRect();
+    const b = el => { const r = el.getBoundingClientRect(); return {
+      top:+((r.top-sc.top)/SC).toFixed(1), bottom:+((r.bottom-sc.top)/SC).toFixed(1),
+      left:+((r.left-sc.left)/SC).toFixed(1), right:+((r.right-sc.left)/SC).toFixed(1),
+      w:+(r.width/SC).toFixed(1), h:+(r.height/SC).toFixed(1),
+      cy:+((((r.top+r.bottom)/2)-sc.top)/SC).toFixed(1) }; };
+    const items = [...document.querySelectorAll('#items .item')];
+    const i0 = items[0] ? b(items[0]) : null;
+    const bar = b($('items'));
+    return {
+      pause:b($('btnPause')), lv:b(document.querySelector('.lv')), capsule:b(document.querySelector('.capsule')),
+      /* 顶带对齐：三者的垂直中心应落在同一条线上 */
+      capCenter: b(document.querySelector('.capsule')).cy,
+      pauseCenter: b($('btnPause')).cy,
+      lvCenter: b(document.querySelector('.lv')).cy,
+      /* 道具栏 */
+      itemCount: items.length, itemW: i0 ? i0.w : 0, itemH: i0 ? i0.h : 0,
+      itemGap: items.length > 1 ? +(b(items[1]).left - b(items[0]).right).toFixed(1) : -1,
+      barLeft: bar.left, barW: bar.w, barTop: bar.top, barBottom: bar.bottom,
+      barH: bar.h, bottomMargin: +(1334 - bar.bottom).toFixed(1),
+      /* 「＋看广告得」独立位应已消失 */
+      hasPlus: !!document.querySelector('#items .item.plus'),
+      zeroCount: document.querySelectorAll('#items .item.zero').length,
+      zeroBadge: (document.querySelector('#items .item.zero .cnt') || {}).textContent || '',
+      adTagOnItem: !!document.querySelector('#items .item .adTag'),
+      /* 规则按钮 + 规则弹层 */
+      ruleLabel: $('btnRule').textContent.trim(),
+      ruleHasIcon: !!document.querySelector('#btnRule svg'),
+      ruleOpen: $('ruleOver').classList.contains('on'),
+      ruleOpenOnStack: $('ruleOver').classList.contains('on'),
+      /* ★ 第 27 轮：规则页整页固化为**一张图** → 原来的 ruleSections（读 .ruleSec h4）
+         已无对应 DOM。改为读「整页图资产 + 旧活内容残留数」，判据换成资产口径：
+           · rulePageImg：图的来源与原始像素（必须 @2x 1264×2040）
+           · ruleLegacyDOM：旧结构选择器残留数（必须 0 —— 防"图换了、旧节点还埋在底下"） */
+      rulePageImg: (() => { const i = document.querySelector('#ruleCard .rulePage');
+        return i ? { src: (i.getAttribute('src') || '').split('/').pop(),
+                     natW: i.naturalWidth, natH: i.naturalHeight,
+                     ok: i.complete && i.naturalWidth > 0 } : null; })(),
+      ruleLegacyDOM: document.querySelectorAll(
+        '.ruleHead, .ruleBody, .ruleSec, .ruleFoot, .ph, .figRules, .figDice, .diceTbl, .frRow, .rvIc, .tagT'
+      ).length,
+      ruleH: b(document.querySelector('.ruleCard')).h,
+      ruleW: b(document.querySelector('.ruleCard')).w,
+      ruleInScreen: b(document.querySelector('.ruleCard')).top >= 0 && b(document.querySelector('.ruleCard')).bottom <= 1334,
+      ruleCloseHit: (() => { const e = $('btnRuleClose'); if (!e) return null;
+        const r = e.getBoundingClientRect();
+        return { w: +(r.width / SC).toFixed(1), h: +(r.height / SC).toFixed(1),
+                 right: +((document.querySelector('.ruleCard').getBoundingClientRect().right - r.right) / SC).toFixed(1) }; })(),
+      /* 复活徽标定位 —— 第 16 轮修正：原挂在槽位条右侧会压住第 6/7/8 个槽位（实测 3 格） */
+      reviveBox: (() => { const r = $('revive').getBoundingClientRect();
+        return { w:+(r.width/SC).toFixed(1), top:+((r.top-sc.top)/SC).toFixed(1),
+                 bottom:+((r.bottom-sc.top)/SC).toFixed(1), left:+((r.left-sc.left)/SC).toFixed(1),
+                 right:+((r.right-sc.left)/SC).toFixed(1) }; })(),
+      reviveVisible: getComputedStyle($('revive')).display !== 'none',
+      reviveHitsSlots: (() => {
+        const rv = $('revive').getBoundingClientRect();
+        if(rv.width < 1) return [];
+        return [...document.querySelectorAll('.slot')].map((s, i) => {
+          const r = s.getBoundingClientRect();
+          return (!(r.left >= rv.right || r.right <= rv.left || r.top >= rv.bottom || r.bottom <= rv.top)) ? i : -1;
+        }).filter(i => i >= 0);
+      })(),
+      reviveClearOfCapsule: (() => {
+        const rv = $('revive').getBoundingClientRect();
+        if(rv.width < 1) return true;
+        return rv.right <= document.querySelector('.capsule').getBoundingClientRect().left;
+      })(),
+      /* 看广告弹层 */
+      adOpen: $('adOver').classList.contains('on'),
+      adDone: $('adBox').classList.contains('done'),
+      adName: $('adName').textContent.trim(),
+      adSec: $('adSec').textContent.trim()
+    };
+  },
+  setGift:(a,b) => {
+    const s = a + b, row = GIFT_TABLE[s];
+    RUN_GIFT = { a, b, sum:s, tier:row.tier, items:[...row.items], revive: row.revive || 0 };
+    paintGift(); return { ...RUN_GIFT };
+  }
+};
+</script>
+</body>
+</html>

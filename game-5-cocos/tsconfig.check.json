@@ -1,0 +1,28 @@
+{
+  /*
+   * ============================================================
+   *  tsconfig.check.json · 只查「自己写的代码」的类型检查配置
+   * ============================================================
+   *  为什么不能直接用 `tsconfig.json`：
+   *   ① 它 extends 的 `temp/tsconfig.cocos.json` 里 `target: ES2015` 且**没有 lib**，
+   *      于是 `Object.values` / `String.padStart` / `Array.includes` 全部报
+   *      `TS2550 ... change your target library` —— 这些**不是**代码问题。
+   *   ② 引擎自带的 `cc.d.ts`（7 万行，含 WebGPU / pal 等平台声明）在缺 lib 时会
+   *      喷出上百条与业务无关的错误，把真错误淹没。
+   *  所以这里显式给 `lib` + 开 `skipLibCheck`，把信噪比拉回来。
+   *
+   *  运行：`bash tools/tsc-check.sh`
+   * ============================================================
+   */
+  "extends": "./temp/tsconfig.cocos.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "strict": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": false
+  },
+  "include": ["assets/scripts/**/*.ts"]
+}

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>game-5 · 规则页（整页）· 源稿（导出用 · 第 27 轮）</title>
+<!--
+  ============================================================================
+  规则页 · 整页 HTML 源稿（第 27 轮拍板「整页合并成一张图」）
+  ============================================================================
+  用途：① 作为定稿前的唯一可追溯源 —— 以后要微调规则页视觉，改这里、重跑
+           export_rule_page.mjs 即可重出整页 PNG，页内 <img> 自动跟着变；
+        ② 导出脚本直接截本页的 #expCard，产出正式素材图。
+
+  ★ 与第 26 轮（两张内容图）的差别：
+    第 26 轮导的是「两个区」，页内仍是"头/尾 HTML + 中间两图"的混合态；
+    本轮按用户拍板改为 **整页合并成一张图** —— 标题栏 + 两区 + 页脚一起烘焙，
+    页内规则页只剩一张图（+ 一个承接点击的透明关闭热区）。
+    故本页由"两个半卡片"改为"单张完整卡片"。
+
+  ★ 第 27 轮内容修订（按用户拍板）：
+    **删除点数对应表下方的那行说明**（原 .diceFoot「和值 2–12：左右对称的赠送相同 ·
+    中间值 7 出现最多」）。它原本靠 margin-top:auto 顶在区底部，删掉后 .figDice 改
+    justify-content:center 让表格居中，区高仍锁 360 → 整卡高度与导出尺寸不受影响。
+    （碰 / 吃 区底部那行「被压住的牌不可点 …」用户未点名，**保留**。）
+
+  ★ 透明底是硬要求：
+    .ruleCard 有 border-radius:30px + overflow:hidden，四角圆弧以外必须是**透明**，
+    否则贴到弹层遮罩上会露出一个方块。所以本页 html/body 一律 background:transparent，
+    导出时 Chrome 再传 --default-background-color=00000000 双保险。
+    （导出后由 Python 校验四角 alpha=0，见 verify_rule_figs.py）
+
+  ★ 尺寸链（与主稿 .ruleCard 完全一致，不得改动）：
+    .ruleCard  632（border-box，含 2px border）→ 内容 628
+    .ruleHead  96
+    .ruleBody  padding 26/30/34 · 区间距 26
+    .figRules  568 × 300        .figDice  568 × 360
+    .ruleFoot  页脚免责声明（17px）
+    实测卡片高 1020 → 导出 @2x = 1264 × 2040
+    ⚠ 台账历史口径写「572 × 300 / 572 × 360」= 按 content-box 算的名义值；
+      实际渲染因全局 box-sizing:border-box 扣掉卡片左右各 2px border，为 568。
+
+  ★ 字体方案「丙」（第 26 轮拍板）：标题/表头/和值列走宋体，正文与数字走系统无衬线。
+  ============================================================================
+-->
+<style>
+:root{
+  --cream:#FFF7E6; --cream-dim:#C9D8CC; --cream-mute:#87998C;
+  --gold:#F6C445; --gold-hi:#FFE08A; --gold-dk:#C8912B;
+  --jade:#2E8B6F; --jade-hi:#55B79A;
+  --green:#20694E; --green-dk:#0A3327;
+  --ivory:#FDFAF0; --edge:#C7B58B; --brown:#4A2B18;
+  --red:#D8432F;
+  --shell-0:#060806; --shell-1:#0B100C; --shell-2:#121A15;
+  --hair:rgba(246,196,69,.16);
+  --serif:"Songti SC","STSong","Noto Serif SC",serif;
+  --sans:"PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif;
+  --sc:0.50; --scInv:2.0000;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+/* ★ 透明底（见文件头说明）：绝不设不透明背景 */
+html,body{background:transparent}
+/* ★★ padding:0 是**硬要求**（第 27 轮）：导出走 Chrome --screenshot 截视口，
+   卡片必须紧贴 (0,0)。页面说明块已移到卡片**之后**（在截取范围之外）。
+   实测时再按 alpha>0 的边界自动裁剪，故"卡片在不在原点"只影响成败、不影响精度。*/
+body{font-family:var(--sans);color:var(--cream);padding:0}
+.pageNote{max-width:632px;margin:22px auto 40px;font-size:13px;line-height:1.9;color:#9FB4A6}
+.pageNote b{color:var(--gold-hi);font-weight:600}
+.pageNote code{font-family:ui-monospace,Menlo,monospace;color:var(--gold-hi);font-size:12px}
+
+/* ══════════ 以下 CSS 与 game-5-主玩页-排版.html 弹层段同源 ══════════
+   差别：① 本页 position:relative（脱离弹层绝对定位，便于单卡导出）；
+        ② **不画 box-shadow** —— 截取范围只有卡片 border-box，投影在图外，
+           留在页内 CSS 上（投影不属于素材图的一部分）。 */
+.ruleCard{position:relative;
+  width:632px;border-radius:30px;overflow:hidden;
+  background:linear-gradient(178deg,#0E2A1F,#081711 62%,#050D09);
+  border:2px solid rgba(246,196,69,.34)}
+.ruleHead{position:relative;height:96px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg, rgba(246,196,69,.14), transparent);
+  border-bottom:1px solid rgba(246,196,69,.18)}
+.ruleHead h3{font-family:var(--serif);font-size:38px;letter-spacing:.2em;color:var(--cream);
+  text-shadow:0 2px 10px rgba(0,0,0,.7)}
+/* ✕ 关闭按钮 —— 第 27 轮起**烘焙进整页图**；页内用同尺寸透明热区承接点击 */
+.ruleClose{position:absolute;right:18px;top:50%;transform:translateY(-50%);
+  width:56px;height:56px;border-radius:50%;border:1.5px solid rgba(246,196,69,.28);
+  background:rgba(4,20,14,.6);display:flex;align-items:center;justify-content:center;
+  font-size:26px;color:rgba(255,247,230,.8);cursor:pointer;transition:background .12s}
+.ruleClose:active{background:rgba(4,20,14,.9)}
+.ruleBody{padding:26px 30px 34px;display:flex;flex-direction:column;gap:26px}
+/* ★ 字体方案「丙」：标题/表头/和值列走宋体 */
+.ruleSec h4{font-family:var(--serif);font-size:25px;color:var(--gold-hi);letter-spacing:.1em;margin-bottom:14px;
+  display:flex;align-items:center;gap:10px}
+.ruleSec h4::before{content:"";width:7px;height:24px;border-radius:3px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold-dk))}
+.ruleFoot{margin-top:2px;text-align:center;font-size:17px;color:rgba(201,216,204,.42);letter-spacing:.06em}
+
+/* 一、碰 / 吃 示意 */
+.figRules{height:300px;display:flex;flex-direction:column;gap:10px;padding:12px 14px;
+  border:2px solid rgba(246,196,69,.20);border-radius:18px;
+  background:linear-gradient(180deg,rgba(246,196,69,.05),rgba(0,0,0,.18))}
+.frRow{flex:1;display:flex;align-items:center;gap:16px;padding:0 14px;border-radius:13px;
+  background:rgba(4,20,14,.46);border:1px solid rgba(246,196,69,.13)}
+.frTiles{display:flex;gap:7px;flex:none}
+.frTiles img{display:block;width:68px;border-radius:9px;
+  box-shadow:0 5px 12px rgba(0,0,0,.6), 0 0 0 1px rgba(246,196,69,.20)}
+.frTx{flex:1;min-width:0}
+.frNm{display:flex;align-items:baseline;gap:10px}
+.frNm b{font-family:var(--serif);font-size:30px;font-weight:700;letter-spacing:.08em;color:var(--gold-hi);
+  text-shadow:0 2px 9px rgba(0,0,0,.75)}
+.frNm span{font-size:18px;color:var(--cream)}
+.frDs{margin-top:5px;font-size:16px;line-height:1.5;color:rgba(201,216,204,.64)}
+.frDs em{font-style:normal;color:var(--gold)}
+.frFoot{flex:none;text-align:center;font-size:15px;letter-spacing:.03em;color:rgba(201,216,204,.45)}
+
+/* 二、掷骰点数对应表
+   ★ 第 27 轮：表下方那行说明（原 .diceFoot「和值 2–12：左右对称…」）按用户拍板**删除**。
+     该行原本靠 margin-top:auto 占据区底部，删掉后区高 360 会空 36px →
+     改用 justify-content:center 让表格在区内垂直居中（上下留白各约 18，视觉均衡）。
+     区高 360 **不变**，故整卡高度与导出目标尺寸一字未动。 */
+.figDice{height:360px;display:flex;flex-direction:column;justify-content:center;padding:10px 14px 12px;
+  border:2px solid rgba(246,196,69,.20);border-radius:18px;
+  background:linear-gradient(180deg,rgba(246,196,69,.05),rgba(0,0,0,.18))}
+.diceTbl{width:100%;border-collapse:collapse;table-layout:fixed;font-variant-numeric:tabular-nums}
+.diceTbl thead th{font-family:var(--serif);height:32px;font-size:16px;font-weight:600;letter-spacing:.16em;text-align:left;
+  color:rgba(246,196,69,.70);border-bottom:1px solid rgba(246,196,69,.30)}
+.diceTbl th:nth-child(1),.diceTbl td:nth-child(1){width:136px}
+.diceTbl th:nth-child(2),.diceTbl td:nth-child(2){width:122px}
+.diceTbl tbody td{height:45px;font-size:18px;color:var(--cream);vertical-align:middle;
+  border-bottom:1px solid rgba(255,255,255,.055)}
+.diceTbl tbody tr:last-child td{border-bottom:0}
+.diceTbl td.v{font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:.02em;color:var(--gold-hi)}
+.diceTbl .gi{display:flex;align-items:center;gap:9px}
+.diceTbl .gi img{width:28px;height:28px;display:block;flex:none}
+.diceTbl .gi b{color:var(--gold-hi);font-weight:700}
+.rvIc{width:27px;height:27px;border-radius:50%;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:14px;font-style:normal;font-weight:700;color:#FFEDE7;
+  background:radial-gradient(circle at 34% 30%,#FF8E76,var(--red) 62%,#8E2317);
+  box-shadow:0 2px 5px rgba(0,0,0,.5)}
+.tagT{display:inline-block;padding:3px 11px;border-radius:9px;font-size:15px;letter-spacing:.05em}
+.tagT.rv{color:#FFD6CD;background:rgba(216,67,47,.24);border:1px solid rgba(216,67,47,.52)}
+.tagT.sl{color:#CFF3E6;background:rgba(85,183,154,.18);border:1px solid rgba(85,183,154,.46)}
+.tagT.nm{color:#F6E2B4;background:rgba(246,196,69,.13);border:1px solid rgba(246,196,69,.36)}
+/* ⚠ 已删除（第 27 轮）：.diceFoot —— 点数表下方那行说明，用户拍板删掉。
+   保留此处注释仅为留痕；如需恢复，重建该 div 并把 .figDice 的 justify-content 去掉即可。 */
+</style>
+</head>
+<body>
+
+<!-- ══════════ 唯一导出目标：整张规则卡片（必须紧贴 (0,0)） ══════════ -->
+<div class="ruleCard" id="expCard">
+  <div class="ruleHead">
+    <h3>游 戏 规 则</h3>
+    <div class="ruleClose">✕</div>
+  </div>
+  <div class="ruleBody">
+    <section class="ruleSec">
+      <h4>一、麻将配对消除</h4>
+      <div class="figRules" id="expRules">
+        <div class="frRow">
+          <div class="frTiles">
+            <img src="./assets/_src/game-play/rule-figs/fig-tong-5.png" alt="五筒">
+            <img src="./assets/_src/game-play/rule-figs/fig-tong-5.png" alt="五筒">
+            <img src="./assets/_src/game-play/rule-figs/fig-tong-5.png" alt="五筒">
+          </div>
+          <div class="frTx">
+            <div class="frNm"><b>碰</b><span>三张完全相同的牌</span></div>
+            <div class="frDs">不限花色 · <em>凑齐三张即自动消除</em></div>
+          </div>
+        </div>
+        <div class="frRow">
+          <div class="frTiles">
+            <img src="./assets/_src/game-play/rule-figs/fig-tong-1.png" alt="一筒">
+            <img src="./assets/_src/game-play/rule-figs/fig-tong-2.png" alt="二筒">
+            <img src="./assets/_src/game-play/rule-figs/fig-tong-3.png" alt="三筒">
+          </div>
+          <div class="frTx">
+            <div class="frNm"><b>吃</b><span>同一花色连号三张</span></div>
+            <div class="frDs">必须同花色 · <em>凑齐三张即自动消除</em></div>
+          </div>
+        </div>
+        <div class="frFoot">被压住的牌不可点 · 槽位塞满仍未成组 → 本局失败</div>
+      </div>
+    </section>
+
+    <section class="ruleSec">
+      <h4>二、掷骰点数对应表</h4>
+      <div class="figDice" id="expDice">
+        <table class="diceTbl">
+          <thead><tr><th>和值</th><th>档位</th><th>本局赠送</th></tr></thead>
+          <tbody>
+            <tr><td class="v">2 · 12</td><td><span class="tagT rv">复活档</span></td>
+                <td><span class="gi"><span class="rvIc">复</span>复活 <b>×1</b></span></td></tr>
+            <tr><td class="v">3 · 11</td><td><span class="tagT sl">加槽档</span></td>
+                <td><span class="gi"><img src="./assets/home/icon_tool_addslot.png" alt="">加槽 <b>×1</b></span></td></tr>
+            <tr><td class="v">4 · 10</td><td><span class="tagT nm">常规档</span></td>
+                <td><span class="gi"><img src="./assets/home/icon_tool_remove.png" alt="">移出 <b>×1</b></span></td></tr>
+            <tr><td class="v">5 · 9</td><td><span class="tagT nm">常规档</span></td>
+                <td><span class="gi"><img src="./assets/home/icon_tool_erase.png" alt="">消除 <b>×1</b></span></td></tr>
+            <tr><td class="v">6 · 8</td><td><span class="tagT nm">常规档</span></td>
+                <td><span class="gi"><img src="./assets/home/icon_tool_remove.png" alt="">移出 <b>×1</b></span></td></tr>
+            <tr><td class="v">7</td><td><span class="tagT nm">常规档</span></td>
+                <td><span class="gi"><img src="./assets/home/icon_tool_erase.png" alt="">消除 <b>×1</b></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="ruleFoot">赠礼道具「仅限本局使用」—— 本局结束或提前退出即作废，不计入累积。</div>
+  </div>
+</div>
+
+<!-- ★ 页面说明放在卡片**之后** —— 导出只截 632×1020 视口，本块在截取范围之外；
+     万一 Chrome 截了整页，导出脚本也会按 alpha>0 边界裁掉它。 -->
+<div class="pageNote">
+  <b>规则页（整页）· 源稿</b>（第 27 轮「整页合并成一张图」）<br>
+  导出脚本截取卡片 <code>#expCard</code> 的视口，产出 <code>rule-完整规则页.png</code>（@2x）。<br>
+  参考尺寸：<code>632 × 1020</code> → @2x <code>1264 × 2040</code>（脚本按 alpha 边界实测，不写死）。<br>
+  页面为<b>透明底</b>，卡片四角圆弧外必须 alpha=0（脚本自证）。<br>
+  <b>这是规则页视觉的唯一源</b> —— 要改内容/配色/文案，只改本页，然后重跑 <code>export_rule_page.mjs</code>。
+</div>
+
+</body>
+</html>

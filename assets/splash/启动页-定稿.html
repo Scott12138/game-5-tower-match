@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>game-5 · 启动页【定稿】·《麻麻大消除》</title>
+<style>
+/* ============================================================
+   启动页 v8（微调版）· 设计画布 750×1334（1:1 设计值，坐标可直抄 Cocos）
+   基于 v7 的构图级微调 —— 不换素材，只调 布局/配色/视觉层次：
+   ① 标题"舞台化"：背后加暖金光晕，从深绿毡面上托出主视觉
+   ② 点缀重排：骰子/金币加大 + 光晕垫 + 闪光星，对齐标题拱形两端
+   ③ 吉祥物主舞台：背后光芒缓转 + 光池增强 + 三颗闪金星
+   ④ 进度条：填充头部辉光圆点，百分比加大加辉光
+   ⑤ 忠告区：间距放宽、字距加大
+   ⑥ 全局：金色角饰 + 底部落地渐变
+   记忆点：三处光源（标题晕/道具晕/吉祥物芒）连成一个"金色光系统"
+   ============================================================ */
+:root{
+  --cream:#FFF7E6; --cream-dim:#DCEBDF;
+  --gold:#F6C445; --gold-hi:#FFE08A;
+  --ink:#4A2B18; --felt:#20694E;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#12140F;font-family:"PingFang SC","Hiragino Sans GB",sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:26px 16px;gap:16px}
+/* 手机框：750×1334 → 372×660 */
+.frame{width:372px;height:660px;overflow:hidden;border-radius:20px;
+  box-shadow:0 24px 60px rgba(0,0,0,.65),0 4px 14px rgba(0,0,0,.5);position:relative;flex:none}
+.screen{width:750px;height:1334px;transform:scale(.496);transform-origin:0 0;position:relative;overflow:hidden;background:var(--felt)}
+
+/* ── 背景层：绒布资产 + 四层氛围（暗角/顶光/光池/底部落地） ── */
+.tablebg{position:absolute;inset:0;background:url("./bg_felt.jpg") center/cover no-repeat}
+.vignette{position:absolute;inset:0;
+  background:radial-gradient(150% 100% at 50% 42%, transparent 50%, rgba(0,0,0,.36) 100%)}
+.toplight{position:absolute;inset:0;
+  background:linear-gradient(180deg, rgba(255,251,230,.08), transparent 20%)}
+.lightpool{position:absolute;left:45px;top:700px;width:660px;height:500px;
+  background:radial-gradient(closest-side, rgba(255,244,200,.17), rgba(255,244,200,.06) 46%, transparent 72%)}
+.grounding{position:absolute;left:0;right:0;bottom:0;height:300px;
+  background:linear-gradient(180deg, transparent, rgba(0,0,0,.30) 88%)}
+
+/* ── 金色角饰（装饰艺术细线，四角对称，收住画面） ── */
+.corner{position:absolute;width:58px;height:58px;z-index:5;opacity:.55}
+.corner::before{content:"";position:absolute;inset:0;border:2px solid rgba(246,196,69,.42)}
+.corner::after{content:"";position:absolute;inset:7px;border:1px solid rgba(246,196,69,.22)}
+.corner i{position:absolute;left:50%;top:50%;width:7px;height:7px;background:var(--gold);
+  transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 8px rgba(246,196,69,.8)}
+.c-tl{top:26px;left:26px}.c-tr{top:26px;right:26px;transform:scaleX(-1)}
+/* 底部角饰缩小下沉，避开忠告文字区（v8 复验修正） */
+.c-bl{bottom:14px;left:20px;transform:scaleY(-1) scale(.78);opacity:.4}
+.c-br{bottom:14px;right:20px;transform:scale(-1) scale(.78);opacity:.4}
+
+/* ── 进场动画（交错延迟） ── */
+@keyframes settle{from{opacity:0;transform:translateY(26px) scale(.96)}to{opacity:1;transform:none}}
+.settle{opacity:0;animation:settle .55s cubic-bezier(.22,.9,.32,1.2) forwards}
+
+/* ── 标题层：光晕垫 + 标题本体 ── */
+.titleStage{position:absolute;top:96px;left:0;width:750px;height:360px;z-index:3}
+.titleHalo{position:absolute;left:95px;top:20px;width:560px;height:250px;
+  background:radial-gradient(closest-side, rgba(255,214,120,.20), rgba(255,214,120,.07) 55%, transparent 78%);
+  animation:haloPulse 4.2s ease-in-out infinite}
+@keyframes haloPulse{0%,100%{opacity:.85;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+.logoL{position:absolute;top:64px;left:25px;width:700px}
+.logoL img{width:100%;display:block;filter:drop-shadow(0 14px 18px rgba(0,0,0,.42))}
+
+/* ── 点缀：骰子 / 铜钱（光晕垫 + 闪光星，对齐标题拱形两端） ── */
+.prop{position:absolute;z-index:4}
+.propGlow{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  border-radius:50%;background:radial-gradient(closest-side, rgba(246,196,69,.26), rgba(246,196,69,.08) 58%, transparent 76%);
+  animation:haloPulse 3.6s ease-in-out infinite}
+.diceL{top:436px;left:552px;width:190px;height:190px}
+.diceL .propGlow{width:190px;height:190px}
+.diceL img{position:absolute;left:41px;top:39px;width:120px;transform:rotate(-12deg);
+  filter:drop-shadow(0 10px 12px rgba(0,0,0,.4))}
+.coinL{top:472px;left:34px;width:170px;height:170px}
+.coinL .propGlow{width:170px;height:170px;animation-delay:.6s}
+.coinL img{position:absolute;left:44px;top:50px;width:88px;transform:rotate(-10deg);
+  filter:drop-shadow(0 8px 10px rgba(0,0,0,.4))}
+.prop.settle{animation-name:settleProp}
+@keyframes settleProp{from{opacity:0;transform:translateY(26px) scale(.9)}to{opacity:1;transform:none}}
+
+/* 闪光星（四角星，点缀层与吉祥物层共用） */
+.spark{position:absolute;background:var(--gold-hi);
+  clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);
+  filter:drop-shadow(0 0 6px rgba(255,224,138,.9));animation:twinkle 2.6s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.25;transform:scale(.7) rotate(0deg)}50%{opacity:1;transform:scale(1.15) rotate(18deg)}}
+.diceL .s1{right:18px;top:20px;width:16px;height:16px}
+.diceL .s2{left:26px;bottom:30px;width:10px;height:10px;animation-delay:1.2s}
+.coinL .s1{left:14px;top:26px;width:14px;height:14px}
+.coinL .s2{right:24px;bottom:36px;width:9px;height:9px;animation-delay:1.5s}
+
+/* ── 吉祥物：外层进场 + 内层悬浮呼吸；背后光芒缓转 ── */
+.rays{position:absolute;left:115px;top:600px;width:520px;height:520px;z-index:2;border-radius:50%;
+  background:repeating-conic-gradient(from 0deg, rgba(255,244,200,.075) 0deg 9deg, transparent 9deg 30deg);
+  -webkit-mask-image:radial-gradient(closest-side, rgba(0,0,0,.9), transparent 72%);
+  mask-image:radial-gradient(closest-side, rgba(0,0,0,.9), transparent 72%);
+  animation:raysSpin 46s linear infinite;opacity:.8}
+@keyframes raysSpin{to{transform:rotate(360deg)}}
+.mascotWrap{position:absolute;top:560px;left:0;width:750px;z-index:3}
+.mascotFloat{animation:floaty 3.4s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.mascotFloat img{width:480px;display:block;margin:0 auto;
+  filter:drop-shadow(0 20px 16px rgba(0,0,0,.30))}
+.contactShadow{position:absolute;top:968px;left:205px;width:340px;height:56px;z-index:2;
+  background:radial-gradient(closest-side, rgba(0,0,0,.38), rgba(0,0,0,.16) 55%, transparent 75%);
+  animation:shadowPulse 3.4s ease-in-out infinite;transform-origin:center}
+@keyframes shadowPulse{0%,100%{transform:scaleX(1);opacity:1}50%{transform:scaleX(.85);opacity:.62}}
+/* 吉祥物周围三颗闪金星（高低错落，非对称） */
+.mascotWrap .s1{left:118px;top:110px;width:20px;height:20px}
+.mascotWrap .s2{right:128px;top:64px;width:14px;height:14px;animation-delay:.9s}
+.mascotWrap .s3{right:86px;top:250px;width:11px;height:11px;animation-delay:1.7s}
+
+/* ── 进度条：轨道/填充用切好的 UI 资产 + 填充头部辉光点 ── */
+.loadwrap{position:absolute;left:110px;top:1092px;width:530px;z-index:3}
+.loadtrack{width:530px;height:44px;position:relative;
+  background:url("./ui_progress_track@2x.png") 0 0/530px 44px no-repeat}
+.loadfill{position:absolute;left:5px;top:5px;width:85px;height:34px;
+  background:url("./ui_progress_fill@2x.png") 0 0/85px 34px no-repeat}
+.loadfill::after{content:"";position:absolute;right:-9px;top:50%;width:18px;height:18px;
+  transform:translateY(-50%);border-radius:50%;background:radial-gradient(circle at 40% 35%, #FFF3C4, var(--gold) 62%);
+  box-shadow:0 0 14px 4px rgba(246,196,69,.55);animation:headGlow 2.2s ease-in-out infinite}
+@keyframes headGlow{0%,100%{box-shadow:0 0 10px 3px rgba(246,196,69,.45)}50%{box-shadow:0 0 18px 6px rgba(246,196,69,.7)}}
+.loadsweep{position:absolute;top:6px;left:0;width:150px;height:32px;overflow:hidden;border-radius:16px}
+.loadsweep::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(105deg, transparent 12%, rgba(255,255,255,.16) 46%, transparent 78%);
+  animation:sweep 2.8s ease-in-out infinite}
+@keyframes sweep{0%{transform:translateX(-170px)}55%,100%{transform:translateX(660px)}}
+.loadpct{margin-top:14px;text-align:center;font-size:28px;font-weight:800;letter-spacing:2px;
+  color:var(--gold);text-shadow:0 0 12px rgba(246,196,69,.45),0 2px 4px rgba(0,0,0,.5)}
+
+/* ── 忠告：金色细线 + 字距排版（间距放宽） ── */
+.notice{position:absolute;left:80px;right:80px;top:1212px;text-align:center;z-index:3;color:var(--cream)}
+.notice .rule{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+.notice .rule::before,.notice .rule::after{content:"";flex:1;height:1px;
+  background:linear-gradient(90deg, transparent, rgba(246,196,69,.6))}
+.notice .rule::after{background:linear-gradient(90deg, rgba(246,196,69,.6), transparent)}
+.notice .rule b{font-size:24px;font-weight:700;letter-spacing:8px;text-indent:8px;color:var(--cream);
+  text-shadow:0 2px 4px rgba(0,0,0,.5);white-space:nowrap}
+.notice p{font-size:18px;line-height:1.75;letter-spacing:.5px;color:var(--cream-dim);
+  text-shadow:0 1px 3px rgba(0,0,0,.5)}
+
+/* 延迟编排：标题→吉祥物→点缀→进度→忠告 */
+.d1{animation-delay:.08s}.d2{animation-delay:.22s}.d3{animation-delay:.34s}
+.d4{animation-delay:.48s}.d5{animation-delay:.62s}.d6{animation-delay:.74s}
+
+.cap{font-size:13px;color:#8A967F;letter-spacing:1px}
+.cap em{font-style:normal;color:var(--gold);font-weight:700}
+</style>
+</head>
+<body>
+<div class="frame"><div class="screen">
+  <!-- 背景：绒布 + 氛围四层 -->
+  <div class="tablebg"></div>
+  <div class="vignette"></div>
+  <div class="toplight"></div>
+  <div class="lightpool"></div>
+  <div class="grounding"></div>
+
+  <!-- 金色角饰 -->
+  <div class="corner c-tl"><i></i></div><div class="corner c-tr"><i></i></div>
+  <div class="corner c-bl"><i></i></div><div class="corner c-br"><i></i></div>
+
+  <!-- 吉祥物背后光芒（缓转，主舞台氛围） -->
+  <div class="rays"></div>
+
+  <!-- 接触投影（随吉祥物呼吸缩放） -->
+  <div class="contactShadow"></div>
+
+  <!-- 标题：光晕舞台 + 标题本体 -->
+  <div class="titleStage settle d1">
+    <div class="titleHalo"></div>
+    <div class="logoL"><img src="./logo_b.png" draggable="false"></div>
+  </div>
+
+  <!-- 点缀：光晕垫 + 素材 + 闪光星 -->
+  <div class="prop diceL settle d3">
+    <div class="propGlow"></div>
+    <img src="./dice.png" draggable="false">
+    <span class="spark s1"></span><span class="spark s2"></span>
+  </div>
+  <div class="prop coinL settle d4">
+    <div class="propGlow"></div>
+    <img src="./coin.png" draggable="false">
+    <span class="spark s1"></span><span class="spark s2"></span>
+  </div>
+
+  <!-- 吉祥物（进场 + 悬浮呼吸 + 三颗闪金星） -->
+  <div class="mascotWrap settle d2"><div class="mascotFloat">
+    <img src="./mascot.png" draggable="false">
+    <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+  </div></div>
+
+  <!-- 进度条 + 百分比 -->
+  <div class="loadwrap settle d5">
+    <div class="loadtrack"><div class="loadfill"></div><div class="loadsweep"></div></div>
+    <div class="loadpct">16%</div>
+  </div>
+
+  <!-- 健康游戏忠告 -->
+  <div class="notice settle d6">
+    <div class="rule"><b>健康游戏忠告</b></div>
+    <p>抵制不良游戏，拒绝盗版游戏。注意自我保护，谨防受骗上当。<br>适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。</p>
+  </div>
+</div></div>
+<div class="cap">启动页 v8 微调版 · 标题 <em>B</em> 版 · 750×1334 设计值 1:1</div>
+</body>
+</html>

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>game-5 · 首页（合成）·《麻麻大消除》</title>
+<style>
+/* ============================================================
+   首页 · 合成稿 v3 · 设计画布 750×1334（1:1 设计值，坐标可直抄 Cocos）
+   美学方向：奢华精致（墨绿玉 × 金）—— 与启动页同一套"金色光系统"
+   记忆点：吉祥物光池呼吸 + 主按钮表面扫光
+   v3 改动（用户拍板）：
+     ① 四功能模块整体下移 178（385/563 → 563/741，对齐批注红框）
+     ② 左上新增设置入口（金币左侧），右下静音移除
+     ③ 声音调节归入设置面板（见 #sheet 层，点击齿轮可开）
+     ④ 主按钮副标题改用宋体（Songti SC）—— 原黑体在小字号下发闷
+     ⑤ 关卡进度线保留
+   ============================================================ */
+:root{
+  --cream:#FFF7E6; --cream-dim:#DCEBDF;
+  --gold:#F6C445; --gold-hi:#FFE08A; --gold-dk:#C8912B;
+  --felt:#20694E; --ink:#4A2B18;
+  --serif:"Songti SC","STSong","Noto Serif SC","Source Han Serif SC",serif;
+  /* v4 · 内容层整体下移量（唯一开关：改这一个值即可整体升降）
+     64 = 【用户拍板 · 定稿值】顶留白 126 / 底留白 159；8pt 栅格整洁倍数 */
+  --yshift:64px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:radial-gradient(1200px 520px at 50% -8%, rgba(38,66,44,.38), transparent 70%), #0D120D;
+  font-family:"PingFang SC","Hiragino Sans GB",sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:26px 16px 50px;gap:16px}
+
+/* 手机框：750×1334 → 372×660 */
+.frame{width:372px;height:660px;overflow:hidden;border-radius:20px;
+  box-shadow:0 24px 60px rgba(0,0,0,.65),0 4px 14px rgba(0,0,0,.5);position:relative;flex:none}
+.screen{width:750px;height:1334px;transform:scale(.496);transform-origin:0 0;position:relative;overflow:hidden;background:var(--felt)}
+
+/* ── v4：内容层整体下移 ──
+   解决"内容过于靠近页面顶部"。只位移「内容」，背景层（绒布/暗角/顶光/落地）
+   与四角金饰属页面框架，保持贴边不动；元素自身坐标一律不改，全组平移。 */
+.stageShift{position:absolute;left:0;top:0;width:750px;height:1334px;
+  transform:translateY(var(--yshift,96px))}
+
+/* ── 背景层：绒布 + 氛围（暗角 / 顶光 / 中央光池 / 底部落地） ── */
+.tablebg{position:absolute;inset:0;background:url("assets/splash/bg_felt.jpg") center/cover no-repeat}
+.vignette{position:absolute;inset:0;
+  background:radial-gradient(150% 100% at 50% 45%, transparent 48%, rgba(0,0,0,.40) 100%)}
+.toplight{position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,251,230,.08), transparent 18%)}
+.lightpool{position:absolute;left:155px;top:304px;width:440px;height:470px;
+  background:radial-gradient(closest-side, rgba(255,244,200,.16), rgba(255,244,200,.05) 48%, transparent 74%);
+  animation:poolPulse 4.6s ease-in-out infinite}
+@keyframes poolPulse{0%,100%{opacity:.85;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
+.grounding{position:absolute;left:0;right:0;bottom:0;height:280px;
+  background:linear-gradient(180deg, transparent, rgba(0,0,0,.32) 88%)}
+
+/* ── 金色角饰（顶部收小到 40 并内缩，给"设置 + 金币"顶栏让位） ── */
+.corner{position:absolute;width:40px;height:40px;z-index:5;opacity:.5}
+.corner::before{content:"";position:absolute;inset:0;border:2px solid rgba(246,196,69,.42)}
+.corner::after{content:"";position:absolute;inset:6px;border:1px solid rgba(246,196,69,.22)}
+.corner i{position:absolute;left:50%;top:50%;width:6px;height:6px;background:var(--gold);
+  transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 8px rgba(246,196,69,.8)}
+.c-tl{top:16px;left:16px}.c-tr{top:16px;right:16px;transform:scaleX(-1)}
+.c-bl{bottom:16px;left:22px;transform:scaleY(-1) scale(.9);opacity:.38}
+.c-br{bottom:16px;right:22px;transform:scale(-1) scale(.9);opacity:.38}
+
+/* ── 进场动画（交错延迟） ── */
+@keyframes settle{from{opacity:0;transform:translateY(26px) scale(.96)}to{opacity:1;transform:none}}
+.settle{opacity:0;animation:settle .55s cubic-bezier(.22,.9,.32,1.2) forwards}
+.d1{animation-delay:.06s}.d2{animation-delay:.18s}.d3{animation-delay:.30s}
+.d4{animation-delay:.42s}.d5{animation-delay:.54s}.d6{animation-delay:.66s}
+
+/* ── 顶栏左：设置入口（金币左侧；热区 88 = 44pt ✓） ── */
+.setting{position:absolute;left:24px;top:46px;width:88px;height:88px;z-index:7;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;text-decoration:none}
+.setting img{width:56px;display:block;opacity:.94;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(246,196,69,.18));
+  transition:transform .12s ease, filter .12s ease, opacity .12s ease}
+/* 按压态：下沉 + 提亮 + 金色泛光增强（与主按钮按压态同一反馈语言） */
+.setting:active img{transform:scale(.9);opacity:1;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.62)) drop-shadow(0 0 16px rgba(246,196,69,.46))}
+/* ── 顶栏右：金币计数（配角 —— 让位给设置入口后右移 74） ── */
+.wallet{position:absolute;left:114px;top:62px;z-index:6;height:56px;
+  display:flex;align-items:center;gap:12px;padding:0 22px 0 8px;border-radius:999px;
+  background:linear-gradient(180deg, rgba(9,45,31,.58), rgba(6,30,21,.72));
+  border:1px solid rgba(246,196,69,.24);
+  box-shadow:0 6px 14px rgba(0,0,0,.32)}
+.wallet img{width:40px;display:block;flex:none;opacity:.94;filter:drop-shadow(0 3px 5px rgba(0,0,0,.45))}
+.wallet b{font-size:26px;font-weight:700;color:rgba(255,247,230,.88);letter-spacing:.5px;
+  text-shadow:0 1px 3px rgba(0,0,0,.5);font-variant-numeric:tabular-nums}
+
+/* ── 主题字：光晕舞台 + 小标题字（较启动页小一档） ── */
+.titleStage{position:absolute;left:0;top:176px;width:750px;height:118px;z-index:3}
+.titleHalo{position:absolute;left:165px;top:-30px;width:420px;height:180px;
+  background:radial-gradient(closest-side, rgba(255,214,120,.19), rgba(255,214,120,.06) 55%, transparent 78%);
+  animation:haloPulse 4.2s ease-in-out infinite}
+@keyframes haloPulse{0%,100%{opacity:.85;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+.titleStage img{position:absolute;left:50%;top:0;width:420px;transform:translateX(-50%);
+  filter:drop-shadow(0 12px 14px rgba(0,0,0,.45))}
+/* 闪光星（与启动页共用） */
+.spark{position:absolute;background:var(--gold-hi);
+  clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);
+  filter:drop-shadow(0 0 6px rgba(255,224,138,.9));animation:twinkle 2.6s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.25;transform:scale(.7) rotate(0deg)}50%{opacity:1;transform:scale(1.15) rotate(18deg)}}
+.titleStage .s1{left:190px;top:-8px;width:16px;height:16px}
+.titleStage .s2{right:186px;top:82px;width:11px;height:11px;animation-delay:1.3s}
+
+/* ── 中央柔光束：自吉祥物贯穿到主按钮，把上下两组收成一个整体（统一光照的核心手法） ── */
+.beam{position:absolute;left:185px;top:300px;width:380px;height:770px;z-index:2;
+  background:linear-gradient(180deg, rgba(255,232,170,0) 0%, rgba(255,232,170,.075) 16%,
+    rgba(255,232,170,.05) 56%, rgba(255,232,170,.075) 86%, rgba(255,232,170,0) 100%);
+  -webkit-mask-image:linear-gradient(90deg, transparent, #000 24%, #000 76%, transparent);
+  mask-image:linear-gradient(90deg, transparent, #000 24%, #000 76%, transparent);
+  animation:poolPulse 5.2s ease-in-out infinite}
+/* ── 主按钮：拇指区（吉祥物下方） ── */
+.btn{position:absolute;left:215px;top:845px;width:320px;height:140px;z-index:6;
+  display:flex;border-radius:999px;overflow:hidden;
+  filter:drop-shadow(0 14px 16px rgba(0,0,0,.55))}
+.btn .cap{height:100%;display:block;flex:none}
+.btn .mid{flex:1;height:100%;background:url("assets/home/btn9_mid.png");background-size:100% 100%}
+.btn .txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:7px;pointer-events:none}
+.btn .txt b{font-size:36px;font-weight:900;letter-spacing:9px;text-indent:9px;
+  background:linear-gradient(180deg,var(--gold-hi) 4%,var(--gold) 46%,#E8B33A 54%,var(--gold-dk) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 3px rgba(0,22,12,.72)) drop-shadow(0 0 14px rgba(246,196,69,.22))}
+/* v3：副标题改用宋体（衬线）—— 24 设计值下衬线笔锋更清晰、更有"高级感"；
+   两侧加细金线作装饰，与主文案拉开层级 */
+.btn .txt .sub{display:flex;align-items:center;gap:12px}
+.btn .txt .sub .ln{width:40px;height:1px;flex:none;
+  background:linear-gradient(90deg,transparent,rgba(246,196,69,.62))}
+.btn .txt .sub .ln:last-child{transform:scaleX(-1)}
+.btn .txt .sub i{font-family:var(--serif);font-style:normal;font-weight:600;flex:none;white-space:nowrap;
+  font-size:24px;letter-spacing:4px;text-indent:4px;
+  background:linear-gradient(180deg,#FFF9E8,#F2D9A2 52%,#D6B171);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 3px rgba(0,20,10,.62))}
+.btn .shade{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(2,24,13,.40),rgba(2,24,13,0) 22%,rgba(2,24,13,0) 78%,rgba(2,24,13,.40)),
+             linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0) 30%,rgba(0,20,10,.16) 88%)}
+.btn .sheen{position:absolute;inset:0;border-radius:999px;overflow:hidden;pointer-events:none}
+.btn .sheen::before{content:"";position:absolute;top:-25%;bottom:-25%;width:32%;left:-45%;
+  background:linear-gradient(105deg,transparent 8%,rgba(255,255,255,.15) 50%,transparent 92%);
+  animation:sheen 4.4s ease-in-out infinite}
+@keyframes sheen{0%,52%{left:-45%}88%,100%{left:115%}}
+
+/* ── 吉祥物主舞台（主视觉）：光芒缓转 + 悬浮呼吸 + 接触投影 ── */
+.rays{position:absolute;left:145px;top:309px;width:460px;height:460px;z-index:2;border-radius:50%;
+  background:repeating-conic-gradient(from 0deg, rgba(255,244,200,.07) 0deg 9deg, transparent 9deg 30deg);
+  -webkit-mask-image:radial-gradient(closest-side, rgba(0,0,0,.9), transparent 72%);
+  mask-image:radial-gradient(closest-side, rgba(0,0,0,.9), transparent 72%);
+  animation:raysSpin 46s linear infinite;opacity:.8}
+@keyframes raysSpin{to{transform:rotate(360deg)}}
+.mascotWrap{position:absolute;left:0;top:352px;width:750px;z-index:3}
+.mascotFloat{position:relative;animation:floaty 3.4s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
+.mascotFloat img{width:410px;display:block;margin:0 auto;filter:drop-shadow(0 18px 15px rgba(0,0,0,.30))}
+.contactShadow{position:absolute;left:205px;top:764px;width:340px;height:52px;z-index:2;
+  background:radial-gradient(closest-side, rgba(0,0,0,.38), rgba(0,0,0,.16) 55%, transparent 75%);
+  animation:shadowPulse 3.4s ease-in-out infinite}
+@keyframes shadowPulse{0%,100%{transform:scaleX(1);opacity:1}50%{transform:scaleX(.85);opacity:.62}}
+/* 吉祥物周围闪金星（非对称错落；s3 上移到 502 避让右列图标 y=563） */
+.mascotWrap .s1{left:150px;top:96px;width:18px;height:18px}
+.mascotWrap .s2{right:158px;top:52px;width:13px;height:13px;animation-delay:.9s}
+.mascotWrap .s3{right:120px;top:150px;width:10px;height:10px;animation-delay:1.7s}
+
+/* ── 左右功能列：96 图标 + 文字标签（标签保留 ✅） ──
+   v3：整体下移 178（385/563 → 563/741），对齐用户批注红框（红框上沿 = 原"道具商城"顶 y=563） */
+.fn{position:absolute;width:96px;z-index:6;text-align:center;cursor:pointer}
+.fn img{width:96px;display:block;filter:drop-shadow(0 8px 10px rgba(0,0,0,.48));
+  animation:fnFloat 4.2s ease-in-out infinite}
+@keyframes fnFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+/* 四字标签：22 设计值（11pt）+ 零字距，正好 88 ≤ 96 列宽，杜绝换行 */
+.fn span{display:block;margin-top:12px;font-size:22px;line-height:1;color:var(--cream);
+  letter-spacing:0;white-space:nowrap;text-shadow:0 2px 4px rgba(0,0,0,.6)}
+.fn.f2 img,.fn.f4 img{animation-delay:.7s}
+/* 左列（距边 40）：七日签到 / 道具商城 */
+.f1{left:40px;top:563px}.f2{left:40px;top:741px}
+/* 右列（距边 40）：排行榜 / 好友邀战 —— 与左列同高，形成镜像对称 */
+.f3{left:614px;top:563px}.f4{left:614px;top:741px}
+
+/* ── 关卡进度（保留 ✅ 用户第 1 点拍板） ── */
+.progress{position:absolute;left:165px;top:1045px;width:420px;z-index:6}
+.pline{position:relative;height:4px;border-radius:3px;background:rgba(255,247,230,.14);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.45)}
+.pline::before{content:"";position:absolute;left:0;top:0;height:100%;width:10%;border-radius:3px;
+  background:linear-gradient(90deg, rgba(246,196,69,.30), var(--gold));
+  box-shadow:0 0 10px rgba(246,196,69,.55)}
+.pdiamond{position:absolute;left:10%;top:50%;width:16px;height:16px;
+  background:linear-gradient(135deg,var(--gold-hi),var(--gold-dk));
+  transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 12px rgba(246,196,69,.8)}
+.ptext{margin-top:22px;text-align:center;font-size:24px;letter-spacing:3px;color:var(--cream-dim);
+  text-shadow:0 2px 4px rgba(0,0,0,.6)}
+.ptext b{color:var(--gold);font-weight:800;font-size:28px;padding:0 2px}
+
+/* ============================================================
+   设置面板（底部抽屉）· 由左上齿轮触发
+   收纳：音效 / 背景音乐（原右下角静音开关的全部职能）+ 合规入口
+   ============================================================ */
+.sheetWrap{position:absolute;inset:0;z-index:20;opacity:0;pointer-events:none;transition:opacity .28s ease}
+.sheetWrap:target{opacity:1;pointer-events:auto}
+.backdrop{position:absolute;inset:0;display:block;text-decoration:none;
+  background:rgba(3,16,10,.62);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+.sheet{position:absolute;left:0;right:0;bottom:0;height:700px;border-radius:44px 44px 0 0;
+  transform:translateY(46px);transition:transform .36s cubic-bezier(.22,.9,.32,1.08);
+  background:linear-gradient(180deg,#12452F 0%,#0C3324 42%,#081F16 100%);
+  border:2px solid rgba(246,196,69,.34);border-bottom:none;
+  box-shadow:0 -20px 46px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.10);
+  padding:26px 46px 0;}
+.sheetWrap:target .sheet{transform:none}
+.sheet::after{content:"";position:absolute;left:12px;right:12px;top:12px;bottom:0;
+  border:1px solid rgba(246,196,69,.18);border-bottom:none;border-radius:34px 34px 0 0;pointer-events:none}
+.grip{width:76px;height:8px;border-radius:99px;margin:4px auto 22px;
+  background:linear-gradient(180deg,rgba(246,196,69,.55),rgba(246,196,69,.22))}
+.sheet h2{font-family:var(--serif);font-weight:700;font-size:44px;letter-spacing:14px;text-indent:14px;
+  text-align:center;line-height:1;
+  background:linear-gradient(180deg,#FFF6D6,#F0CE84 52%,#C8912B);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 4px rgba(0,20,10,.55))}
+.sheet .close{position:absolute;right:30px;top:26px;width:88px;height:88px;z-index:2;
+  display:flex;align-items:center;justify-content:center;text-decoration:none}
+.sheet .close i{position:absolute;width:34px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,rgba(255,224,138,.9),rgba(200,145,43,.9));
+  box-shadow:0 0 8px rgba(246,196,69,.4)}
+.sheet .close i:first-child{transform:rotate(45deg)}
+.sheet .close i:last-child{transform:rotate(-45deg)}
+.rule{height:1px;margin:26px 0 8px;
+  background:linear-gradient(90deg,transparent,rgba(246,196,69,.36) 18%,rgba(246,196,69,.36) 82%,transparent)}
+.row{height:104px;display:flex;align-items:center;gap:22px}
+.row img{width:42px;display:block;flex:none;opacity:.9;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+.row span{flex:1;font-size:28px;letter-spacing:3px;color:rgba(255,247,230,.93);
+  text-shadow:0 2px 4px rgba(0,0,0,.5)}
+/* 金色玉质开关（44×27.5pt 触控冗余） */
+.sw{width:96px;height:56px;border-radius:999px;position:relative;flex:none;
+  background:linear-gradient(180deg,rgba(3,22,14,.92),rgba(2,16,10,.96));
+  border:1px solid rgba(246,196,69,.26);
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.55)}
+.sw i{position:absolute;top:5px;left:5px;width:44px;height:44px;border-radius:50%;
+  background:radial-gradient(circle at 34% 28%, #EFEADB, #9C9A8E);
+  box-shadow:0 3px 7px rgba(0,0,0,.5);transition:left .22s ease}
+.sw.on{background:linear-gradient(180deg,rgba(246,196,69,.92),rgba(190,134,36,.92));
+  border-color:rgba(255,224,138,.72);box-shadow:0 0 16px rgba(246,196,69,.34), inset 0 1px 0 rgba(255,255,255,.4)}
+.sw.on i{left:47px;background:radial-gradient(circle at 34% 28%, #FFFDF3, #E8DCC0)}
+.linkrow{height:98px;display:flex;align-items:center;justify-content:space-between;
+  text-decoration:none}
+.linkrow span{font-size:28px;letter-spacing:3px;color:rgba(255,247,230,.86)}
+.linkrow em{font-style:normal;font-size:34px;color:rgba(246,196,69,.8);line-height:1}
+.ver{margin-top:14px;text-align:center;font-size:20px;letter-spacing:2px;color:rgba(220,235,223,.42)}
+
+.cap{font-size:13px;color:#8A967F;letter-spacing:1px;text-align:center;max-width:760px}
+.cap em{font-style:normal;color:var(--gold);font-weight:700}
+.cap a{color:var(--gold-hi)}
+
+/* ── 规格面板（供评审 + Cocos 抄坐标） ── */
+.spec{max-width:1000px;background:rgba(255,255,255,.03);border:1px solid rgba(246,196,69,.22);
+  border-radius:12px;padding:20px 26px;font-size:13px;line-height:2;color:#C9D6C0;letter-spacing:.4px}
+.spec h3{font-size:14px;font-weight:800;letter-spacing:3px;color:var(--gold);margin:0 0 10px}
+.spec h3+h3{margin-top:16px}
+.spec table{width:100%;border-collapse:collapse;font-size:12.5px}
+.spec th,.spec td{text-align:left;padding:5px 10px;border-bottom:1px solid rgba(246,196,69,.14)}
+.spec th{color:var(--gold);font-weight:700;letter-spacing:1px}
+.spec code{background:rgba(246,196,69,.1);border-radius:5px;padding:1px 7px;color:var(--gold-hi);
+  font-family:"SF Mono",Menlo,monospace;font-size:12px}
+.spec b{color:var(--gold)}
+.spec .dim{color:rgba(232,240,233,.5);font-size:11.5px}
+.spec .todo{color:#FFB4A2}
+</style>
+</head>
+<body>
+<div class="frame"><div class="screen">
+  <!-- 背景：绒布 + 氛围四层 -->
+  <div class="tablebg"></div>
+  <div class="vignette"></div>
+  <div class="toplight"></div>
+  <div class="grounding"></div>
+
+  <!-- 金色角饰 -->
+  <div class="corner c-tl"><i></i></div><div class="corner c-tr"><i></i></div>
+  <div class="corner c-bl"><i></i></div><div class="corner c-br"><i></i></div>
+
+  <!-- ⬇⬇ 内容层：整体向下平移 --yshift（背景与四角金饰保持贴边，不随动） -->
+  <div class="stageShift">
+
+  <!-- 光池 + 吉祥物背后光芒 + 接触投影（随吉祥物一起下移） -->
+  <div class="lightpool"></div>
+  <div class="rays"></div>
+  <div class="contactShadow"></div>
+
+  <!-- 顶栏：设置入口（左上，金币左侧）+ 金币计数 -->
+  <a class="setting settle d1" href="#sheet" title="设置">
+    <img src="assets/home/settings.png" alt="设置" draggable="false">
+  </a>
+  <div class="wallet settle d1">
+    <img src="assets/home/coin_icon.png" alt="金币" draggable="false">
+    <b>1,280</b>
+  </div>
+
+  <!-- 主题字（小一档，光晕舞台 + 闪光星） -->
+  <div class="titleStage settle d2">
+    <div class="titleHalo"></div>
+    <img src="assets/home/title_home.png" alt="麻麻大消除" draggable="false">
+    <span class="spark s1"></span><span class="spark s2"></span>
+  </div>
+
+  <!-- 中央柔光束（统一光照：把吉祥物与主按钮收成一组） -->
+  <div class="beam"></div>
+
+  <!-- 吉祥物主舞台（主视觉） -->
+  <div class="mascotWrap settle d3"><div class="mascotFloat">
+    <img src="assets/splash/mascot.png" alt="吉祥物" draggable="false">
+    <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+  </div></div>
+
+  <!-- 主按钮（九宫格 + 金渐变立体字 + 宋体副标题 + 扫光） -->
+  <div class="btn settle d4">
+    <img class="cap" src="assets/home/btn9_left.png" alt="">
+    <div class="mid"></div><img class="cap" src="assets/home/btn9_right.png" alt="">
+    <div class="shade"></div><div class="sheen"></div>
+    <div class="txt"><b>开始游戏</b>
+      <span class="sub"><span class="ln"></span><i>继续 · 第 3 关</i><span class="ln"></span></span>
+    </div>
+  </div>
+
+  <!-- 左右功能列（v3 整体下移 178：563 / 741） -->
+  <div class="fn f1 settle d5"><img src="assets/home/icon_signin.png" alt="七日签到"><span>七日签到</span></div>
+  <div class="fn f2 settle d5"><img src="assets/home/icon_shop.png" alt="道具商城"><span>道具商城</span></div>
+  <div class="fn f3 settle d5"><img src="assets/home/icon_rank.png" alt="排行榜"><span>排行榜</span></div>
+  <div class="fn f4 settle d5"><img src="assets/home/icon_invite.png" alt="好友邀战"><span>好友邀战</span></div>
+
+  <!-- 关卡进度（保留） -->
+  <div class="progress settle d6">
+    <div class="pline"><i class="pdiamond"></i></div>
+    <div class="ptext">第 <b>3</b> 关 · 共 30 关</div>
+  </div>
+
+  </div><!-- /stageShift 内容层结束 -->
+
+  <!-- 设置面板（点击左上齿轮展开；本页默认收起） -->
+  <div class="sheetWrap" id="sheet">
+    <a class="backdrop" href="#"></a>
+    <div class="sheet">
+      <div class="grip"></div>
+      <a class="close" href="#"><i></i><i></i></a>
+      <h2>设置</h2>
+      <div class="rule"></div>
+      <div class="row"><img src="assets/home/mute_on.png" alt="音效"><span>音效</span><div class="sw on"><i></i></div></div>
+      <div class="row"><img src="assets/home/icon_music.png" alt="背景音乐"><span>背景音乐</span><div class="sw on"><i></i></div></div>
+      <div class="rule" style="margin:14px 0 6px"></div>
+      <a class="linkrow" href="#"><span>隐私政策</span><em>›</em></a>
+      <a class="linkrow" href="#"><span>用户协议</span><em>›</em></a>
+      <div class="ver">《麻麻大消除》 v1.0.0</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="cap">game-5 首页 · 合成稿 <em>v4</em> · 750×1334 设计值 1:1 · 墨绿玉 × 金<br>
+<em>v4 定稿</em>：内容层整体下移 <em>64</em>（顶留白 126 / 底留白 159）· 背景与四角金饰贴边不动<br>
+功能列整体下移 <em>178</em> · 左上设置入口 · 右下静音已移除 · 副标题宋体 —— <span style="color:#FFE08A">点左上角齿轮可展开设置面板</span></div>
+
+<div class="spec">
+  <h3>本轮改动（v3 → v4：内容整体下移）</h3>
+  <b>问题</b>：内容视觉上边界 y=62（顶栏）、下边界 y≈1102（进度文案底），<b>顶留白 62 / 底留白 232</b> —— 上轻下重 170，观感"贴顶"。<br>
+  <b>做法</b>：新增内容层包裹 <code>.stageShift</code>，整组 <code>translateY(var(--yshift))</code>，<b>元素自身坐标一律不动</b>（下表仍是内容层内部坐标，实际渲染 = 坐标 + 64）。<br>
+  <b>下移量</b>：<code>--yshift:64</code> —— <b>用户拍板定稿值</b>。顶留白 126 / 底留白 159，上下差从 <b>170 收敛到 33</b>；8pt 栅格整洁倍数。参考：纯几何居中解为 <code>96</code>，取 64 保留"顶部略紧、视线自然下落到主视觉"的手感。<br>
+  <b>不随动</b>：背景四层（绒布 / 暗角 / 顶光 / 落地）与四角金饰属页面框架，保持贴边 —— 否则底部角饰会被推出屏幕。<br>
+  <b>可调</b>：改 <code>:root{--yshift}</code> 一个值即可整体升降（例：<code>0</code> = 回到 v3；<code>128</code> = 更靠下）。
+
+  <h3>布局坐标表 v3（750×1334，@2x 设计值 → 逻辑 375pt）</h3>
+  <table>
+    <tr><th>元素</th><th>位置</th><th>尺寸（设计值）</th><th>视觉层级</th></tr>
+    <tr><td>屏左右安全边</td><td>40</td><td>—</td><td>—</td></tr>
+    <tr><td>设置入口 <b>（新增）</b></td><td>左 40 / 上 62</td><td>图形 56 / <b>热区 88（44pt ✓）</b><br><span class="dim">资产 settings.png = 立体金质齿轮</span></td><td>④ 功能</td></tr>
+    <tr><td>金币计数</td><td>左 114 / 上 62</td><td>高 56（金币 40 + 数字 26）</td><td>⑤ 配角</td></tr>
+    <tr><td>主题字</td><td>居中 / 上 176</td><td>420 × 118</td><td>③ 品牌</td></tr>
+    <tr><td>吉祥物</td><td>居中 / 上 352</td><td>410 × 374（中心 y=539）</td><td><b>① 主视觉</b></td></tr>
+    <tr><td>左列功能</td><td>左 40 / 上 <b>563、741</b></td><td>图标 96 + 标签 22（列内节距 178）</td><td>④ 功能</td></tr>
+    <tr><td>右列功能</td><td>左 614 / 上 <b>563、741</b></td><td>同上（与左列镜像同高）</td><td>④ 功能</td></tr>
+    <tr><td>主按钮</td><td>居中（左 215）/ 上 845</td><td><b>320 × 140</b>（方案二定稿）</td><td><b>② 主操作</b></td></tr>
+    <tr><td>关卡进度</td><td>居中（左 165）/ 上 1045</td><td>420 × 4 + 文案 24</td><td>⑤ 辅助信息</td></tr>
+    <tr><td>静音开关</td><td colspan="2"><b>已移除</b> → 归入设置面板「音效 / 背景音乐」</td><td>—</td></tr>
+    <tr><td>微信胶囊避让</td><td>右上 174 × 64</td><td>顶栏内容一律靠左</td><td>—</td></tr>
+  </table>
+
+  <h3>本轮改动（v2 → v3，逐条对应你的批注）</h3>
+  <b>① 关卡进度线保留</b>：位置不变（y=1045）——<span style="color:#9FCFA9">已确认</span>。<br>
+  <b>② 副标题换字体（保留 24 设计值）</b>：由苹方黑体改为 <b>宋体（Songti SC）</b>——衬线笔锋在小字号下更清瘦挺拔、有字帖味；配奶油→暖金渐变 + 字距 6px + <b>两侧细金线</b>，与主文案的金渐变立体字拉开层级，不再"糊成一团"。<br>
+  <b>③ 四功能模块整体下移 178</b>：实测你批注的<b>红框上沿正好落在原「道具商城」图标顶（y=563）</b>，即下移恰好一个"节距"（178 = 563−385）。新位置：上排 563 / 下排 741，左右列仍严格镜像。<br>
+  <b>④ 设置入口 + 声音收纳</b>：左上角新增 <b>齿轮设置按钮</b>（在金币左侧，同排同高，热区 88 = 44pt），金币胶囊右移 74 让位；右下角静音开关<b>整枚移除</b>，「音效 / 背景音乐」两个金色玉质开关收进设置面板，并顺带容纳隐私政策、用户协议与版本号。<br>
+  <b>⑤ 角饰避让</b>：顶部两枚金角饰 48→40 并内缩到 16，避免与新增的设置齿轮打架。<br>
+  <b>⑥ 闪光星避让</b>：吉祥物右下的闪金星上移到 y=502，避免与下移后的「排行榜」图标（y=563）重叠。<br>
+  <b>⑦ 设置图标换金色（本轮）</b>：旧的齿轮内芯是<b>不透明白色实心</b>（不透明区近白占比 65.7%），压在深毡面上是一枚"白齿轮"。已换成<b>「立体金质」齿轮</b>——实心厚金 + 錾刻倒角 + 金属拉丝、中心孔通透，与金币/骰子同一金属语言，近白占比降到 0.1%；并补上<b>按压态</b>（下沉 0.9 + 金色泛光增强）。
+
+  <h3>设置面板（点击左上齿轮展开 · 或打开 <code>game-5-首页.html#sheet</code>）</h3>
+  底部抽屉式 · 墨绿玉底 + 金线双框（与外层同一材质语言）· 圆角 44 上翻。内容：<br>
+  ・<b>音效</b>（金喇叭图标 + 金玉开关，默认开）<br>
+  ・<b>背景音乐</b>（金音符图标 + 金玉开关，默认开）<br>
+  ・<b>隐私政策 / 用户协议</b>（合规入口，个体主体上架必备）<br>
+  ・版本号 v1.0.0 · 关闭按钮（右上 44pt 热区）· 点击遮罩可关闭<br>
+  <span class="todo">待你确认：设置项清单是否需要增删？候选有「震动反馈」「音量滑杆（替代纯开关）」「意见反馈／客服」「恢复购买」。另：静音两态图标（mute_on/off）本页只用了「有声」态作行首图标，若设置里也用开关而非喇叭两态，可把该图标一并撤下。</span>
+
+  <h3>字体方案（副标题）</h3>
+  <table>
+    <tr><th>方案</th><th>字体</th><th>观感</th><th>结论</th></tr>
+    <tr><td>A（当前）</td><td><b>Songti SC 宋体</b> SemiBold</td><td>清瘦挺拔、字帖味、最"贵"</td><td><b>已采用</b>；Cocos 建议内嵌思源宋体子集保证跨端一致</td></tr>
+    <tr><td>B</td><td>PingFang SC Medium</td><td>干净但平；24 设计值下略显寡淡</td><td>v2 旧版，已弃</td></tr>
+    <tr><td>C</td><td>STKaiti 楷体</td><td>温润手写感，但小字号辨识度下降</td><td>备选（若你要更"亲民"）</td></tr>
+  </table>
+</div>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>game-5 · 首页小资产 · 第二批（道具四件套+静音两态+小标题）</title>
+<style>
+/* 第二批资产预览：道具栏 4 格 96pt 实测（含数量角标）/ 静音两态 / 首页小标题 */
+:root{--gold:#F6C445;--cream:#FFF7E6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:radial-gradient(1100px 460px at 50% -8%,rgba(38,66,44,.35),transparent 70%),#0D120D;
+  color:var(--cream);font-family:"PingFang SC","Hiragino Sans GB",sans-serif;
+  padding:36px 24px 50px;display:flex;flex-direction:column;align-items:center;gap:16px}
+h1{font-family:"Songti SC","STSong",serif;font-size:24px;font-weight:900;letter-spacing:5px;
+  background:linear-gradient(180deg,#FFEFB8,#F6C445 55%,#C8912B);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:13px;color:#8A967F;letter-spacing:2px;margin-top:-10px}
+h2{font-size:15px;font-weight:800;letter-spacing:3px;color:var(--gold);margin-top:14px;
+  display:flex;align-items:center;gap:10px}
+h2::before,h2::after{content:"";width:34px;height:1px;background:linear-gradient(90deg,transparent,var(--gold));opacity:.5}
+h2::after{background:linear-gradient(90deg,var(--gold),transparent)}
+.stage{width:375px;height:290px;position:relative;overflow:hidden;border-radius:14px;
+  background:url("assets/splash/bg_felt.jpg") center/cover;box-shadow:0 14px 30px rgba(0,0,0,.5)}
+.stage::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(140% 100% at 50% 35%,transparent 55%,rgba(0,0,0,.32));z-index:0}
+.design{position:absolute;left:0;top:0;width:750px;height:580px;transform:scale(.5);transform-origin:0 0;z-index:1}
+.tag{font-size:12.5px;color:#A8B69C;letter-spacing:1px}
+.tag b{color:var(--gold)}
+
+/* —— 道具栏（主玩页底部 4 格 + 数量角标 + 领取入口）—— */
+.toolbar{position:absolute;left:45px;bottom:30px;width:660px;display:flex;gap:20px;align-items:flex-end}
+.tslot{position:relative;width:132px}
+.tslot img{width:96px;display:block;margin:0 auto;filter:drop-shadow(0 8px 10px rgba(0,0,0,.4))}
+.tslot .cnt{position:absolute;top:-4px;right:6px;min-width:40px;height:40px;padding:0 10px;
+  background:linear-gradient(180deg,#FFE58A,#F6C445 60%,#D9A32E);border:2px solid #8A5A18;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#3D2A08;
+  box-shadow:0 3px 6px rgba(0,0,0,.45)}
+.tslot .lbl{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:var(--cream);
+  text-shadow:0 2px 4px rgba(0,0,0,.55);margin-top:6px}
+.tplus{position:relative;width:96px;margin:0 auto}
+.tplus .add{width:96px;height:96px;border-radius:26px;border:2.5px dashed rgba(246,196,69,.75);
+  display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:700;color:var(--gold);
+  background:rgba(10,30,20,.35);text-shadow:0 0 14px rgba(246,196,69,.4)}
+.tplus .lbl{text-align:center;font-size:16px;color:rgba(255,247,230,.75);letter-spacing:2px;margin-top:8px}
+
+/* —— 静音两态 —— */
+.muterow{display:flex;gap:26px;align-items:flex-end}
+.mcell{display:flex;flex-direction:column;align-items:center;gap:8px;
+  background:url("assets/splash/bg_felt.jpg") center/cover;border-radius:14px;padding:30px 44px;
+  box-shadow:0 14px 30px rgba(0,0,0,.5);position:relative}
+.mcell::before{content:"";position:absolute;inset:0;border-radius:14px;
+  background:radial-gradient(140% 100% at 50% 35%,transparent 55%,rgba(0,0,0,.32))}
+.mcell>*{position:relative;z-index:1}
+.mcell img{display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
+.mcell .cap{font-size:12.5px;color:#A8B69C;letter-spacing:1px}
+.mcell .cap b{color:var(--gold)}
+
+/* —— 首页小标题实测 —— */
+.title-demo{position:absolute;left:0;top:36px;width:750px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.title-demo img.main{width:420px;display:block;filter:drop-shadow(0 10px 16px rgba(0,0,0,.5))}
+</style>
+</head>
+<body>
+<h1>首页小资产 · 第二批</h1>
+<div class="sub">道具四件套（方形玉牌同族）+ 静音两态（极简金线）+ 首页主题字（小尺寸优化版）</div>
+
+<h2>道具栏 4 格实测（主玩页底部 · 96pt + 数量角标 + 广告领取位）</h2>
+<div class="stage"><div class="design">
+  <div class="toolbar">
+    <div class="tslot"><img src="assets/home/icon_tool_erase.png" alt=""><span class="cnt">×2</span><div class="lbl">消除</div></div>
+    <div class="tslot"><img src="assets/home/icon_tool_remove.png" alt=""><span class="cnt">×1</span><div class="lbl">移出</div></div>
+    <div class="tslot"><img src="assets/home/icon_tool_shuffle.png" alt=""><span class="cnt">×3</span><div class="lbl">洗牌</div></div>
+    <div class="tslot"><img src="assets/home/icon_tool_addslot.png" alt=""><span class="cnt">×1</span><div class="lbl">加槽</div></div>
+    <div class="tplus"><div class="add">＋</div><div class="lbl">看广告领</div></div>
+  </div>
+</div></div>
+<div class="tag">每格 96pt 热区 ≥ 44pt 达标 · 角标为代码叠加（数量可变）· 「＋」位共用广告频次口径</div>
+
+<h2>静音开关两态（极简金线 · 无底板）</h2>
+<div class="muterow">
+  <div class="mcell"><img src="assets/home/mute_on.png" style="width:120px" alt=""><div class="cap">有声态 · <b>120px</b></div></div>
+  <div class="mcell"><img src="assets/home/mute_off.png" style="width:120px" alt=""><div class="cap">静音态 · <b>120px</b></div></div>
+  <div class="mcell"><img src="assets/home/mute_on.png" style="width:44px" alt=""><div class="cap">顶角实测 · <b>44px</b></div></div>
+</div>
+
+<h2>首页主题字实测（小尺寸优化版 · 延续启动页软糖质感）</h2>
+<div class="stage"><div class="design">
+  <div class="title-demo">
+    <img class="main" src="assets/home/title_home.png" alt="">
+    <div class="btn" style="position:relative;width:320px;height:140px;display:flex;border-radius:999px;overflow:hidden;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5))">
+      <img src="assets/home/btn9_left.png" style="height:100%" alt="">
+      <div style="flex:1;height:100%;background:url(assets/home/btn9_mid.png);background-size:100% 100%"></div>
+      <img src="assets/home/btn9_right.png" style="height:100%" alt="">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+        font-size:36px;font-weight:900;letter-spacing:8px;text-indent:8px;color:var(--gold);
+        text-shadow:0 3px 5px rgba(0,22,12,.72)">开始游戏</div>
+    </div>
+  </div>
+</div></div>
+<div class="tag">首页主题字显示宽 <b>420</b>（设计值）· 另附 240px 缩小验证 ↓</div>
+<div style="background:url('assets/splash/bg_felt.jpg') center/cover;border-radius:12px;padding:22px 40px;box-shadow:0 10px 24px rgba(0,0,0,.5)">
+  <img src="assets/home/title_home.png" style="width:240px;display:block;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))" alt="">
+</div>
+
+<div class="note" style="max-width:860px;background:rgba(255,255,255,.03);border:1px solid rgba(246,196,69,.25);border-radius:12px;padding:16px 24px;font-size:13px;line-height:2;color:#C9D6C0">
+  <b>本批清单（7 枚，已入 assets/home/）</b>：icon_tool_erase / icon_tool_remove / icon_tool_shuffle / icon_tool_addslot（753×757，方形玉牌同族派生）· mute_on / mute_off（极简金线，右下 AI 水印已裁）· title_home（1383×390，延续启动页软糖质感、笔画加粗适配小尺寸）。<br>
+  <b>待你拍板</b>：① 道具四件套符号含义是否一目了然？② 数量角标样式（金底深字）OK？③ 静音两态在毡面上辨识度 OK？④ 首页主题字质感与清晰度 OK？—— 通过后即合成完整首页。
+</div>
+</body>
+</html>

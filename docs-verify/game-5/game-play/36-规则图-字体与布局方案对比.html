@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>game-5 · 规则图 · 字体与布局方案对比</title>
+<style>
+:root{
+  --cream:#FFF7E6; --cream-dim:#C9D8CC; --cream-mute:#87998C;
+  --gold:#F6C445; --gold-hi:#FFE08A; --gold-dk:#C8912B;
+  --red:#D8432F;
+  --serif:"Songti SC","STSong","Noto Serif SC",serif;
+  --sans:"PingFang SC","Hiragino Sans GB","Heiti SC",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#070C09;color:var(--cream);font-family:var(--sans);padding:34px 30px 60px;
+  background-image:radial-gradient(900px 420px at 20% -4%, rgba(38,80,54,.40), transparent 68%),
+                   radial-gradient(760px 400px at 96% 104%, rgba(120,88,26,.14), transparent 66%)}
+h1{font-family:var(--serif);font-size:30px;letter-spacing:.06em;
+  background:linear-gradient(96deg,#FFF7E6 8%,var(--gold-hi) 46%,var(--gold-dk) 96%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
+.sub{font-size:14px;color:var(--cream-mute);line-height:1.9;margin:12px 0 6px;max-width:1180px}
+.sub b{color:var(--gold-hi);font-weight:600}
+.sec{margin-top:34px}
+.sec>h2{font-size:18px;color:var(--gold-hi);letter-spacing:.1em;margin-bottom:6px}
+.sec>.hint{font-size:13px;color:var(--cream-mute);margin-bottom:16px;line-height:1.8}
+.grid{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.col{width:572px;flex:none}
+.cap{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.cap b{font-size:17px;color:var(--gold-hi);letter-spacing:.06em}
+.cap i{font-style:normal;font-size:12.5px;color:var(--cream-mute)}
+.card{background:linear-gradient(178deg,#0E2A1F,#081711 62%,#050D09);
+  border:2px solid rgba(246,196,69,.34);border-radius:20px;overflow:hidden;
+  box-shadow:0 22px 52px rgba(0,0,0,.7)}
+.ruleHead{position:relative;height:72px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg, rgba(246,196,69,.14), transparent);
+  border-bottom:1px solid rgba(246,196,69,.18)}
+.ruleHead h3{font-size:28px;letter-spacing:.2em;color:var(--cream);text-shadow:0 2px 10px rgba(0,0,0,.7)}
+.ruleHead .x{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:40px;height:40px;
+  border-radius:50%;border:1.5px solid rgba(246,196,69,.28);background:rgba(4,20,14,.6);
+  display:flex;align-items:center;justify-content:center;font-size:19px;color:rgba(255,247,230,.8)}
+.ruleBody{padding:22px 24px 26px;display:flex;flex-direction:column;gap:20px}
+h4{font-size:19px;color:var(--gold-hi);letter-spacing:.1em;margin-bottom:11px;
+  display:flex;align-items:center;gap:8px}
+h4::before{content:"";width:6px;height:19px;border-radius:3px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold-dk))}
+.tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-variant-numeric:tabular-nums}
+.tbl thead th{height:29px;font-size:13.5px;font-weight:600;letter-spacing:.16em;text-align:left;
+  color:rgba(246,196,69,.70);border-bottom:1px solid rgba(246,196,69,.30)}
+.tbl th:nth-child(1),.tbl td:nth-child(1){width:136px}
+.tbl th:nth-child(2),.tbl td:nth-child(2){width:122px}
+.tbl tbody td{height:40px;font-size:15.5px;color:var(--cream);vertical-align:middle;
+  border-bottom:1px solid rgba(255,255,255,.055)}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl td.v{font-size:18px;font-weight:700;color:var(--gold-hi)}
+.tbl .gi{display:flex;align-items:center;gap:8px}
+.tbl .gi img{width:24px;height:24px;display:block;flex:none}
+.tbl .gi b{color:var(--gold-hi);font-weight:700}
+.rvIc{width:23px;height:23px;border-radius:50%;flex:none;display:flex;align-items:center;
+  justify-content:center;font-size:12.5px;font-style:normal;font-weight:700;color:#FFEDE7;
+  background:radial-gradient(circle at 34% 30%,#FF8E76,var(--red) 62%,#8E2317)}
+.tagT{display:inline-block;padding:2px 10px;border-radius:8px;font-size:13px;letter-spacing:.05em}
+.tagT.rv{color:#FFD6CD;background:rgba(216,67,47,.24);border:1px solid rgba(216,67,47,.52)}
+.tagT.sl{color:#CFF3E6;background:rgba(85,183,154,.18);border:1px solid rgba(85,183,154,.46)}
+.tagT.nm{color:#F6E2B4;background:rgba(246,196,69,.13);border:1px solid rgba(246,196,69,.36)}
+.foot{text-align:center;font-size:13.5px;color:rgba(201,216,204,.45);letter-spacing:.03em}
+.note{margin-top:11px;font-size:12.5px;line-height:1.85;color:var(--cream-mute);
+  border-left:2px solid rgba(246,196,69,.34);padding-left:11px}
+.note b{color:var(--gold-hi);font-weight:600}
+.note .bad{color:#FF9C86}
+/* ── 字体方案切换：只改 font-family，其余一字不动 ── */
+.f-a{font-family:var(--sans)}
+.f-b{font-family:var(--serif)}
+.f-b h4,.f-b .tbl thead th{letter-spacing:.10em}
+.f-b .tbl tbody td{font-size:15.5px}
+.f-c{font-family:var(--sans)}
+.f-c h4,.f-c .tbl thead th,.f-c .ruleHead h3{font-family:var(--serif)}
+.f-c .tbl td.v{font-family:var(--serif);letter-spacing:.02em}
+table.eng{width:1180px;border-collapse:collapse;font-size:13px;margin-top:10px}
+table.eng th,table.eng td{border:1px solid rgba(246,196,69,.20);padding:9px 12px;text-align:left;
+  vertical-align:top;line-height:1.75}
+table.eng th{background:rgba(246,196,69,.09);color:var(--gold-hi);font-weight:600;white-space:nowrap}
+table.eng td.k{color:var(--cream);width:150px;white-space:nowrap}
+table.eng code{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--gold-hi)}
+</style>
+</head>
+<body>
+
+<h1>规则弹层 · 字体与布局方案对比</h1>
+<div class="sub">
+  同一张表、同一套配色与边距，<b>只切换字体栈</b>（以及最后一组的行数口径），用来看清差异。<br>
+  弹层大标题「游 戏 规 则」在正式稿里固定用 <code>--serif</code>；下面三组里，方案甲/乙各自统一，方案丙是<b>标题宋体 + 正文与数字无衬线</b>的混排。<br>
+  表格数字一律 <code>font-variant-numeric: tabular-nums</code>，保证「2 · 12」这类数值列位对齐。
+</div>
+
+<!-- ═══════════ 一、字体三方案 ═══════════ -->
+<div class="sec">
+  <h2>一、字体三方案（布局固定 = 对称合并 6 行）</h2>
+  <div class="hint">三栏内容、尺寸、间距完全一致，唯一变量是 font-family。</div>
+  <div class="grid">
+
+    <!-- 甲 -->
+    <div class="col f-a">
+      <div class="cap"><b>方案甲 · 全系统无衬线</b><i>PingFang SC → Hiragino Sans GB → sans-serif</i></div>
+      <div class="card">
+        <div class="ruleHead"><h3>游 戏 规 则</h3><div class="x">✕</div></div>
+        <div class="ruleBody">
+          <div><h4>二、掷骰点数对应表</h4>
+            <table class="tbl">
+              <thead><tr><th>和值</th><th>档位</th><th>本局赠送</th></tr></thead>
+              <tbody>
+                <tr><td class="v">2 · 12</td><td><span class="tagT rv">复活档</span></td><td><span class="gi"><span class="rvIc">复</span>复活 <b>×1</b></span></td></tr>
+                <tr><td class="v">3 · 11</td><td><span class="tagT sl">加槽档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_addslot.png" alt="">加槽 <b>×1</b></span></td></tr>
+                <tr><td class="v">4 · 10</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_remove.png" alt="">移出 <b>×1</b></span></td></tr>
+                <tr><td class="v">5 · 9</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_erase.png" alt="">消除 <b>×1</b></span></td></tr>
+                <tr><td class="v">6 · 8</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_remove.png" alt="">移出 <b>×1</b></span></td></tr>
+                <tr><td class="v">7</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_erase.png" alt="">消除 <b>×1</b></span></td></tr>
+              </tbody>
+            </table>
+            <div class="foot" style="margin-top:8px">和值 2–12：左右对称的赠送相同 · 中间值 7 出现最多</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <b>优点</b>：与真机系统字体（iOS PingFang / Android 系统黑体）完全一致，所见即所得；零字体文件体积、零授权风险。<br>
+        <b>代价</b>：气质偏"系统 UI"，与弹层大标题的宋体略有断层。
+      </div>
+    </div>
+
+    <!-- 乙 -->
+    <div class="col f-b">
+      <div class="cap"><b>方案乙 · 全宋体衬线</b><i>Songti SC → STSong → serif</i></div>
+      <div class="card">
+        <div class="ruleHead"><h3>游 戏 规 则</h3><div class="x">✕</div></div>
+        <div class="ruleBody">
+          <div><h4>二、掷骰点数对应表</h4>
+            <table class="tbl">
+              <thead><tr><th>和值</th><th>档位</th><th>本局赠送</th></tr></thead>
+              <tbody>
+                <tr><td class="v">2 · 12</td><td><span class="tagT rv">复活档</span></td><td><span class="gi"><span class="rvIc">复</span>复活 <b>×1</b></span></td></tr>
+                <tr><td class="v">3 · 11</td><td><span class="tagT sl">加槽档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_addslot.png" alt="">加槽 <b>×1</b></span></td></tr>
+                <tr><td class="v">4 · 10</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_remove.png" alt="">移出 <b>×1</b></span></td></tr>
+                <tr><td class="v">5 · 9</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_erase.png" alt="">消除 <b>×1</b></span></td></tr>
+                <tr><td class="v">6 · 8</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_remove.png" alt="">移出 <b>×1</b></span></td></tr>
+                <tr><td class="v">7</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_erase.png" alt="">消除 <b>×1</b></span></td></tr>
+              </tbody>
+            </table>
+            <div class="foot" style="margin-top:8px">和值 2–12：左右对称的赠送相同 · 中间值 7 出现最多</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <b>优点</b>：与弹层大标题同族，整层气质统一，有"典藏说明书"的味道。<br>
+        <b>代价</b>：<span class="bad">宋体横细竖粗、笔画细</span>，在深墨绿底上小字号（15.5px 设计值）笔画发飘、锐度低；真机上 Android 端还会掉到系统默认衬线，观感不可控。
+      </div>
+    </div>
+
+    <!-- 丙 -->
+    <div class="col f-c">
+      <div class="cap"><b>方案丙 · 混排（推荐）</b><i>标题宋体 + 正文/数字无衬线</i></div>
+      <div class="card">
+        <div class="ruleHead"><h3>游 戏 规 则</h3><div class="x">✕</div></div>
+        <div class="ruleBody">
+          <div><h4>二、掷骰点数对应表</h4>
+            <table class="tbl">
+              <thead><tr><th>和值</th><th>档位</th><th>本局赠送</th></tr></thead>
+              <tbody>
+                <tr><td class="v">2 · 12</td><td><span class="tagT rv">复活档</span></td><td><span class="gi"><span class="rvIc">复</span>复活 <b>×1</b></span></td></tr>
+                <tr><td class="v">3 · 11</td><td><span class="tagT sl">加槽档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_addslot.png" alt="">加槽 <b>×1</b></span></td></tr>
+                <tr><td class="v">4 · 10</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_remove.png" alt="">移出 <b>×1</b></span></td></tr>
+                <tr><td class="v">5 · 9</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_erase.png" alt="">消除 <b>×1</b></span></td></tr>
+                <tr><td class="v">6 · 8</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_remove.png" alt="">移出 <b>×1</b></span></td></tr>
+                <tr><td class="v">7</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_erase.png" alt="">消除 <b>×1</b></span></td></tr>
+              </tbody>
+            </table>
+            <div class="foot" style="margin-top:8px">和值 2–12：左右对称的赠送相同 · 中间值 7 出现最多</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <b>优点</b>：标题（宋）与正文（黑）形成层次，气质与可读性兼得；正文走系统无衬线，真机两端都稳。现行正式稿用的就是这一路（弹层大标题本来就是 <code>var(--serif)</code>）。<br>
+        <b>代价</b>：两种字体并存，版面需要靠字号/字重把关系理顺。
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ 二、行数口径 ═══════════ -->
+<div class="sec">
+  <h2>二、布局两方案（字体固定 = 方案丙）</h2>
+  <div class="hint">
+    572×360 这个区高是第 16 轮定死的占位尺寸，不动。11 个和值能不能都塞进去，取决于行数口径：
+  </div>
+  <div class="grid">
+
+    <div class="col f-c">
+      <div class="cap"><b>布局 A · 对称合并 6 行</b><i>现行正式稿采用</i></div>
+      <div class="card">
+        <div class="ruleHead"><h3>游 戏 规 则</h3><div class="x">✕</div></div>
+        <div class="ruleBody">
+          <div><h4>二、掷骰点数对应表</h4>
+            <table class="tbl">
+              <thead><tr><th>和值</th><th>档位</th><th>本局赠送</th></tr></thead>
+              <tbody>
+                <tr><td class="v">2 · 12</td><td><span class="tagT rv">复活档</span></td><td><span class="gi"><span class="rvIc">复</span>复活 <b>×1</b></span></td></tr>
+                <tr><td class="v">3 · 11</td><td><span class="tagT sl">加槽档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_addslot.png" alt="">加槽 <b>×1</b></span></td></tr>
+                <tr><td class="v">4 · 10</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_remove.png" alt="">移出 <b>×1</b></span></td></tr>
+                <tr><td class="v">5 · 9</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_erase.png" alt="">消除 <b>×1</b></span></td></tr>
+                <tr><td class="v">6 · 8</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_remove.png" alt="">移出 <b>×1</b></span></td></tr>
+                <tr><td class="v">7</td><td><span class="tagT nm">常规档</span></td><td><span class="gi"><img src="../../../assets/home/icon_tool_erase.png" alt="">消除 <b>×1</b></span></td></tr>
+              </tbody>
+            </table>
+            <div class="foot" style="margin-top:8px">和值 2–12：左右对称的赠送相同 · 中间值 7 出现最多</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <b>优点</b>：6 行 → 行高 45 设计值、字号 18，<b>手机上是舒服的字号</b>；顺带把"左右对称 / 7 是中枢"这层设计意图显式表达出来（概率合计正好 36）。<br>
+        <b>代价</b>：不是"逐值一行"，玩家要自己在「2 · 12」里对号。
+      </div>
+    </div>
+
+    <div class="col f-c">
+      <div class="cap"><b>布局 B · 逐值 11 行</b><i>信息最完整，但字会小</i></div>
+      <div class="card">
+        <div class="ruleHead"><h3>游 戏 规 则</h3><div class="x">✕</div></div>
+        <div class="ruleBody">
+          <div><h4>二、掷骰点数对应表</h4>
+            <table class="tbl" style="font-size:12px">
+              <thead><tr><th>和值</th><th>档位</th><th>本局赠送</th></tr></thead>
+              <tbody>
+                <tr><td class="v" style="font-size:14.5px">2</td><td><span class="tagT rv">复活档</span></td><td>复活 ×1</td></tr>
+                <tr><td class="v" style="font-size:14.5px">3</td><td><span class="tagT sl">加槽档</span></td><td>加槽 ×1</td></tr>
+                <tr><td class="v" style="font-size:14.5px">4</td><td><span class="tagT nm">常规档</span></td><td>移出 ×1</td></tr>
+                <tr><td class="v" style="font-size:14.5px">5</td><td><span class="tagT nm">常规档</span></td><td>消除 ×1</td></tr>
+                <tr><td class="v" style="font-size:14.5px">6</td><td><span class="tagT nm">常规档</span></td><td>移出 ×1</td></tr>
+                <tr><td class="v" style="font-size:14.5px">7</td><td><span class="tagT nm">常规档</span></td><td>消除 ×1</td></tr>
+                <tr><td class="v" style="font-size:14.5px">8</td><td><span class="tagT nm">常规档</span></td><td>移出 ×1</td></tr>
+                <tr><td class="v" style="font-size:14.5px">9</td><td><span class="tagT nm">常规档</span></td><td>消除 ×1</td></tr>
+                <tr><td class="v" style="font-size:14.5px">10</td><td><span class="tagT nm">常规档</span></td><td>移出 ×1</td></tr>
+                <tr><td class="v" style="font-size:14.5px">11</td><td><span class="tagT sl">加槽档</span></td><td>加槽 ×1</td></tr>
+                <tr><td class="v" style="font-size:14.5px">12</td><td><span class="tagT rv">复活档</span></td><td>复活 ×1</td></tr>
+              </tbody>
+            </table>
+            <div class="foot" style="margin-top:6px;font-size:12px">和值 2–12：左右对称的赠送相同 · 中间值 7 出现最多</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <b>优点</b>：逐值一行，不需要任何"合并规则"的解释成本。<br>
+        <b>代价</b>：<span class="bad">行高被压到约 26 设计值、正文约 12 设计值（≈6pt）</span>，手机上接近不可读；要救只能砍掉档位列或让内容区滚动。括号里这一版的字号已经比正式稿小一档，仍显拥挤。
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ 三、工程口径 ═══════════ -->
+<div class="sec">
+  <h2>三、落到小游戏里的字体口径（选型必须看这一栏）</h2>
+  <div class="hint">
+    HTML 原型里字体随便挑；但移植到微信小游戏后，字体只有两条路 —— <b>用系统字体</b>，或<b>把字体文件打进包</b>。后者受主包体积硬约束，所以"选字体"实际是"定回退栈"。
+  </div>
+  <table class="eng">
+    <tr><th>做法</th><th>体积代价</th><th>表现可控性</th><th>授权</th><th>结论</th></tr>
+    <tr>
+      <td class="k">正文/表格用系统字体<br><code>sans-serif</code></td>
+      <td>0 KB</td>
+      <td>iOS = PingFang SC；Android = 各家系统黑体。字形略有差异，但都是黑体、观感稳定</td>
+      <td>无风险（系统字体）</td>
+      <td><b>采用</b> —— 方案甲 / 丙的正文都走这条</td>
+    </tr>
+    <tr>
+      <td class="k">标题内嵌宋体<br>（如思源宋体子集）</td>
+      <td>中文全字库 8 MB+，必然超主包；只做"游 戏 规 则 / 弹层内十余个字"的<b>子集</b>可压到几十 KB</td>
+      <td>完全可控，两端一致</td>
+      <td>思源宋体 = SIL OFL，可商用内嵌；系统 Songti SC 不可内嵌分发</td>
+      <td>可选 —— 若要让标题气质<b>跨端一致</b>才需要；否则直接用 <code>serif</code> 回退即可</td>
+    </tr>
+    <tr>
+      <td class="k">数字用等宽对齐<br><code>tabular-nums</code></td>
+      <td>0 KB</td>
+      <td>「2 · 12」「×1」这类数值列位对齐，表格观感立刻整齐</td>
+      <td>无风险</td>
+      <td><b>采用</b> —— 三案都已生效</td>
+    </tr>
+    <tr>
+      <td class="k">全域内嵌一套中文字体</td>
+      <td>8 MB 级，<b>直接撞穿主包 4096 KB 上限</b></td>
+      <td>完全可控</td>
+      <td>取决于字库授权</td>
+      <td><span class="bad">不采用</span></td>
+    </tr>
+  </table>
+  <div class="sub" style="margin-top:14px">
+    <b>一句话结论</b>：正文与数字走系统无衬线 + tabular-nums；标题保留 <code>serif</code> 回退（真机 iOS 落宋体、Android 落系统衬线，可接受）。若哪天要求标题跨端绝对一致，再单独做一份"标题字子集"内嵌，代价只有几十 KB。
+  </div>
+</div>
+
+</body>
+</html>

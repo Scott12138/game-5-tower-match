@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>game-5 · 开局页定稿（1.2s 电动桌掷骰 · B 追尾 · 音效 + 点数赠礼 + 本局限定）·《麻麻大消除》</title>
+<style>
+/* ============================================================
+   开局页 · 定稿  v3（第 14 轮验收入库 · 2026-10-05）
+   —— 沿革：第 9 轮重做碰撞出三方案 → 第 10 轮拍板 B「追尾」 → 第 11 轮定音效 #3 + 掷骰点数真随机
+     → 第 12 轮本局限定护栏 → 第 13 轮赠礼表定稿微调（偶移出 / 奇消除 / 3·11 加槽 / 2·12 复活·自动）
+     → 第 14 轮验收：本页正式纳入资产库（./开局页-定稿.html）
+   美学方向：奢华精致（墨绿典藏 × 金）—— 与启动页 / 首页同一套光系统
+   记忆点：盘内静置两骰 → 相向对撞 → 沿金环滚边 → 一镜拉远放出整桌（1.2s）
+   第 9 轮修订（用户拍板 5 条）：
+     ① HUD 带高度冲突不单独处理（待主玩页定稿）  ② 特写段桌图分辨率按原方案保留
+     ③ 三档骰子全部保留、分镜只做 48            ④ 骰子在拉远尾段淡出
+     ⑤ ★ 碰撞重做为"电动桌驱动"三段：互撞 → 沿边滚动 → 拉远
+   第 11 轮修订（本轮）：
+     ① ★ 最终选型 = B「追尾」（A/C 完整保留，页内可一键切回对比）
+     ② ★ 音效嵌入：候选 #3「サイコロを振る・二個」真实录音，与动画同一起点 t=0；
+        不做按钮层、不做电机层。音频 310ms 主脉冲 对 动画 300ms 追尾碰撞（差 10ms）
+     ③ ★ 开局掷骰点数真随机（每次进入都重掷）；和值 2–12 定档赠送四件套
+     ④ 自转归零提前到 950ms（早于 1020ms 淡出）—— 玩家能在骰子淡出前看清落定点数
+   第 12 轮修订（本轮 · 定稿）：
+     ① ★ 和值→道具映射表改用【用户定稿版】（源：game-5-开局页-分镜.md §13.2），旧版作废
+     ② ★ 赠礼改为【本局限定】：赠送道具仅限当前这一局使用；该局结算 / 提前退出关卡时，
+        未使用道具立即作废 —— 不计入累积、不跨局保留、不继承（防刷护栏）
+   第 13 轮修订（本轮 · 定稿微调）：
+     ① ★ 赠礼映射表微调：偶数 4·6·8·10 → 移出 ；奇数 5·7·9 → 消除 ；
+        3·11 → 加槽 ；2·12 → 复活（revive:1）
+     ② ★【复活】不入本局道具池 —— 不进道具栏、不能主动点用，
+        只作"本局自动复活机会"，本局失败时自动生效；未用随本局一并作废
+        ★ 效果口径（第 14 轮确认）=「复活直消 4 张」：槽内最后 4 张直接消除
+     ③ ★【洗牌】退出开局赠礼（仍是游戏内既有道具，改由其它途径获取）
+   架构要点：
+     ① 全部状态由单个 render(t) 纯函数驱动 → 可定格 / 可慢放 / 可拖拽 / 可截图断言
+     ② 镜头（.camera，随缩放）与镜片（暗角 / 角饰，固定在屏）分层
+     ③ 主玩页 HUD 挂在 camera 之外（UI 不随镜头缩放），只在末 0.12s 淡入
+   ============================================================ */
+:root{
+  --cream:#FFF7E6; --cream-dim:#C9D8CC; --cream-mute:#87998C;
+  --gold:#F6C445; --gold-hi:#FFE08A; --gold-dk:#C8912B;
+  --jade:#2E8B6F; --jade-hi:#55B79A;
+  --shell-0:#060806; --shell-1:#0B100C; --shell-2:#121A15;
+  --hair:rgba(246,196,69,.16);
+  --serif:"Songti SC","STSong","Noto Serif SC",serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --sc:0.50;                    /* 750×1334 设计值 → CSS px 的缩放 */
+  --scInv:2.0000;               /* 1/--sc，用于把实测 CSS px 换算回设计值 */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--shell-0)}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB",sans-serif;
+  color:var(--cream);
+  min-height:100vh;
+  background:
+    radial-gradient(1100px 520px at 22% -6%, rgba(38,80,54,.42), transparent 68%),
+    radial-gradient(900px 480px at 96% 108%, rgba(120,88,26,.16), transparent 66%),
+    var(--shell-0);
+  padding:26px 26px 46px;
+}
+.grain{position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.035;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+
+/* ── 页头 ── */
+header{max-width:1080px;margin:0 auto 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:14px}
+.brand h1{font-family:var(--serif);font-size:29px;font-weight:600;letter-spacing:.06em;
+  background:linear-gradient(96deg,#FFF7E6 8%,var(--gold-hi) 46%,var(--gold-dk) 96%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.brand .tag{font-size:12px;letter-spacing:.22em;color:var(--cream-mute);text-transform:uppercase}
+.meta{display:flex;gap:26px;font-size:12.5px;color:var(--cream-mute);letter-spacing:.04em}
+.meta b{display:block;color:var(--cream-dim);font-size:15px;font-weight:600;letter-spacing:.02em;margin-top:3px;
+  font-variant-numeric:tabular-nums}
+
+/* ── 主区 ── */
+main{max-width:1080px;margin:0 auto;display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+.stageCol{flex:none;display:flex;flex-direction:column;gap:14px}
+
+/* 手机框：750×1334 → 375×667 */
+.frame{width:calc(750px * var(--sc));height:calc(1334px * var(--sc));overflow:hidden;border-radius:19px;
+  position:relative;flex:none;
+  box-shadow:0 30px 70px rgba(0,0,0,.72), 0 3px 12px rgba(0,0,0,.55),
+             0 0 0 1px rgba(246,196,69,.13), 0 0 0 7px rgba(10,14,10,.9)}
+.screen{width:750px;height:1334px;transform:scale(var(--sc));transform-origin:0 0;
+  position:relative;overflow:hidden;background:#040604}
+
+/* ── 桌外深色环境 ── */
+.env{position:absolute;inset:0;
+  background:radial-gradient(58% 42% at 50% 50%, #0C110D 0%, #070A07 58%, #030403 100%)}
+.envTop{position:absolute;inset:0;opacity:0;
+  background:linear-gradient(180deg, rgba(255,247,230,.055), transparent 15%)}
+.envGround{position:absolute;left:0;right:0;bottom:0;height:340px;opacity:0;
+  background:linear-gradient(180deg, transparent, rgba(0,0,0,.42) 90%)}
+
+/* ── 镜头层：整体缩放（锚点 = 骰盘圆心） ── */
+.camera{position:absolute;left:0;top:0;width:750px;height:1334px;
+  transform-origin:373px 668px;will-change:transform}
+
+/* 麻将桌（正方形 750×750，落点 y=292） */
+.tableWrap{position:absolute;left:0;top:292px;width:750px;height:750px;
+  box-shadow:0 0 74px 26px rgba(0,0,0,.8)}
+.tableImg{position:absolute;left:0;top:0;width:750px;height:750px;display:block}
+
+/* 骰盘：内盘按压 + 环外泛光（都在 tableWrap 坐标系，圆心 (373,376)） */
+.trayFloor{position:absolute;left:290px;top:293px;width:166px;height:166px;border-radius:50%;
+  transform-origin:50% 50%;
+  background:radial-gradient(closest-side, rgba(3,18,11,.55), rgba(3,18,11,.18) 72%, transparent 100%);
+  box-shadow:inset 0 6px 16px rgba(0,0,0,.62), inset 0 -3px 9px rgba(120,150,110,.10)}
+.trayHalo{position:absolute;left:258px;top:261px;width:230px;height:230px;border-radius:50%;opacity:.2;
+  background:radial-gradient(closest-side, transparent 58%, rgba(246,196,69,.20) 72%, rgba(246,196,69,.07) 88%, transparent 100%)}
+/* ── 冲击特效层：每个"碰撞事件"一组（组内元素以组原点为中心） ── */
+.fxLayer{position:absolute;left:0;top:0;width:0;height:0}
+.fx{position:absolute;left:0;top:0;width:0;height:0}
+.fx .rip{position:absolute;left:0;top:0;border-radius:50%;border:3px solid rgba(246,196,69,.5);opacity:0}
+.fx .flash{position:absolute;left:0;top:0;width:180px;height:180px;margin:-90px 0 0 -90px;border-radius:50%;opacity:0;
+  background:radial-gradient(closest-side, rgba(255,252,235,.95), rgba(255,224,138,.55) 42%, transparent 76%)}
+.fx .spark{position:absolute;left:0;top:0;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:2px;opacity:0;
+  background:var(--gold-hi);box-shadow:0 0 10px rgba(255,224,138,.95)}
+
+/* ── 骰子（独立图层 · 可单独运动） ── */
+.die{position:absolute;width:60px;height:60px}          /* 尺寸由 JS 按视觉边长换算 */
+.dieShadow{position:absolute;left:50%;top:76%;border-radius:50%;transform:translate(-50%,-50%);
+  background:radial-gradient(closest-side, rgba(0,0,0,.62), rgba(0,0,0,.26) 62%, transparent 100%)}
+.dieSquash{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:50% 50%}  /* 世界轴对齐的挤压 */
+.dieSpin{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:50% 50%}
+.dieImg{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+
+/* ── 开局掷骰 · 点数与赠礼（第 11 轮） ── */
+.diceRow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dbox{flex:1;min-width:70px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+  border-radius:9px;padding:9px 6px;text-align:center}
+.dbox s{display:block;font-size:10.5px;color:rgba(201,216,204,.66);text-decoration:none;margin-bottom:3px}
+.dbox b{font-size:21px;color:#F2F6F0;font-variant-numeric:tabular-nums}
+.dbox.hl{background:rgba(246,196,69,.13);border-color:rgba(246,196,69,.42)}
+.dbox.hl b{color:#FFE08A}
+.dop{font-size:15px;color:rgba(201,216,204,.5);font-weight:700}
+.gift{margin-top:11px;padding:11px 13px;border-radius:9px;background:rgba(85,183,154,.14);
+  border:1px solid rgba(85,183,154,.42);font-size:13.5px;color:#DDF3E9;line-height:1.75}
+.gift b{color:#8FE3C5;font-size:14.5px}
+.gift.none{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:rgba(201,216,204,.72)}
+.gift .lvtag{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11px;margin-right:6px;
+  background:rgba(246,196,69,.18);color:#FFE08A;border:1px solid rgba(246,196,69,.35)}
+.chip{display:inline-block;padding:1px 8px;border-radius:6px;font-size:11.5px;margin:2px 4px 2px 0;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#DDF3E9}
+input[type=number],input[type=text]{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  border-radius:6px;color:#F2F6F0;padding:3px 7px;font-size:12.5px;font-family:inherit}
+.dieGlow{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:14px;opacity:0;
+  background:radial-gradient(closest-side, rgba(255,250,230,.7), rgba(255,236,180,.22) 52%, transparent 78%)}
+
+/* ── 主玩页 HUD（占位示意 · 未定稿）：挂在 camera 之外，UI 不随镜头缩放 ── */
+.hud{position:absolute;inset:0;opacity:0;will-change:opacity}
+.hud .pause{position:absolute;left:40px;top:96px;width:88px;height:88px;border-radius:26px;
+  background:rgba(4,20,14,.62);border:2px solid rgba(246,196,69,.25);
+  box-shadow:0 6px 16px rgba(0,0,0,.4)}
+.hud .pause i{position:absolute;top:50%;width:9px;height:32px;margin-top:-16px;border-radius:2px;background:rgba(255,247,230,.9)}
+.hud .pause i:first-child{left:29px}.hud .pause i:last-child{right:29px}
+.hud .lv{position:absolute;left:150px;top:108px;height:64px;padding:0 30px;border-radius:999px;
+  display:flex;align-items:center;background:rgba(4,20,14,.5);border:2px solid rgba(246,196,69,.2);
+  font-size:32px;letter-spacing:.14em;color:var(--cream)}
+.hud .row2{position:absolute;left:40px;top:198px;font-size:28px;letter-spacing:.04em;color:rgba(201,216,204,.8);
+  font-variant-numeric:tabular-nums}
+.hud .timer{position:absolute;left:0;right:0;top:190px;text-align:center;font-size:40px;font-weight:600;
+  color:var(--cream);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+.hud .rule{position:absolute;right:40px;top:186px;width:76px;height:76px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:24px;color:rgba(255,247,230,.82);
+  border:2px solid rgba(246,196,69,.2);background:rgba(4,20,14,.5)}
+.hud .slots{position:absolute;left:45px;top:1052px;width:660px;height:92px;border-radius:14px}
+.hud .slot{position:absolute;top:0;width:68px;height:92px;border-radius:10px;
+  background:rgba(4,20,14,.5);border:2px solid rgba(46,139,111,.34);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.05)}
+.hud .items{position:absolute;left:103px;top:1154px;width:544px;height:112px}
+.hud .item{position:absolute;top:0;width:112px;height:112px;border-radius:26px;
+  background:rgba(4,20,14,.58);border:2px solid rgba(246,196,69,.2);
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:9px;font-size:22px;
+  color:rgba(201,216,204,.72);box-shadow:0 6px 14px rgba(0,0,0,.32)}
+.hud .item b{position:absolute;right:-4px;top:-4px;width:38px;height:38px;border-radius:50%;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold-dk));color:#4A2B18;font-size:24px;line-height:38px;
+  text-align:center;font-weight:700;box-shadow:0 3px 8px rgba(0,0,0,.4)}
+
+/* ── 镜片层（固定在屏，不随镜头）── */
+.vignette{position:absolute;inset:0;opacity:.22;pointer-events:none;
+  background:radial-gradient(128% 96% at 50% 46%, transparent 42%, rgba(0,0,0,.5) 100%)}
+.corner{position:absolute;width:44px;height:44px;opacity:0;z-index:6}
+.corner::before{content:"";position:absolute;inset:0;border:2px solid rgba(246,196,69,.4)}
+.corner::after{content:"";position:absolute;inset:7px;border:1px solid rgba(246,196,69,.2)}
+.corner i{position:absolute;left:50%;top:50%;width:6px;height:6px;background:var(--gold);
+  transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 9px rgba(246,196,69,.85)}
+.c-tl{top:16px;left:16px}.c-tr{top:16px;right:16px;transform:scaleX(-1)}
+.c-bl{bottom:16px;left:22px;transform:scaleY(-1) scale(.88)}
+.c-br{bottom:16px;right:22px;transform:scale(-1) scale(.88)}
+
+/* ── 审查叠加（默认关）── */
+.ov{position:absolute;pointer-events:none;opacity:0;transition:opacity .18s}
+.ov.on{opacity:1}
+.ovAnchor{left:373px;top:668px;width:0;height:0;z-index:8}
+.ovAnchor::before,.ovAnchor::after{content:"";position:absolute;background:rgba(255,92,92,.92)}
+.ovAnchor::before{left:-17px;top:-1px;width:34px;height:2px}
+.ovAnchor::after{left:-1px;top:-17px;width:2px;height:34px}
+.ovSafe{left:0;top:292px;width:750px;height:750px;z-index:7;border:1px dashed rgba(255,255,255,.34)}
+.ovSafe::before{content:"";position:absolute;inset:34px;border:1px dashed rgba(85,183,154,.6)}
+.ovSafe .lbl{position:absolute;left:12px;bottom:12px;font-size:20px;letter-spacing:.06em;color:rgba(255,255,255,.72)}
+.ovTray{left:373px;top:668px;width:0;height:0;z-index:8}
+.ovTray i{position:absolute;left:-81px;top:-81px;width:162px;height:162px;border-radius:50%;
+  border:1px dashed rgba(85,183,154,.85)}
+.ovTray i::after{content:"盘内可用 R81";position:absolute;left:0;bottom:-26px;width:200px;
+  font-size:18px;color:rgba(85,183,154,.95);font-style:normal}
+.ovHud{left:0;right:0;top:0;bottom:0;z-index:8}
+.ovHud b{position:absolute;left:14px;font-size:19px;letter-spacing:.06em;color:rgba(255,224,138,.9);font-weight:400}
+.ovCap{position:absolute;right:40px;top:108px;width:174px;height:64px;border:1px dashed rgba(255,224,138,.55);border-radius:14px}
+
+/* ── 右侧控制面板 ── */
+.panel{flex:1;min-width:420px;max-width:620px;display:flex;flex-direction:column;gap:16px}
+.card{background:linear-gradient(180deg, rgba(19,26,21,.94), rgba(12,17,13,.94));
+  border:1px solid var(--hair);border-radius:16px;padding:18px 18px 16px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;
+  background:linear-gradient(90deg, transparent, rgba(246,196,69,.5), transparent)}
+.card h2{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.1em;color:var(--cream);
+  display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.card h2 span{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--gold);opacity:.85}
+
+/* 相位条 */
+.strip{display:flex;height:40px;border-radius:9px;overflow:hidden;border:1px solid rgba(246,196,69,.16);position:relative}
+.strip .seg{position:relative;display:flex;align-items:center;justify-content:center;font-size:12.5px;letter-spacing:.08em;
+  color:rgba(201,216,204,.6);background:rgba(255,255,255,.02);border-right:1px solid rgba(246,196,69,.14)}
+.strip .seg:last-child{border-right:0}
+.strip .seg.hot{background:linear-gradient(180deg, rgba(246,196,69,.2), rgba(246,196,69,.06));color:#FFF3D6}
+.strip .seg em{font-family:var(--mono);font-style:normal;font-size:10.5px;opacity:.72;margin-left:7px}
+.playhead{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--gold-hi);
+  box-shadow:0 0 10px rgba(255,224,138,.9);border-radius:2px;transform:translateX(-1px)}
+
+/* 控件 */
+.ctrl{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.btn{font-family:inherit;font-size:13px;letter-spacing:.05em;color:var(--cream-dim);cursor:pointer;
+  background:rgba(255,255,255,.035);border:1px solid rgba(246,196,69,.2);border-radius:9px;
+  padding:9px 14px;transition:.15s}
+.btn:hover{background:rgba(246,196,69,.12);color:var(--cream);border-color:rgba(246,196,69,.42)}
+.btn.primary{background:linear-gradient(180deg, rgba(246,196,69,.26), rgba(200,145,43,.2));color:#FFF6E0;
+  border-color:rgba(246,196,69,.5);font-weight:600}
+.btn[aria-pressed="true"]{background:rgba(246,196,69,.2);color:#FFF6E0;border-color:rgba(246,196,69,.55)}
+.btn:active{transform:translateY(1px)}
+.sepH{width:1px;height:22px;background:rgba(246,196,69,.18);margin:0 3px}
+.fld{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--cream-mute);letter-spacing:.05em}
+/* .ro = 只读值徽标（替代下拉框，用于「已拍板不作调整」的项） */
+.ro{color:var(--gold-hi);font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;padding:2px 8px;
+  border:1px solid rgba(246,196,69,.30);border-radius:5px;background:rgba(246,196,69,.07);white-space:nowrap}
+.fld select{font-family:inherit;font-size:12.5px;color:var(--cream);background:#0E140F;
+  border:1px solid rgba(246,196,69,.22);border-radius:8px;padding:7px 9px;cursor:pointer}
+input[type=range]{-webkit-appearance:none;width:100%;height:26px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:2px;
+  background:linear-gradient(90deg, rgba(246,196,69,.55), rgba(246,196,69,.14))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;margin-top:-6px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold-dk));box-shadow:0 0 0 3px rgba(246,196,69,.16),0 2px 6px rgba(0,0,0,.5)}
+
+/* 曲线图 */
+.curveWrap{position:relative}
+.curve{width:100%;height:118px;display:block;background:rgba(0,0,0,.28);border-radius:10px;
+  border:1px solid rgba(246,196,69,.1)}
+.curveLg{display:flex;gap:16px;font-size:11px;letter-spacing:.05em;color:var(--cream-mute);margin-top:8px}
+.curveLg i{display:inline-block;width:12px;height:2px;vertical-align:middle;margin-right:6px}
+
+/* 实测读数 */
+.read{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(246,196,69,.1);
+  border:1px solid rgba(246,196,69,.1);border-radius:10px;overflow:hidden}
+.read div{background:#0C110D;padding:9px 11px}
+.read s{display:block;font-size:10.5px;letter-spacing:.08em;color:var(--cream-mute);text-decoration:none}
+.read b{display:block;font-family:var(--mono);font-size:13.5px;font-weight:500;color:var(--gold-hi);margin-top:4px;
+  font-variant-numeric:tabular-nums}
+
+/* 本局道具池（第 12 轮 · 本局限定 / 不累计 / 不跨局） */
+.pool{display:grid;grid-template-columns:104px 1fr;gap:1px;background:rgba(246,196,69,.1);
+  border:1px solid rgba(246,196,69,.1);border-radius:10px;overflow:hidden;margin-top:11px}
+.pool>div{background:#0C110D;padding:9px 11px;min-height:38px}
+.pool s{display:block;font-size:10.5px;letter-spacing:.06em;color:var(--cream-mute);text-decoration:none;line-height:1.5}
+.pool b{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--gold-hi);line-height:1.9}
+.pool .void b{color:#FF9C6E}
+.pool .zero b{color:rgba(201,216,204,.72)}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:1px 4px 1px 6px;margin:3px 8px 3px 0;border-radius:6px;
+  background:rgba(143,227,197,.12);border:1px solid rgba(143,227,197,.3)}
+.chip b{color:#8FE3C5;font-size:12.5px}
+.chip select{background:#0C110D;color:#F2F6F0;border:1px solid rgba(255,255,255,.22);border-radius:4px;
+  font-size:11px;padding:1px 2px;cursor:pointer}
+.chip .use{cursor:pointer;border:0;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;
+  background:var(--gold);color:#1A1206;font-family:inherit}
+.chip .use:hover{background:var(--gold-hi)}
+.chip.mute{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.13)}
+.chip.mute b{color:rgba(201,216,204,.72)}
+.locked{padding:11px 13px;margin-top:11px;border-radius:10px;background:rgba(255,156,110,.12);
+  border:1px solid rgba(255,156,110,.36);font-size:12.5px;color:#FFC7AC}
+
+/* 节拍表 */
+.beats{display:flex;flex-direction:column;gap:1px;background:rgba(246,196,69,.1);border-radius:10px;overflow:hidden}
+.beat{background:#0C110D;padding:11px 13px;display:grid;grid-template-columns:78px 1fr;gap:13px;
+  border-left:2px solid transparent;transition:.18s}
+.beat.hot{background:#131A14;border-left-color:var(--gold)}
+.beat u{font-family:var(--mono);font-size:11.5px;color:var(--gold);text-decoration:none;letter-spacing:.02em}
+.beat strong{display:block;font-size:13.5px;font-weight:600;color:var(--cream);letter-spacing:.05em;margin-bottom:4px}
+.beat p{font-size:12px;line-height:1.62;color:var(--cream-mute)}
+
+.note{font-size:12px;line-height:1.75;color:var(--cream-mute);letter-spacing:.02em}
+.note b{color:var(--cream-dim);font-weight:600}
+.note code{font-family:var(--mono);font-size:11.5px;color:var(--gold-hi);background:rgba(246,196,69,.09);
+  padding:1px 5px;border-radius:4px}
+.flag{margin-top:11px;padding:11px 13px;border-left:2px solid rgba(255,158,96,.75);background:rgba(255,158,96,.07);
+  border-radius:0 8px 8px 0;font-size:12px;line-height:1.7;color:#F0DCC6}
+.flag b{color:#FFD9AE}
+.ok{margin-top:11px;padding:11px 13px;border-left:2px solid rgba(85,183,154,.85);background:rgba(85,183,154,.08);
+  border-radius:0 8px 8px 0;font-size:12px;line-height:1.7;color:#CFE9DE}
+.ok b{color:#8FE3C5}
+.toggles{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── 方案选择（三选一）── */
+.schemes{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.sch{background:rgba(255,255,255,.03);border:1px solid rgba(246,196,69,.18);border-radius:12px;
+  padding:12px 10px 11px;cursor:pointer;text-align:left;font-family:inherit;transition:.16s;position:relative}
+.sch:hover{background:rgba(246,196,69,.09);border-color:rgba(246,196,69,.4)}
+.sch[aria-pressed="true"]{background:linear-gradient(180deg, rgba(246,196,69,.24), rgba(200,145,43,.14));
+  border-color:rgba(246,196,69,.62);box-shadow:inset 0 0 0 1px rgba(255,224,138,.22)}
+.sch kbd{display:inline-block;font-family:var(--mono);font-size:11px;color:#4A2B18;background:var(--gold);
+  border-radius:4px;padding:1px 6px;margin-right:7px;font-weight:700}
+.sch b{font-size:14.5px;color:var(--cream);letter-spacing:.06em}
+.sch em{display:block;font-family:var(--mono);font-style:normal;font-size:10px;letter-spacing:.12em;
+  color:var(--gold);opacity:.8;margin-top:3px}
+.sch s{display:block;text-decoration:none;font-size:11px;line-height:1.55;color:var(--cream-mute);margin-top:7px}
+.schTag{margin-top:2px;font-size:11.5px;color:var(--cream-dim);letter-spacing:.03em}
+.schTag b{color:var(--gold-hi)}
+
+/* ── 淡出 × 镜头 时序对照 ── */
+.tl{display:block;width:100%;height:56px;background:rgba(0,0,0,.28);border-radius:10px;
+  border:1px solid rgba(246,196,69,.1)}
+.tlRead{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(246,196,69,.1);
+  border:1px solid rgba(246,196,69,.1);border-radius:10px;overflow:hidden;margin-top:9px}
+.tlRead div{background:#0C110D;padding:8px 10px}
+.tlRead s{display:block;font-size:10.5px;letter-spacing:.07em;color:var(--cream-mute);text-decoration:none}
+.tlRead b{display:block;font-family:var(--mono);font-size:13px;font-weight:500;color:var(--gold-hi);margin-top:3px}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<header>
+  <div class="brand">
+    <h1>开局页 · 分镜演示 <span style="font-size:15px;opacity:.6">v3</span></h1>
+    <span class="tag">game-5 / 1.2s dice-open · 3 schemes</span>
+  </div>
+  <div class="meta">
+    <div>设计画布<b>750 × 1334</b></div>
+    <div>总时长<b id="mTotal">1200 ms</b></div>
+    <div>镜头<b>2.10× → 2.15× → 1.00×</b></div>
+    <div>当前方案<b id="mSch">A 直撞</b></div>
+    <div>骰子视觉边长<b><span id="mVis">48</span> 设计值</b></div>
+  </div>
+</header>
+
+<main>
+  <!-- ═══════════ 左：手机实况 ═══════════ -->
+  <div class="stageCol">
+    <div class="frame">
+      <div class="screen" id="screen">
+        <div class="env"></div>
+        <div class="envTop" id="envTop"></div>
+        <div class="envGround" id="envGround"></div>
+
+        <!-- 镜头层：随缩放 -->
+        <div class="camera" id="camera">
+          <div class="tableWrap">
+            <img class="tableImg" id="tableImg" src="../_src/game-start/table_default_1024.jpg" alt="麻将桌">
+            <div class="trayHalo" id="trayHalo"></div>
+            <div class="trayFloor" id="trayFloor"></div>
+            <div class="fxLayer" id="fxLayer"></div>
+
+            <!-- 骰子：独立图层（可单独运动） -->
+            <div class="die" id="dieA">
+              <div class="dieShadow"></div>
+              <div class="dieSquash"><div class="dieSpin"><img class="dieImg" id="imgA" alt="骰子A"><div class="dieGlow" id="glowA"></div></div></div>
+            </div>
+            <div class="die" id="dieB">
+              <div class="dieShadow"></div>
+              <div class="dieSquash"><div class="dieSpin"><img class="dieImg" id="imgB" alt="骰子B"><div class="dieGlow" id="glowB"></div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 主玩页 HUD（占位）· 不随镜头缩放 -->
+        <div class="hud" id="hud">
+          <div class="pause"><i></i><i></i></div>
+          <div class="lv">第 3 关</div>
+          <div class="row2">已清 42 / 96</div>
+          <div class="timer">01:20</div>
+          <div class="rule">规则</div>
+          <div class="slots" id="hudSlots"></div>
+          <div class="items" id="hudItems"></div>
+        </div>
+
+        <!-- 镜片层 -->
+        <div class="vignette" id="vignette"></div>
+        <div class="corner c-tl" id="corner"></div>
+        <div class="corner c-tr" id="corner2"></div>
+        <div class="corner c-bl" id="corner3"></div>
+        <div class="corner c-br" id="corner4"></div>
+
+        <!-- 审查叠加 -->
+        <div class="ov ovSafe" id="ovSafe"><span class="lbl">桌面 750×750 · 安全区 682×682</span></div>
+        <div class="ov ovAnchor" id="ovAnchor"></div>
+        <div class="ov ovTray" id="ovTray"><i></i></div>
+        <div class="ov ovHud" id="ovHud">
+          <div class="ovCap"></div>
+          <b style="top:274px">顶部 HUD 带 y 0~292</b>
+          <b style="bottom:96px">底部 HUD 带 y 1042~1334</b>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl" style="justify-content:center">
+      <button class="btn primary" id="bPlay">▶ 播放</button>
+      <button class="btn" id="bReplay">↻ 重播</button>
+      <span class="sepH"></span>
+      <button class="btn" data-spd="1" aria-pressed="true">1×</button>
+      <button class="btn" data-spd="0.5">0.5×</button>
+      <button class="btn" data-spd="0.25">0.25×</button>
+      <span class="sepH"></span>
+      <button class="btn" id="bLoop" aria-pressed="true">循环</button>
+      <button class="btn" id="bStep">逐帧 +10ms</button>
+    </div>
+    <p class="note" style="text-align:center">手机框内为 <b>750×1334 设计值 1:1</b> 实时渲染（CSS 缩放 <span id="scTxt">0.50</span>）。逐帧按钮用于定格核对关键帧。</p>
+  </div>
+
+  <!-- ═══════════ 右：分镜控制台 ═══════════ -->
+  <div class="panel">
+
+    <div class="card">
+      <h2>掷骰方案 · 三选一 <span>SCHEME</span></h2>
+      <div class="ctrl" style="margin-bottom:10px">
+        <button class="btn primary" id="bShuffle">🎲 随机重掷三方案</button>
+        <button class="btn" id="bReset">恢复默认</button>
+        <span class="fld">当前参数 <b class="ro" id="mSeed">默认（手工调校）</b></span>
+        <span class="fld">几何校验 <b class="ro" id="mCheck">—</b></span>
+      </div>
+      <p class="note" style="margin-bottom:11px">三种方案的<b>骨架互不相同</b>（组织方式不同）；点「随机重掷」会重新采样三套方案的<b>动线参数</b>（同种子可复现），并由脚本自动做几何校验 —— 最远点 ≤ 81、全程零穿插，不合格自动换种子重来。</p>
+      <div class="schemes">
+        <button class="sch" id="schA" data-k="A" aria-pressed="false">
+          <kbd>A</kbd><b>直撞</b><em>DIRECT</em>
+          <s>两骰沿同一条直径相向加速 → 盘心正面对撞 → 弹回盘壁沿线滑行</s>
+          <span class="schTag">碰撞 <b>1</b> 次 · 撞点=盘心</span></button>
+        <button class="sch" id="schB" data-k="B" aria-pressed="true">
+          <kbd>B</kbd><b>追尾</b><em>ORBIT-TAP</em>
+          <s>两骰贴金环同向绕盘，A 内 B 外速度差 → 追尾侧碰 → 咬合后惯性滑行</s>
+          <span class="schTag">碰撞 <b>1</b> 次 · 撞点=盘壁切向</span></button>
+        <button class="sch" id="schC" data-k="C" aria-pressed="false">
+          <kbd>C</kbd><b>环壁对迎</b><em>RIM-CLASH</em>
+          <s>两骰被甩到盘壁各撞一次，再沿金环反向扫掠 → 迎头相撞 → 回弹</s>
+          <span class="schTag">碰撞 <b>3</b> 次 · 2 壁碰 + 1 对撞</span></button>
+      </div>
+      <div class="read" id="pRead" style="margin-top:11px"></div>
+      <div class="ok" id="schDesc" style="margin-top:12px"></div>
+      <p class="note" style="margin-top:11px">三套方案共用同一套<b>驱动前提</b>（t=0 骰子已在盘内静置 · 不越过盘壁 · 落定点数可控 · 尾段淡出），<b>只有运动与碰撞的组织方式不同</b>，可直接横比手感。</p>
+    </div>
+
+    <div class="card" id="giftCard">
+      <h2>开局掷骰 · 点数与赠礼 <span>DICE &amp; GIFT</span></h2>
+      <p class="note" style="margin-bottom:11px">每关<b>开局自动掷两颗骰子</b>（<b>点数真随机、每次进入都重掷</b>），按<b>和值赠送</b>：<b>偶数 4·6·8·10 → 移出</b>、<b>奇数 5·7·9 → 消除</b>、<b>3·11 → 加槽</b>、<b>2·12 → 复活</b>（自动 · 不入道具栏 · 本局失败时直消 4 张）。落定那一面 = 掷出的点数。<b>赠礼仅限本局使用</b> —— 见下方「本局可用」。</p>
+      <div class="diceRow">
+        <div class="dbox"><s>骰 A</s><b id="dvA">—</b></div>
+        <div class="dop">+</div>
+        <div class="dbox"><s>骰 B</s><b id="dvB">—</b></div>
+        <div class="dop">=</div>
+        <div class="dbox hl"><s>和值</s><b id="dvSum">—</b></div>
+        <div class="dop">→</div>
+        <div class="dbox hl"><s>档位</s><b id="dvTier">—</b></div>
+      </div>
+      <div class="gift none" id="dvGift">—</div>
+      <div class="ctrl" style="margin-top:11px">
+        <span class="fld">关卡 <input type="number" id="inLv" min="1" max="30" value="1" style="width:58px"></span>
+        <span class="fld">种子 <input type="text" id="inSeed" placeholder="留空=真随机" style="width:106px"></span>
+        <button class="btn primary" id="bRoll">🎲 重掷开局</button>
+        <button class="btn" id="bStress">📊 随机性压测 600 局</button>
+        <button class="btn" id="bClear">🧹 清空作废记录</button>
+      </div>
+      <div id="dvLog" style="margin-top:11px"></div>
+      <div class="ctrl" style="margin-top:9px">
+        <button class="btn" id="bSettle">✅ 本局结算 · 未用即作废</button>
+        <button class="btn" id="bQuit">🚪 提前退出关卡 · 未用即作废</button>
+        <span class="fld" style="color:#FFC7AC">护栏：本局限定 · 不累计 · 不跨局</span>
+      </div>
+      <div class="ok" id="dvStress" style="margin-top:11px;display:none"></div>
+      <p class="note" style="margin-top:11px">与关卡绑定口径：<b>每次进入该关（含重玩）都掷骰赠送</b>；赠礼<b>仅限本局使用</b> —— 该局<b>结算</b>或玩家<b>提前退出关卡</b>时，<b>未使用的道具与复活机会立即作废</b>（不计入累积、不跨局保留、不继承）。<b>复活</b>不入道具栏、不能主动点用，本局失败时自动生效 1 次；<b>洗牌</b>已退出开局赠礼（仍是游戏内道具，改由其它途径获取）。</p>
+    </div>
+
+    <div class="card">
+      <h2>音效 · 电动桌摇骰 <span>SFX</span></h2>
+      <div class="ctrl" style="margin-bottom:10px">
+        <button class="btn" id="tSfx" aria-pressed="true">🔊 音效 开</button>
+        <span class="fld">音频进度 <b class="ro" id="rSfx">—</b></span>
+        <span class="fld">同步偏差 <b class="ro" id="rSfxDev">—</b></span>
+      </div>
+      <p class="note" style="margin-bottom:10px">音源 = 候选 <b>#3「サイコロを振る・二個」</b>（真实录音，非合成）。从动画 <b>t=0</b> 起同一起点播放，<b>不做按钮层、不做电机层</b>。</p>
+      <svg class="tl" id="tl2" viewBox="0 0 400 56" preserveAspectRatio="none"></svg>
+      <div class="read" style="margin-top:6px">
+        <div><s>音效起播</s><b>0 ms（与动画同时基）</b></div>
+        <div><s>音频最强撞击</s><b>80 ms</b></div>
+        <div><s>音频主碰撞脉冲</s><b>310 ms</b></div>
+        <div><s>动画追尾碰撞</s><b>300 ms</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>时间轴 <span>TIMELINE</span></h2>
+      <div class="strip" id="strip"></div>
+      <div style="margin-top:14px">
+        <input type="range" id="scrub" min="0" max="1200" step="1" value="0">
+        <div class="read" style="margin-top:6px">
+          <div><s>当前时刻</s><b id="rT">0 ms</b></div>
+          <div><s>当前阶段</s><b id="rPhase">互撞</b></div>
+          <div><s>时间倍率</s><b id="rSpd">1.00×</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>相机曲线 <span>CAMERA SCALE</span></h2>
+      <div class="curveWrap">
+        <svg class="curve" id="curve" viewBox="0 0 400 118" preserveAspectRatio="none">
+          <g id="cGrid"></g>
+          <polyline id="cLine" fill="none" stroke="#F6C445" stroke-width="1.6" stroke-linejoin="round"/>
+          <line id="cHead" x1="0" y1="0" x2="0" y2="118" stroke="#FFE08A" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="curveLg">
+        <span><i style="background:#F6C445"></i>相机缩放 scale(t)</span>
+        <span><i style="background:rgba(255,255,255,.35)"></i>阶段分界 <b id="cMarks" style="color:inherit">270 / 740</b></span>
+        <span id="cRead" style="margin-left:auto;color:#FFE08A;font-family:var(--mono)"></span>
+      </div>
+      <div style="margin-top:15px">
+        <div class="note" style="margin-bottom:7px"><b>④ 骰子淡出 × 镜头位移 时序关系</b></div>
+        <svg class="tl" id="tl" viewBox="0 0 400 56" preserveAspectRatio="none"></svg>
+        <div class="tlRead">
+          <div><s>淡出起点 1020 ms · 相机位移已完成</s><b id="rTl1">—</b></div>
+          <div><s>淡出终点 1170 ms · 相机位移已完成</s><b id="rTl2">—</b></div>
+          <div><s>关系</s><b id="rTl3">—</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>定格实测 <span>LIVE READOUT</span></h2>
+      <div class="read">
+        <div><s>相机 scale</s><b id="rCam">2.100</b></div>
+        <div><s>骰子离盘心 r</s><b id="rR">—</b></div>
+        <div><s>两骰心距 ÷ 边长（1.00 = 刚好贴合）</s><b id="rSep">—</b></div>
+        <div><s>方位角 θA / θB</s><b id="rTh">—</b></div>
+        <div><s>最远点半径 / 上限 81</s><b id="rFar">—</b></div>
+        <div><s>骰A / 骰B 点数</s><b id="rFa">—</b></div>
+        <div><s>自转 φA / φB</s><b id="rSpin">—</b></div>
+        <div><s>碰撞挤压</s><b id="rSq">0.000</b></div>
+        <div><s>骰子不透明度</s><b id="rOp">1.000</b></div>
+      </div>
+      <p class="note" style="margin-top:11px">读数取自 <b>getComputedStyle</b> 与纯函数实测（非内部动画计时器），CSS px 已按 <code>÷0.50</code> 换算回 750 设计值。</p>
+    </div>
+
+    <div class="card">
+      <h2>节拍表 <span>BEATS</span></h2>
+      <div class="beats" id="beats"></div>
+    </div>
+
+    <div class="card">
+      <h2>审查开关 <span>OVERLAY</span></h2>
+      <div class="toggles">
+        <button class="btn" id="tAnchor" aria-pressed="false">相机锚点</button>
+        <button class="btn" id="tSafe" aria-pressed="false">桌面安全区</button>
+        <button class="btn" id="tTray" aria-pressed="false">盘内可用圆 R81</button>
+        <button class="btn" id="tHud" aria-pressed="false">HUD 分带</button>
+        <button class="btn" id="tFade" aria-pressed="true">骰子退场</button>
+        <button class="btn" id="tHudShow" aria-pressed="true">显示 HUD 占位</button>
+      </div>
+      <div class="ctrl" style="margin-top:12px">
+        <span class="fld">骰子视觉边长
+          <b class="ro" id="mVisRo">48 · 分镜口径</b>
+        </span>
+        <span class="fld">落定点数
+          <select id="selFace"><option value="4,5" selected>4 + 5</option><option value="6,6">6 + 6</option><option value="1,1">1 + 1</option><option value="2,6">2 + 6</option></select>
+        </span>
+        <span class="fld">桌图源
+          <select id="selSrc"><option value="master" selected>1024 母版（演示用）</option><option value="engine">750 工程版</option></select>
+        </span>
+      </div>
+      <p class="note" style="margin-top:11px">三档视觉边长全部保留，可在此直接切换对比碰撞观感。上方「盘内可用圆」可叠加查看骰子是否始终在框内。</p>
+      <div class="ok" style="border-color:rgba(246,196,69,.62);background:rgba(246,196,69,.07)"><b>✅ 已验收定稿（第 14 轮 · 2026-10-05）：</b>本页经用户拍板验收，正式纳入资产库 —— <code>./开局页-定稿.html</code>。定稿口径：方案 <b>B「追尾」</b> · 音效 <b>#3（サイコロを振る・二個）</b> · 掷骰点数<b>真随机</b> · 赠礼表 <b>第 13 轮微调版</b> · <b>本局限定护栏</b>（道具与复活机会未用即作废）。配套音效已全量入库 <code>./audio/</code>（选定 1 + 未选中候选 7）。验收板：<code>13-点数与赠礼.png</code> / <code>14-音画对齐.png</code> / <code>15-映射表定稿与本局护栏.png</code>。</div>
+      <div class="ok"><b>本轮修订（第 13 轮 · 定稿微调）：</b>① <b>赠礼映射表微调</b>（上一版作废）—— <b>偶数 4·6·8·10 → 移出</b>、<b>奇数 5·7·9 → 消除</b>、<b>3·11 → 加槽</b>、<b>2·12 → 复活</b>（本局自动 · 不入道具栏）。② <b>「洗牌」退出开局赠礼</b>（仍是游戏内道具，改由其它途径获取）。③ <b>复活机会</b>不入道具池、不能主动点用，本局失败时自动生效 1 次；<b>同样仅限本局</b>，未用随本局作废。④ 第 12 轮防刷护栏沿用：赠礼<b>仅限本局使用</b> —— 该局<b>结算</b>或玩家<b>提前退出关卡</b>时，<b>未使用道具与复活机会立即作废</b>（不计入累积 · 不跨局保留 · 不继承）。⑤ 第 11 轮成果沿用：最终选型 <b>B「追尾」</b>（A/C 完整保留可回退）、音效 #3 已嵌入（<b>不做按钮层 / 不做电机层</b>）、点数真随机、自转 950ms 归零早于 1020ms 淡出。</div>
+      <div class="flag"><b>底带高度（已记档 · 本轮不处理）：</b>正方形桌把底部 HUD 带压到只有 <b>292</b>（含 68 安全区后可用 224），放不下 V3 的「槽位条 92 + 道具栏 112 + 间距」。本页占位按适配值画（槽位条 y1052 / 道具栏 y1154），<b>待主玩页定稿时一并修订</b>。</div>
+    </div>
+
+    <div class="card">
+      <h2>设计口径 <span>NOTES</span></h2>
+      <p class="note">
+        <b>① 驱动口径（本轮重做）</b> —— 真实电动麻将桌的流程是「按按钮 → 骰子被驱动才开始转」。因此 t=0 两骰<b>已静止在盘内</b>，绝不从框外飞入、也不凭空出现；<code>0–70 ms</code> 只做"电已通"的反馈（盘底金环亮起 + 盘底微震），<b>骰子仍完全静止</b>，直到 70 ms 驱动接入才进入运动状态。<br>
+        <b>② 一条纯函数驱动全场</b> —— 所有状态由 <code>render(t)</code> 从 t 直接算出，无动画状态机。好处：可定格任意帧、可拖拽、可慢放、可脚本断言 —— 也是往 Cocos 移植时最省事的形式。<br>
+        <b>③ 三套方案的差异只在"运动与碰撞的组织"</b> —— 共用的有：驱动前提、盘内约束、相机三段、HUD 交叠、尾段淡出、面-自转同源。不同的只有 <code>radius(t,side,vis)</code> 与 <code>theta(t,side)</code> 两条曲线 + 碰撞事件表。<br>
+        <b>④ 镜头 / 镜片分层</b> —— 缩放只作用于 <code>.camera</code>；暗角与四角金饰固定在屏（它们是"镜片"不是"场景"）。<b>UI 不随镜头</b> —— HUD 挂在 camera 之外。<br>
+        <b>⑤ 骰子几何上限</b> —— 贴边滚动半径 <code>r = 81 − 外接圆 − 3.5</code>；两骰贴合判据 <code>两心距 ≥ 1.0 × 边长</code>。三档边长都按<b>全程极值扫描</b>校核（不是只算静止位）。<br>
+        <b>⑥ 碰撞挤压方向按"两心连线"实时求</b> —— 不再写死某个角度：<code>axis = atan2(PB − PA)</code>。这样"径向对撞 / 切向追尾 / 斜向对撞"三种撞法都能自动压对方向。
+      </p>
+    </div>
+  </div>
+</main>
+
+<audio id="sfx" preload="auto" src="data:audio/mpeg;base64,//uwQAAAB2AAS4AAAAgAAAlwAAABAKABFIAAACgUACKQAAAF//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8gAAAADyAAAAAPtASxAAFYiAAAemSAAAAAxiH/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BgpwAP+wHGoYEACiEACXAAAAEFtLUbJ5zrQAAAJcAAAAT////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8v0gAEADGdOcLXl6nJIX9Cx8bg/AeL2n/////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3IX3XikpGUc4oM3DZP1PKA53p/IWYpXJMnZ/L6EqlXJ05DtIKLddsjyLpSKFHIlu1R48bqQ1bJjse2uJSlXtaKbMfatvnf/pTO62+dYvulL518++7b+dfNfjW9Y3W9ZM7+c+/xrOf/r+tq53nPm67D6mC1IGqb6r1arHIZRWASqPwf5UMlRVBOVHD/keCjR2CUqDZt/qiSy5/byIBt79KDuoSW99XVUqgVZfYulcAnH+jTLCjBig8FQLbEE1YKp4gW0LLyBrEvBMl7QczCqkKYyFK5wIK2FiTANNlVTG3vn6OKkXw/zzVheaCUChMHcqnC69E6okk5ijDXiEXThk0VNg1vb/+6BgpwAGP2BG4xh7YCVEGNgcQ0hVGUsZJ72NgHMEIxQAiJHpW0ZZYZt9l7dKQ7SPo3XW92cyWaxfa81rbbVm/7sFpvTtv/5TX57O6d3ez5jnPtMR4WNDgMIVuorCEv9XWaXc+M1i3GdZ91IGcApN7gJt5+3daEO4GCSKdj6hW+X/4VF//9W7WP7//6pVQ0UmoEaZ5/NyzACuMM9B0qwkh+nKXlUjpPAVVUsQo/jgRiJQw/kexKUmZo7frJ+sVYVIBk8MhMdFIkA8leUGnj6/wUuZgV3txaWpGH1ctUaxO87MpR8q+0vOVRclPL+Xc5+cfu3D1OFbGGb4/wzd2P1xOf6QkNKj1igMteGUAMSjBCZESSCo7WPavvtV1/8qqv//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BgwIAOXkfGye9K4B2CKMUAQzYPNT8bJ6TNgHiMIxQSiSD///////////////////////////////////////////////////////////////////////////////////////////////////wtQACd7mEHeLL4jyfTNhTToVYhKCDG1RUE+1zSY/m6qqqVUEgn11Hi7i6fiGtS8h81mUc0ir0DxhGkHmQ+8RAugTFYZohptVJRlHBtJHMpVoZbKVYoj0HRlN8m2okK0ktG5zxH9f5ebTu7bTbmRsbrO+3XLn+rinju81kfs375O9nd81nhpSYQFqzwuT34tDQobeFGNegoE+AP9hfSpDgy2IUyHd1Vzsisz+Px+8ktYD5hhsyb2oWXrA/1DPOu2WAttrln33YntYDMjLragWrL9lnuOUWrmWok1e+Q8KiKHBiFHDiq7o9+pnepUZiHQWKTlbLSjXzMNndZUU8p0sUa0hGEB7EAELCAIkQwKFnxw7nTEMmRg/CL1IotQV1////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sGCnAA2PP8ZB7CrgHaHY6QRiNgxgnxsnjMlIbgfjoBEI2P////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////4DNLSqAH83Ft1haMRvVZAA48KhUkyzSjprfrqQLJ6pqlpVVGK15VjJFe7UuG1AQJxAQBEO4MDEBKvm8sVXlEgCxhvJikT4Pu5bCu75k2zx4d8zPnPYrfgl0hzprRFAMvbOZA3/im1pbTOGIOihaz+ukb/pht+f1FVf0FdPt0f/3ZAYpb4P5qG7HodfLuQSKcpUsiOofRywu3ctzheJJFJJU1SoI0vzure0TbunwKJA1Cyies7BhO5OkClMS1p5WKXJjLpoa9GaKNssklSPCa7hDM3V8lP3EwgEyCDoOCocHww5xXKGLjb68htH6ZLNCmjVbzX///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwYKcADjszx2HjGtAg5AjpBCNICgBBGweMZshWgGOgAAAA/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+AyytKgB/MBuRMgGDlMiXuiKROgNXUjv0j58P+9orVuYrqlpv+DPgzv4MaK4AMcxNIAYOGdUuUxnABjOqP4oKl2ilU975JVRknbnffpu/qUhNzHMqbLoe2ro4eY/sb0v7+qU4XpvhDlv/98/vP///U+wFFZ8DtfYlp5AES5ijMsOW6LPV0uGKmVV/4I0DSJRGBJbnXIm1M1Ozzgs4JMOc2WHiE1GiUsfDZgJiVYNDy73Lbz+XU5o4WeImAEuxaWqa8vucph++tC1///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BgpwAPMxDGwMUZsBQgCOYAAAAIHFEZBgxnAEqG46AQiNj//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+N2VAA6ydJ8gY6DRUXBFgxzcj9RuVRVcAAGd1ZDrV0BdSRIXGgJjM3MK9ZTBTAhAwPOKJch0sWQ2lJI9Sp1y3oArgWyVAESdZc5S3nnk1SC33zNcXNgKrNwH9xLMpGYvtBhSjcRI1vq/qqplVUHfZaesFtThiNyDvhkFCiNiuUW9n52WUKUB4ktpsSkz4mQRPIfHDEzxVOTPLpZnQS3PSzXczcdSbfr/p/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sGCnAA+sFEdJ4xHADKAY+AAAAAdEWR0kjGcARYAjoAAAAP//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8BiguA4n1z3hkjfl9f1NUsqqgIESJGj28gn9JTJxULZ4vTz+ZKslGYy0iKNnhAKHWzUltF5FjnLwNUbWskPpTuGe6zoXEfqAYVVQOsvWHUluOIeVFSP+oOjqqZqVVQAMY907y41ZsL6Uy3y2UjRo2yH0yHDE0h1GGmdzEjGVvE332L9SEa630+yqjMK/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wBAWwD0+FKWGxHd6emUq/wMLTVM5//ugYKcACcoVx0kDGcAMAAjoAAAABcApHQaIRIAqhCOQAAyUYObV24tWgMaDIneP0nx7k0ks2likEli8yPHl6LbGIqtK6ldfekAABElWiDWL7xci7aWn+BQZWqtWpOwYm5fVeSmCcdAA6jTWk2LTvm/j1XW+oxf6f/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwYNsAD/oNR0GCGTCJIBjQAAABBKQVHSSMQkAhACOQAAAE///////////////////////////////////////////////////////////////////////////////////////////////////R////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+1MqrKgASIO+BWMZ0Hz41JQspykomyK6xEBQEZc+VAPbiqKe+QAAAIIP993SWNVlZ2AHXD5skGXrVWEDNM4/W36zbHejo///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BgpwAP+gDHQUAAAC6AGOQAAAEDBAkbBBgAAB8AI1AAAAT////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAIIAHur//////////////////////////////////////////////////////pFVSAAOOGqIzI0aHEKOqToOlT19Vfd/1AAEAAjz/5FY5FVigBm4NfoVmYlVq/6f///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sGCnAA/8AUdBgAAAPIAI1AAAAQF8Ax0EgAAAGABjkAAABP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAIAAPnf95P/////////////////////////////////////////////////////////////////////+lAIYAEKA9d5W7QtIABBAA99JAggAAAY+z41f///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwYKcAD/sFRqDhEJhAABjkAAABARwFGIEAACAWAGOQAAAE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////4AABAA/R/////////////////////////////////////////////////////////////////////////////+QAAAAANkOSisAAAgAfrESCAAAA1er/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+6BgpwALvAFHIGAACAAACXAAAAEAxAUagoAAKAAAJcAAAAT///////////////////////////////////////////////////////JAAAAASqggAAAAAOf/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7Bg2wAP+gFFIMAACLIACXAAAAEAmAMagIAAIAAAJcAAAAT//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8gAAAABIAAAAAb////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sGCnAA/8AMYgQAAISYAJcAAAAQCgAxiBAAAgAAAlwAAABP//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////IAAAAAcgAAAAL/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwYKcAD/wAxqAgAAhJgAlwAAABAJgDGoCAACAAACXAAAAE//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8gAAAACCAAAAAf////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BgpwAP+QDGoCAACEoACXAAAAEAkAMcgIAAIAAAJcAAAAT//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////5AAAAAQ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sECnAA/8AEuAAAAIToAJcAAAAQAAAS4AAAAgAAAlwAAABP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////ugQKcAC/AAS4AAAAgAAAlwAAABAAABLgAAACAAACXAAAAE//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwQNsAD/wAS4AAAAi2gAlwAAABAAABLgAAACAAACXAAAAE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BApwAP/ABLgAAACE6ACXAAAAEAAAEuAAAAIAAAJcAAAAT////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sECnAA/8AEuAAAAIToAJcAAAAQAAAS4AAAAgAAAlwAAABP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwQKcAD/wAS4AAAAhOgAlwAAABAAABLgAAACAAACXAAAAE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+6BApwAL8ABLgAAACAAACXAAAAEAAAEuAAAAIAAAJcAAAAT/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BA2wAP/ABLgAAACLaACXAAAAEAAAEuAAAAIAAAJcAAAAT////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sECnAA/8AEuAAAAIToAJcAAAAQAAAS4AAAAgAAAlwAAABP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwQKcAD/wAS4AAAAhOgAlwAAABAAABLgAAACAAACXAAAAE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BApwAP/ABLgAAACE6ACXAAAAEAAAEuAAAAIAAAJcAAAAT////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sECnAA/8AEuAAAAIToAJcAAAAQAAAS4AAAAgAAAlwAAABP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////ugQKcAC/AAS4AAAAgAAAlwAAABAAABLgAAACAAACXAAAAE//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwQNsAD/wAS4AAAAi2gAlwAAABAAABLgAAACAAACXAAAAE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BApwAP/ABLgAAACE6ACXAAAAEAAAEuAAAAIAAAJcAAAAT////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sECnAA/8AEuAAAAIToAJcAAAAQAAAS4AAAAgAAAlwAAABP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwQKcAD/wAS4AAAAhOgAlwAAABAAABLgAAACAAACXAAAAE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BApwAP/ABLgAAACE6ACXAAAAEAAAEuAAAAIAAAJcAAAAT////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7oECnAAvwAEuAAAAIAAAJcAAAAQAAAS4AAAAgAAAlwAAABP/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sEDbAA/8AEuAAAAItoAJcAAAAQAAAS4AAAAgAAAlwAAABP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwQKcAD/wAS4AAAAhOgAlwAAABAAABLgAAACAAACXAAAAE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BApwAP/ABLgAAACE6ACXAAAAEAAAEuAAAAIAAAJcAAAAT////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sECnAA/8AEuAAAAIToAJcAAAAQAAAS4AAAAgAAAlwAAABP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////ugQKcAC/AAS4AAAAgAAAlwAAABAAABLgAAACAAACXAAAAE//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwQNsAD/wAS4AAAAi2gAlwAAABAAABLgAAACAAACXAAAAE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BApwAP/ABLgAAACE6ACXAAAAEAAAEuAAAAIAAAJcAAAAT////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sECnAA/8AEuAAAAIToAJcAAAAQAAAS4AAAAgAAAlwAAABP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwQKcAD/wAS4AAAAhOgAlwAAABAAABLgAAACAAACXAAAAE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BApwAP/ABLgAAACE6ACXAAAAEAAAEuAAAAIAAAJcAAAAT////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7oECnAAvwAEuAAAAIAAAJcAAAAQAAAS4AAAAgAAAlwAAABP/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////7sEDbAA/8AEuAAAAItoAJcAAAAQAAAS4AAAAgAAAlwAAABP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////uwQKcAD/wAS4AAAAhOgAlwAAABAAABLgAAACAAACXAAAAE////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+7BApwAP/ABLgAAACE6ACXAAAAEAAAEuAAAAIAAAJcAAAAT/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="></audio>
+
+<script>
+/* ============================================================================
+   开局页分镜 · 单函数驱动（v2）
+   所有位置 / 缩放 / 透明度都是 t（0~1200ms）的纯函数 → 可定格、可回放、可断言
+   ============================================================================ */
+const CFG = {
+  W: 750, H: 1334,
+  TABLE_Y: 292,
+  TRAY: { cx: 373, cy: 376, dFloor: 166, dOuter: 230 },   // 桌面坐标系（.tableWrap 内）
+  TRAY_SCREEN: { x: 373, y: 668 },                        // 屏绝对（= TABLE_Y + cy）
+  RATIO: 0.7996,                                          // 骰子内容占画布比例（台账定值）
+  R_IN: 81,                                               // 骰盘内可用半径（金环内 83，留 2 安全）
+  EDGE_GAP: 3.5,                                          // 贴边半径再内收，给弹跳/挤压留余量
+  /* 公共时间轴：驱动反馈 → 骰子运动 → 镜头拉远 */
+  T: { hold: 70,            // 「按按钮 → 电已通」反馈期，此间骰子绝对静止
+       total: 1200,
+       roll: 740,           // 拉远起点
+       rollEnd: 1150,       // 骰子位移归零
+       spinEnd: 950,        // ★ 自转归零 —— 必须早于 fadeOut：玩家要在骰子淡出前看清落定点数
+       fadeOut: 1020, fadeOutEnd: 1170,   // ④ 骰子在拉远尾段淡出
+       hudIn: 1080, hudEnd: 1200 },
+  CAM: { a: 2.10, b: 2.15, end: 1.00 },
+  FACE_EVERY: 90,           // 每转过 90° 换一个面（与自转同源）
+  /* ── 音效（第 11 轮 · 候选 #3）：与动画同一起点，不做按钮/电机层 ── */
+  SFX: { t0: 0, gain: 0.85, leadMs: 310, hitMs: 300 }
+};
+
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => v<a?a:(v>b?b:v);
+const smooth = p => 0.5 - 0.5*Math.cos(Math.PI*clamp(p,0,1));
+const easeOutCubic = p => 1 - Math.pow(1-clamp(p,0,1), 3);
+/* smootherstep：两端一阶导均为 0 —— 段与段衔接"速度 0 对 0"，丝滑 */
+const smoother = p => { p = clamp(p,0,1); return p*p*p*(p*(p*6-15)+10); };
+/* 升余弦"钟形"：在 [at-dur/2, at+dur/2] 内 0→1→0 */
+function bell(t, at, dur){ const d = (t-at)/(dur/2); return (d<-1||d>1) ? 0 : 0.5*(1+Math.cos(Math.PI*Math.abs(d))); }
+/* 单峰 bump：x=1 处取 1，x≤0 为 0 */
+const bump = x => x <= 0 ? 0 : x*Math.exp(1-x);
+const tClamp = (t,a,b) => clamp((t-a)/(b-a), 0, 1);
+
+/* ── 骰子几何：全部由容器半径解出来 ── */
+const rcOf  = vis => vis * 0.70711;                            // 外接圆半径
+const rollR = vis => CFG.R_IN - rcOf(vis) - CFG.EDGE_GAP;      // 贴边半径
+const hitR  = vis => 0.5 * vis;                                // 正面对撞半径
+/* 两骰在半径 r 的圆上「刚好贴合」所需的角分离（度） */
+const sepDeg = (vis, r) => 2*Math.asin(clamp(vis/(2*r),0,1))*180/Math.PI;
+
+/* ── 相机缩放（三方案共用；回弹时刻取当前方案的"主碰撞"） ── */
+function camScale(t){
+  const imp = SCHEMES[curScheme].impact;
+  let s;
+  if(t <= imp)             s = CFG.CAM.a;
+  else if(t <= CFG.T.roll) s = CFG.CAM.a + (CFG.CAM.b-CFG.CAM.a)*smooth(tClamp(t, imp, CFG.T.roll));
+  else                     s = CFG.CAM.b + (CFG.CAM.end-CFG.CAM.b)*easeOutCubic(tClamp(t, CFG.T.roll, CFG.T.total));
+  if(t >= imp){            // 撞击瞬间的相机回弹（纯缩放、无位移；8ms 攻击 → 不跳变）
+    const tau = t-imp;
+    s -= 0.030*(1-Math.exp(-tau/12))*Math.exp(-tau/120);
+  }
+  return s;
+}
+/* ── 拉远段"已完成位移量" 0~1（用于量化骰子淡出与镜头位移的时序关系） ── */
+const camTravel = t => easeOutCubic(tClamp(t, CFG.T.roll, CFG.T.total));
+
+const HOP_SCALE = 0.06;                                   // 俯视下"离地"= 放大 + 影子收缩
+/* 挤压的"垂直伸展"系数：真麻将骰是硬质密胺，撞击只有轻微形变（非橡皮糖），
+   配对 squashAmp ≈ 0.15 时：压 15% / 伸 12% —— 一眼能看出"撞了一下"，但不软塌。 */
+const STRETCH = 0.12;
+function diePop(t){ return 1 + 0.020*bell(t, 1000, 230); } // 落定前微放大（点数高光）
+
+/* ══════════════════════════════════════════════════════════════════════
+   三套掷骰方案（第 9 轮重做）
+   · 骨架互不相同 —— 直撞 / 追尾 / 环壁对迎，这就是「3 种不同分镜方案」
+   · 数值参数由可复现随机源生成（同种子 → 同参数），支持"重掷"
+   · 每次重掷后自动跑几何校验（最远点 <= 81 · 全程零穿插），不合格自动换种子
+   共用接口：radius(t,side,vis) / theta(t,side,vis) / spin(t,side)
+             hop(t) / squash(t) / events()
+   ══════════════════════════════════════════════════════════════════════ */
+const SCHEMES = {};
+let curScheme = 'B';   // ★ 已拍板最终选型 = B「追尾」（A/C 完整保留，可一键切回对比）
+
+/* 可复现伪随机（LCG） */
+function makeRng(seed){
+  let s = (seed >>> 0) || 20261005;
+  return {
+    next(){ s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; },
+    range(a, b){ return a + (b-a)*this.next(); },
+    int(a, b){ return Math.floor(a + (b+1-a)*this.next()); },
+    sign(){ return this.next() < 0.5 ? -1 : 1; }
+  };
+}
+
+/* ── A · 直撞 DIRECT ── 沿同一根直径相向 → 盘心正面对撞 → 弹回盘壁沿线滑行 ── */
+function makeA(P){
+  return {
+    key:'A', name:'直撞', en:'DIRECT', impact:270, squashAmp:P.squashAmp, P,
+    tag:'碰撞 1 次 · 撞点 = 盘心',
+    desc:'两骰沿同一条直径<b>相向加速</b>，在<b>盘心正面对撞</b>（撞点正好落在相机锚点上），随后弹性弹回盘壁、贴金环内侧同向滑行停稳。撞法最"正"、观感最干脆。',
+    radius(t, side, vis){
+      const R0 = rollR(vis), Rh = hitR(vis);
+      if(t <= CFG.T.hold) return R0;
+      if(t <= 270)        return R0 + (Rh-R0)*Math.pow(tClamp(t, CFG.T.hold, 270), P.powIn);
+      return R0 - (R0-Rh)*Math.exp(-(t-270)/P.tauOut);
+    },
+    theta(t, side, vis){
+      const q = t <= 270 ? 0 : P.sweep*smoother(tClamp(t, 270, CFG.T.rollEnd));
+      return (side === 'A' ? P.axis+180 : P.axis) + q;
+    },
+    spin(t, side){
+      let v = 0;
+      if(t > CFG.T.hold) v += (side === 'A' ? -1 : 1)*90*smoother(tClamp(t, CFG.T.hold, 270));
+      if(t > 270)        v += P.spinRim*smoother(tClamp(t, 270, CFG.T.spinEnd));
+      return v;
+    },
+    hop(t){ const q = t-270; return q < 0 ? 0 : 0.85*bump(q/150) + 0.25*bump((q-230)/150); },
+    squash(t){ const q = t-270; return q < 0 ? 0 : (1-Math.exp(-q/8))*Math.exp(-q/120); },
+    events(){ return [{ t:270, kind:'die', str:1.00 }]; }
+  };
+}
+
+/* ── B · 追尾 ORBIT-TAP ── 贴金环同向绕盘，A 追上 B 侧碰 → 咬合 → 惯性滑行 ── */
+function makeB(P){
+  const rOf  = (t, vis) => {
+    const R0 = rollR(vis);
+    if(t <= CFG.T.hold) return R0;
+    return R0*(1 - P.dip*bell(t, 300, 2*(300-CFG.T.hold)));
+  };
+  const scOf = vis => sepDeg(vis, rOf(300, vis));
+  const sepAt = (t, vis) => {
+    const Sc = scOf(vis);
+    if(t <= CFG.T.hold) return P.sep0;
+    if(t <= 300)        return P.sep0 - (P.sep0-Sc)*Math.pow(tClamp(t, CFG.T.hold, 300), P.sepPow);
+    if(t <= 300+P.lock) return Sc;
+    return Sc + (P.sep1-Sc)*smoother(tClamp(t, 300+P.lock, CFG.T.rollEnd));
+  };
+  const midAt = t => P.mid0 + P.midSpan*smoother(tClamp(t, CFG.T.hold, CFG.T.rollEnd));
+  return {
+    key:'B', name:'追尾', en:'ORBIT-TAP', impact:300, squashAmp:P.squashAmp, P,
+    tag:'碰撞 1 次 · 撞点 = 盘壁切向',
+    desc:'两骰贴金环<b>同向绕盘</b>，骰A 角速度高于骰B，角分离一路收窄 → 在盘壁切向<b>追尾侧碰</b>；碰后两骰「咬合」同步前进一小段，再各自惯性衰减、分离停稳。最像"电动桌里骰子一直在转"。',
+    radius(t, side, vis){ return rOf(t, vis); },
+    theta(t, side, vis){
+      const M = midAt(t), D = sepAt(t, vis);
+      return M + (side === 'A' ? -D/2 : D/2);
+    },
+    spin(t, side){ return P.spinRate*smoother(tClamp(t, CFG.T.hold, CFG.T.spinEnd)); },
+    hop(t){ const q = t-300; return q < 0 ? 0 : 0.42*bump(q/130); },
+    squash(t){ const q = t-300; return q < 0 ? 0 : (1-Math.exp(-q/8))*Math.exp(-q/110); },
+    events(){ return [{ t:300, kind:'die', str:0.85 }]; }
+  };
+}
+
+/* ── C · 环壁对迎 RIM-CLASH ── 甩到盘壁各撞一次 → 沿环反向扫掠 → 迎头相撞 → 回弹 ── */
+function makeC(P){
+  /* 撞点半径略小于贴壁半径：迎头相撞时两骰被压得向内让开一点，
+     这样"挤压沿切向压 → 径向伸出"才不会捅出金环。贴合角按该半径反解。 */
+  const rC = vis => rollR(vis)*(1 - P.dip);
+  const sweepMax = vis => 90 - sepDeg(vis, rC(vis))/2;
+  const r0Of = vis => {
+    const R0 = rollR(vis);
+    return Math.min(R0, Math.max(P.r0k*R0, P.gap0*vis + 2));
+  };
+  return {
+    key:'C', name:'环壁对迎', en:'RIM-CLASH', impact:460, squashAmp:P.squashAmp, P,
+    twA:P.twA, twB:P.twB,
+    tag:'碰撞 3 次 · 2 次壁碰 + 1 次对撞',
+    desc:'两骰先被驱动从盘内<b>甩到盘壁</b>各撞一次（A 先、B 后，两声轻响），随后沿金环<b>反向扫掠</b>，在盘壁<b>迎头相撞</b>（撞点不在盘心）→ 各自回弹、分离停稳。动线最长、碰撞最密。',
+    radius(t, side, vis){
+      const R0 = rollR(vis), r0 = r0Of(vis), rc = rC(vis);
+      const tw = side === 'A' ? P.twA : P.twB;
+      if(t <= CFG.T.hold) return r0;
+      if(t <= tw)         return r0 + (R0-r0)*Math.pow(tClamp(t, CFG.T.hold, tw), P.powOut);
+      /* 贴壁滑掠；接近迎头相撞时向内收（撞压 → 离壁），撞后弹回壁 */
+      return R0 - (R0-rc)*bell(t, 460, 2*(460-tw));
+    },
+    theta(t, side, vis){
+      const tw = side === 'A' ? P.twA : P.twB, Sm = sweepMax(vis);
+      let v = 0;
+      if(t > tw)  v = Sm*Math.pow(tClamp(t, tw, 460), P.swPow);
+      if(t > 460) v = Sm - P.recoil*smoother(tClamp(t, 460, CFG.T.rollEnd));
+      return (side === 'A' ? 180 : 0) + P.dir*(side === 'A' ? -1 : 1)*v;
+    },
+    spin(t, side){ return (side === 'A' ? 1 : -1)*P.spinRate*smoother(tClamp(t, CFG.T.hold, CFG.T.spinEnd)); },
+    hop(t){ return 0.50*bump((t-P.twA)/110) + 0.42*bump((t-P.twB)/110) + 0.34*bump((t-460)/130); },
+    squash(t){ const q = t-460; return q < 0 ? 0 : (1-Math.exp(-q/8))*Math.exp(-q/120); },
+    events(){
+      return [{ t:P.twA, kind:'wall', who:'A', str:0.55 },
+              { t:P.twB, kind:'wall', who:'B', str:0.55 },
+              { t:460,   kind:'die',  str:1.00 }];
+    }
+  };
+}
+
+/* ══════ 默认参数（= 上一轮已验证通过的那一组）══════ */
+const DEFAULTS = {
+  A: { axis:20, powIn:1.8, tauOut:100, sweep:245, spinRim:1010, squashAmp:0.17 },
+  B: { sep0:150, lock:60, sep1:122, mid0:275, midSpan:480, dip:0.09, spinRate:1400, sepPow:1.5, squashAmp:0.15 },
+  C: { twA:190, twB:230, recoil:30, r0k:0.62, gap0:0.55, powOut:1.6, swPow:1.45, spinRate:900, dir:1, dip:0.12, squashAmp:0.16 }
+};
+
+/* ══════ 随机参数（安全范围内采样；骨架不变、动线变）══════ */
+function randomP(rng){
+  return {
+    A: { axis: rng.range(0,360),
+         powIn: rng.range(1.5, 2.1),
+         tauOut: rng.range(80, 130),
+         sweep: rng.range(170, 300)*rng.sign(),
+         spinRim: rng.int(9,13)*90 + rng.range(-18, 18),
+         squashAmp: rng.range(0.11, 0.21) },
+    B: { sep0: rng.range(120, 172),
+         lock: rng.int(40, 90),
+         sep1: rng.range(100, 140),
+         mid0: rng.range(0, 360),
+         midSpan: rng.range(320, 640)*rng.sign(),
+         dip: rng.range(0.05, 0.13),
+         spinRate: rng.range(1150, 1650),
+         sepPow: rng.range(1.3, 1.9),
+         squashAmp: rng.range(0.10, 0.19) },
+    C: { twA: rng.int(160, 230),
+         twB: rng.int(200, 290),
+         recoil: rng.range(18, 46),
+         r0k: rng.range(0.50, 0.70),
+         gap0: rng.range(0.50, 0.62),
+         powOut: rng.range(1.35, 1.95),
+         swPow: rng.range(1.25, 1.85),
+         spinRate: rng.range(700, 1100),
+         dir: rng.sign(),
+         dip: rng.range(0.08, 0.16),
+         squashAmp: rng.range(0.11, 0.20) }
+  };
+}
+
+/* ══════ 装配 ══════ */
+function buildSchemes(P){
+  SCHEMES.A = makeA(P.A);
+  SCHEMES.B = makeB(P.B);
+  SCHEMES.C = makeC(P.C);
+  attachTimeline();          // 函数声明会提升，此处可用
+}
+buildSchemes(DEFAULTS);
+
+/* ── 位置 / 姿态：全部由"当前方案"的接口解出来 ── */
+function diePos(key, t, vis){
+  const S = SCHEMES[curScheme];
+  const r  = S.radius(t, key, vis);
+  const th = S.theta(t, key, vis) * Math.PI/180;
+  return { x: CFG.TRAY.cx + Math.cos(th)*r, y: CFG.TRAY.cy + Math.sin(th)*r, r, thDeg: th*180/Math.PI };
+}
+/* 两骰中心距 —— 碰撞判据：1.00 × 边长 = 刚好贴合，< 1.00 即穿插 */
+function dieDist(t, vis){
+  const a = diePos('A', t, vis), b = diePos('B', t, vis);
+  return Math.hypot(b.x-a.x, b.y-a.y);
+}
+/* 碰撞挤压轴 = 两心连线方向（三种撞法都自动压对方向，不再写死角度） */
+function dieAxis(t, vis){
+  const a = diePos('A', t, vis), b = diePos('B', t, vis);
+  return Math.atan2(b.y-a.y, b.x-a.x) * 180/Math.PI;
+}
+/* 淡出（④）：区间完全落在拉远段之内 */
+const fadeOn = () => $('tFade').getAttribute('aria-pressed') === 'true';
+const dieFade = t => fadeOn() ? tClamp(t, CFG.T.fadeOut, CFG.T.fadeOutEnd) : 0;
+/* 统一缩放因子：离地放大 × 落定高光 × 淡出微缩 */
+function dieScaleBase(t){
+  return (1 + HOP_SCALE*SCHEMES[curScheme].hop(t)) * diePop(t) * (1 - 0.14*dieFade(t));
+}
+/* 该时刻两骰中最靠外的"最远点半径"（用于扫全程极值）
+   ⚠️ 必须含"挤压的各向异性放大"：挤压沿对撞轴压、垂直方向伸，
+      因此骰子的外接圆半径要乘 max(sx, sy)，否则贴壁相撞时会被漏判（实测曾漏掉 1.3）。 */
+function dieFarthest(t, vis){
+  const S = SCHEMES[curScheme], k = dieScaleBase(t), sq = S.squash(t);
+  const r = Math.max(S.radius(t,'A',vis), S.radius(t,'B',vis));
+  const aniso = Math.max(1 - S.squashAmp*sq, 1 + STRETCH*sq);
+  return r + rcOf(vis)*k*aniso;
+}
+/* 碰撞事件表（附盘面坐标），供特效层使用 */
+function eventsOf(vis){
+  return SCHEMES[curScheme].events().map(e => {
+    if(e.kind === 'die'){
+      const a = diePos('A', e.t, vis), b = diePos('B', e.t, vis);
+      return { t:e.t, kind:'die', str:e.str, x:(a.x+b.x)/2, y:(a.y+b.y)/2 };
+    }
+    const p  = diePos(e.who, e.t, vis);
+    const th = Math.atan2(p.y-CFG.TRAY.cy, p.x-CFG.TRAY.cx);
+    return { t:e.t, kind:'wall', str:e.str, x:CFG.TRAY.cx+Math.cos(th)*80, y:CFG.TRAY.cy+Math.sin(th)*80 };
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   几何校验（随机重掷与面板共用同一套判据）
+   判据一：全程最远点 <= 盘内可用半径 81（1ms 步长扫全程，不用静止位代替）
+   判据二：全程两骰心距 >= 边长（零穿插）
+   ══════════════════════════════════════════════════════════════════ */
+function envelopeOf(scheme, vis, step = 1){
+  const sv = curScheme; curScheme = scheme;
+  let mx = -1, at = 0, mnD = 1e9, atD = 0;
+  for(let q = 0; q <= CFG.T.total; q += step){
+    const far = dieFarthest(q, vis);
+    if(far > mx){ mx = far; at = q; }
+    const d = dieDist(q, vis);
+    if(d < mnD){ mnD = d; atD = q; }
+  }
+  curScheme = sv;
+  return { scheme, vis, maxFarthest:mx, atT:at, minDist:mnD, minDistAt:atD,
+           minRatio:mnD/vis, limit:CFG.R_IN, ok: mx <= CFG.R_IN,
+           margin:CFG.R_IN-mx, noPenetration: mnD >= vis - 0.05 };
+}
+function penetrationOf(scheme, vis, step = 1){
+  const sv = curScheme; curScheme = scheme;
+  const bad = [];
+  for(let q = 0; q <= CFG.T.total; q += step){
+    if(dieDist(q, vis) < vis - 0.05) bad.push(+q.toFixed(1));
+  }
+  curScheme = sv;
+  return bad;
+}
+/* 三套方案 × 指定边长 的完整体检报告 */
+function validateAll(vis = 48, step = 1){
+  const rep = {};
+  ['A','B','C'].forEach(k => {
+    const e = envelopeOf(k, vis, step);
+    const pen = penetrationOf(k, vis, step);
+    rep[k] = { ok: e.ok && pen.length === 0, far:+e.maxFarthest.toFixed(2),
+               margin:+e.margin.toFixed(2), minRatio:+e.minRatio.toFixed(3),
+               pen: pen.length, penAt: pen.slice(0,5) };
+  });
+  return rep;
+}
+
+/* ══════ 随机重掷 ══════
+   流程：随机种子 → 生成参数 → 装配 → 几何校验 → 全过则采纳；
+        否则换下一个种子重来（最多 60 次）；仍全不过则回退默认参数。 */
+let curSeed = 0, curP = DEFAULTS, curReport = null;   // 0 = 出厂默认（手工调校参数，非随机）
+function shuffle(forceSeed){
+  const base = (forceSeed === undefined) ? (((Math.random()*900000)|0) + 100000) : forceSeed;
+  for(let i = 0; i < 60; i++){
+    const sd = ((base + i*7919) >>> 0) || 1;
+    const P = randomP(makeRng(sd));
+    buildSchemes(P);
+    const rep = validateAll(48, 1);
+    /* 采纳条件：不仅"不出界"，还要求余量 >= 1.0 —— 避免随机出"贴着金环走"的紧参数 */
+    if(['A','B','C'].every(k => rep[k].ok && rep[k].margin >= 1.0)){
+      curSeed = sd; curP = P; curReport = rep;
+      return { seed:sd, report:rep, tries:i+1, fallback:false };
+    }
+  }
+  buildSchemes(DEFAULTS); curSeed = 20261005; curP = DEFAULTS;
+  curReport = validateAll(48, 1);
+  return { seed:20261005, report:curReport, tries:60, fallback:true };
+}
+
+/* ── 每套方案的「时间轴段」与「节拍卡」（面板展示数据） ── */
+/* ── 时间轴段 + 节拍卡（装配时重挂；buildSchemes 会重建对象，必须跟着重挂） ── */
+function attachTimeline(){
+SCHEMES.A.segs = [
+  { name:'驱动启动', from:0,   to:70   },
+  { name:'相向加速', from:70,  to:270  },
+  { name:'对撞反弹', from:270, to:740  },
+  { name:'拉远',     from:740, to:1200 }
+];
+SCHEMES.A.beats = [
+  { from:0,   name:'驱动启动', t:'0 – 70 ms',   h:'① 驱动启动 · 骰子仍静止',
+    p:'两骰自 t=0 起就<b>静置于盘内</b>、分列同一条直径两端（离盘心 = 贴边半径）。按钮按下 → 盘底金环亮起一圈 + 盘底微震，这是"电已通"的信号；<b>滚动未开启前完全静止</b>，不从框外飞入、不凭空出现。' },
+  { from:70,  name:'相向加速', t:'70 – 270 ms', h:'② 相向加速 → 撞前面正对',
+    p:'两骰沿直径相向加速（<code>p^1.8</code>：起步零速度 → 撞前最快）；自转同时从 0 平滑升到 <code>±90°</code>，撞的瞬间正好轴对齐、两面贴面。' },
+  { from:270, name:'对撞反弹', t:'270 – 740 ms',h:'③ 盘心对撞 → 弹回盘壁 → 沿金环滑行',
+    p:'撞点 = <b>盘心</b>，两心距 = <code>1.000 × 边长</code>（几何解出、零穿插）。挤压 34%（攻击 8 ms / 衰减 120 ms，方向沿<b>两心连线</b>）+ 闪光 + 六向碎星 + 盘底按压 + 三圈涟漪；相机同步一记 <code>-0.030</code> 回弹。随后 <code>e^(-τ/100)</code> 单调弹回盘壁、贴金环同向滑行 <code>245°</code>（自转与滚动同源，每 90° 换一面）。' },
+  { from:740, name:'拉远',     t:'740 – 1200 ms',h:'④ 镜头拉远 + 尾段淡出',
+    p:'相机 2.15× → 1.00×（easeOutCubic）；骰子运动在 1150 ms 归零，并在 <b>1020–1170 ms 渐隐</b>；1080 ms 起主玩页 HUD 淡入交叠。' }
+];
+
+SCHEMES.B.segs = [
+  { name:'驱动启动', from:0,   to:70   },
+  { name:'绕盘追尾', from:70,  to:360  },
+  { name:'惯性滑行', from:360, to:740  },
+  { name:'拉远',     from:740, to:1200 }
+];
+SCHEMES.B.beats = [
+  { from:0,   name:'驱动启动', t:'0 – 70 ms',   h:'① 驱动启动 · 骰子仍静止',
+    p:'两骰 t=0 即<b>静置于金环内侧</b>（角分离 150°），不越框、不凭空出现。盘底金环亮起 + 微震 = "电已通"，此间骰子<b>绝对静止</b>。' },
+  { from:70,  name:'绕盘追尾', t:'70 – 360 ms', h:'② 加速绕盘 → 追尾侧碰 → 咬合',
+    p:'两骰被驱动后<b>同向绕盘</b>，角速度一起爬升；骰A 的角速度高于骰B，角分离从 150° 平滑收窄。到 <code>300 ms</code> 收窄到 <b>贴合角</b>（两心距 = <code>1.000 × 边长</code>）→ 在盘壁切向<b>追尾侧碰</b>。碰后 60 ms 是「咬合期」：两骰被"粘"在一起同步前进 —— 真实电动桌追尾后就是这样一段一起走。' },
+  { from:360, name:'惯性滑行', t:'360 – 740 ms',h:'③ 惯性滑行 · 分离停稳',
+    p:'断电后角速度自由衰减（<code>smootherstep</code> 收尾，末了角速度归零）；两骰从贴合角重新分离到 <code>122°</code>，各自滑到金环内侧停稳。' },
+  { from:740, name:'拉远',     t:'740 – 1200 ms',h:'④ 镜头拉远 + 尾段淡出',
+    p:'相机 2.15× → 1.00×；骰子 1020–1170 ms 渐隐（淡出起点时相机位移已完成 94.0%）；1080 ms 起 HUD 淡入交叠。' }
+];
+
+SCHEMES.C.segs = [
+  { name:'驱动启动', from:0,   to:70   },
+  { name:'甩出撞壁', from:70,  to:230  },
+  { name:'环壁对迎', from:230, to:460  },
+  { name:'回弹滑行', from:460, to:740  },
+  { name:'拉远',     from:740, to:1200 }
+];
+SCHEMES.C.beats = [
+  { from:0,   name:'驱动启动', t:'0 – 70 ms',   h:'① 驱动启动 · 骰子仍静止',
+    p:'两骰 t=0 即<b>静置于盘内偏中处</b>（离盘心 0.62 × 贴边半径，相对 180°），既不重叠也不越框。盘底金环亮起 + 微震 = "电已通"，此间骰子<b>绝对静止</b>。' },
+  { from:70,  name:'甩出撞壁', t:'70 – 230 ms', h:'② 甩出 → 撞壁 ×2',
+    p:'驱动把两骰从盘内<b>甩到盘壁</b>：骰A 先到（<code>190 ms</code>）、骰B 后到（<code>230 ms</code>），各撞壁一次 —— 两声轻响（小涟漪 + 三向碎星）。径向 <code>p^1.6</code>，起步零速度。' },
+  { from:230, name:'环壁对迎', t:'230 – 460 ms',h:'③ 沿金环反向扫掠 → 迎头相撞',
+    p:'贴壁后两骰<b>反向</b>扫掠（骰A 顺时针、骰B 逆时针），各扫 <code>56.6°</code>；到 <code>460 ms</code> 角分离收窄到贴合角 → 在<b>盘壁</b>迎头相撞（撞点不在盘心）。挤压方向由两心连线实时求出，此处自动变成<b>切向</b>。' },
+  { from:460, name:'回弹滑行', t:'460 – 740 ms',h:'④ 回弹 · 分离停稳',
+    p:'相撞后两骰各自<b>反向弹回</b> 30°，角分离从 <code>66.9°</code> 张到 <code>126.9°</code>，随后贴金环减速停稳。' },
+  { from:740, name:'拉远',     t:'740 – 1200 ms',h:'⑤ 镜头拉远 + 尾段淡出',
+    p:'相机 2.15× → 1.00×；骰子 1020–1170 ms 渐隐（淡出起点时相机位移已完成 94.0%）；1080 ms 起 HUD 淡入交叠。' }
+];
+
+/* 面板上"段"与"拍"的实时高亮靠 from 字段；补上各段的 from（= beats 的 from 序列） */
+SCHEMES.B.segs.forEach((g,i)=>{ g.from = SCHEMES.B.beats[i].from; });
+SCHEMES.C.segs.forEach((g,i)=>{ g.from = SCHEMES.C.beats[i].from; });
+}
+
+
+/* ── 骰子点数：换面与自转同源（每 90° 一面），并用偏移量保证"落定那面 = 选定点数" ── */
+const ROLL_ORDER = [1,6,3,5,2,4];
+let FACE = { A: 4, B: 5 };
+function faceIndex(which, t){
+  return Math.floor(Math.abs(SCHEMES[curScheme].spin(t, which)) / CFG.FACE_EVERY);
+}
+/* 末帧必须停在你选的那一面 —— 用偏移量对齐，避免"落定时跳面" */
+const faceOff = { A: 0, B: 0 };
+function realignFace(){
+  ['A','B'].forEach(w=>{
+    const q = faceIndex(w, CFG.T.spinEnd);   // 自转归零时刻（此后不再换面）
+    faceOff[w] = ((ROLL_ORDER.indexOf(FACE[w]) - q) % 6 + 6) % 6;
+  });
+}
+function faceOf(which, t){
+  return ROLL_ORDER[(faceIndex(which, t) + faceOff[which]) % 6];
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   开局掷骰 · 点数与赠礼（第 11 轮）
+   · 点数：真随机，每次进入都重掷；给种子 → 可复现（LCG，同种子同点数）
+   · 落定那一面 = 掷出的点数 —— 沿用 realignFace() 的"偏移量对齐"，不会跳面
+   · 和值 → 赠礼（偶移出 / 奇消除 / 3·11 加槽 / 2·12 复活·自动）；仅限本局、不累计
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* 和值 2–12 → 赠礼（第 13 轮定稿 · 微调版）
+   概率对称：2↔12 / 3↔11 / 4↔10 / 5↔9 / 6↔8，7 为中枢（6/36）
+   · 偶数 4·6·8·10 → 移出 ；奇数 5·7·9 → 消除
+   · 3 / 11 → 加槽（每局只掷一次骰，天然 ≤1 个）
+   · 2 / 12 → 复活（revive:1）—— ★ 不入本局道具池：
+     不进道具栏、不能主动点「用」，只作「本局自动复活机会」，
+     本局失败时自动生效；未用则随本局一并作废。
+     ★ 效果口径（第 14 轮确认，与第 1 轮拍板一致）=「复活直消 4 张」：
+     槽内最后 4 张直接消除（效果由主玩页牌局执行，本页只承载"机会"）。
+   · 「洗牌」已退出开局赠礼（仍是游戏内既有道具，改由其它途径获取）。 */
+const GIFT_TABLE = {
+  2:  { tier:'复活档', items:[],       revive:1 },   // 1/36 · 双幺彩蛋
+  3:  { tier:'加槽档', items:['加槽'],  revive:0 },   // 2/36
+  4:  { tier:'常规档', items:['移出'],  revive:0 },   // 3/36
+  5:  { tier:'常规档', items:['消除'],  revive:0 },   // 4/36
+  6:  { tier:'常规档', items:['移出'],  revive:0 },   // 5/36
+  7:  { tier:'常规档', items:['消除'],  revive:0 },   // 6/36 · 中枢
+  8:  { tier:'常规档', items:['移出'],  revive:0 },   // 5/36
+  9:  { tier:'常规档', items:['消除'],  revive:0 },   // 4/36
+  10: { tier:'常规档', items:['移出'],  revive:0 },   // 3/36
+  11: { tier:'加槽档', items:['加槽'],  revive:0 },   // 2/36
+  12: { tier:'复活档', items:[],       revive:1 }    // 1/36 · 双六彩蛋
+};
+/* 道具四件套（游戏内既有道具全量）；『洗牌』不再由掷骰赠送 */
+const ITEMS = ['消除','移出','洗牌','加槽'];
+
+/* ══════════════ 本局道具池（第 12 轮 · 防刷护栏） ══════════════
+   定稿口径：每次进入关卡赠送的道具【仅限当前这一局使用】。
+   该局结束 / 玩家提前退出关卡时，未使用道具【立即作废】：
+   不计入累积道具、不可跨局保留、不可继承。
+   —— RUN 是本局唯一权威来源；runHistory 只记"已作废的局"，不是可继承库存。 */
+let RUN = null;           // { lv, seq, open, items:[], used:[], voided:[], reason }
+const runHistory = [];    // 已结束的局（作废流水，仅用于核对，绝不可被继承）
+/* 两颗骰子和值的自然概率（2d6 / 36 种）—— 压测时与实际计数对比 */
+const P2D6 = { 2:1,3:2,4:3,5:4,6:5,7:6,8:5,9:4,10:3,11:2,12:1 };
+
+let LEVEL = 1;            // 当前关卡号（赠礼与它绑定）
+let ROLL  = null;         // 本局掷骰结果
+let rollSeq = 0;          // 本关"第几次进入"（每进一次 +1，不累计库存）
+
+/* 真随机 1–6：优先 crypto（无偏），退化到 Math.random */
+function randFace(){
+  if(typeof crypto !== 'undefined' && crypto.getRandomValues){
+    const u = new Uint32Array(1);
+    /* 丢弃尾部不完整块（2^32 = 6×715827882 + 4），彻底消除取模偏置 */
+    do { crypto.getRandomValues(u); } while(u[0] >= 4294967292);
+    return 1 + (u[0] % 6);
+  }
+  return 1 + Math.floor(Math.random()*6);
+}
+/* 种子扩散（murmur 型 finalizer）：LCG 直接吃原始种子时首输出线性相关 ——
+   实测 100/101、102/103… 会成对给出完全相同的结果。先扩散再进 LCG 才打得散。 */
+function scramble(seed){
+  let s = (seed >>> 0) ^ 0x9E3779B9;
+  s = Math.imul(s ^ (s >>> 16), 0x85EBCA6B) >>> 0;
+  s = Math.imul(s ^ (s >>> 13), 0xC2B2AE35) >>> 0;
+  return (s ^ (s >>> 16)) >>> 0;
+}
+/* 掷两颗：给种子 → 同种子同点数（可复现）；相邻种子互相独立 */
+function drawDice(seed){
+  if(seed){
+    const r = makeRng(scramble(seed));
+    return { a: 1 + Math.floor(r.next()*6), b: 1 + Math.floor(r.next()*6), seeded:true };
+  }
+  return { a: randFace(), b: randFace(), seeded:false };
+}
+/* 开局掷骰：生成点数 → 落定面对齐 → 定档赠礼 → 开一局（赠礼进本局池） */
+function rollDice(seed){
+  const d = drawDice(seed);
+  FACE = { A: d.a, B: d.b };
+  realignFace();
+  const sum = d.a + d.b, g = GIFT_TABLE[sum];
+  /* 上一局若还开着 → 视为"离开本局"，未用道具立即作废（防刷护栏） */
+  if(RUN && RUN.open) endRun('离开本局（重掷 / 换关）');
+  ROLL = { lv: LEVEL, seq: ++rollSeq, a: d.a, b: d.b, sum: sum,
+           tier: g.tier, items: g.items.slice(), revive: (g.revive || 0),
+           seeded: !!d.seeded, seed: seed || 0 };
+  beginRun(ROLL);
+  render(t);
+  return ROLL;
+}
+
+/* ── 本局道具池：开 / 用 / 结（未用即作废） ────────────────────────── */
+function beginRun(R){
+  RUN = { lv: R.lv, seq: R.seq, open: true, reason: '',
+          items: R.items.slice(), used: [], voided: [],
+          /* ★ 自动复活机会（不入道具池）：获得 / 已用 / 已作废 */
+          revive: (R.revive || 0), reviveUsed: 0, reviveVoided: 0 };
+  paintRoll();
+  return RUN;
+}
+/* 剩余复活机会 = 获得 − 已用 − 已作废 */
+function reviveLeft(S){
+  S = S || RUN; if(!S) return 0;
+  return Math.max(0, (S.revive || 0) - (S.reviveUsed || 0) - (S.reviveVoided || 0));
+}
+/* ★ 复活效果口径（第 1 轮拍板「复活直消 4 张」，第 14 轮确认与赠礼的「复活」为同一套机制）
+   = 槽内最后 4 张直接消除 —— 本页只承载「机会」，实际效果由主玩页牌局执行 */
+const REVIVE_EFFECT = '槽内最后 4 张直接消除';
+const REVIVE_CLEAR  = 4;
+/* 本局失败 → 自动消耗一次复活机会（无机会则无法复活） */
+function useRevive(){
+  if(!RUN || !RUN.open) return { ok:false, why:'本局已结束，复活机会已作废' };
+  if(reviveLeft() <= 0) return { ok:false, why:'本局没有复活机会' };
+  RUN.reviveUsed += 1;
+  paintRoll();
+  return { ok:true, left: reviveLeft(), effect: REVIVE_EFFECT, clear: REVIVE_CLEAR };
+}
+/* 用掉一件 —— 只对「本局、未结束」的池子有效 */
+function runUse(name, as){
+  if(!RUN || !RUN.open) return { ok:false, why:'本局已结束，道具已作废' };
+  const i = RUN.items.indexOf(name);
+  if(i < 0) return { ok:false, why:'本局没有该道具' };
+  RUN.items.splice(i, 1);
+  RUN.used.push(as || name);
+  paintRoll();
+  return { ok:true, used: as || name, left: RUN.items.slice() };
+}
+/* 结束本局：未使用 → 立即作废（不累计 / 不退还 / 不跨局 / 不继承） */
+function endRun(reason){
+  if(!RUN || !RUN.open) return RUN;
+  RUN.open   = false;
+  RUN.reason = reason || '本局结算';
+  RUN.voided = RUN.items.slice();          // ★ 道具作废 —— 不进任何库存
+  RUN.items  = [];
+  RUN.reviveVoided = reviveLeft(RUN);      // ★ 未用的复活机会一并作废
+  runHistory.push({ lv:RUN.lv, seq:RUN.seq, used:RUN.used.slice(),
+                    voided:RUN.voided.slice(),
+                    reviveUsed:RUN.reviveUsed, reviveVoided:RUN.reviveVoided,
+                    reason:RUN.reason });
+  paintRoll();
+  return RUN;
+}
+
+/* 面板刷新：本局点数 / 档位 / 赠礼 / 本局道具池（不累计、不跨局） */
+function paintRoll(){
+  const R = ROLL; if(!R) return;
+  $('dvA').textContent  = R.a;
+  $('dvB').textContent  = R.b;
+  $('dvSum').textContent = R.sum;
+  $('dvTier').textContent = R.tier;
+  const g = $('dvGift');
+  g.className = 'gift';
+  g.innerHTML = '<span class="lvtag">第 ' + R.lv + ' 关 · 第 ' + R.seq + ' 次进入</span>'
+    + '掷出 <b>' + R.a + ' + ' + R.b + ' = ' + R.sum + '</b>（' + R.tier + '）→ 赠送 '
+    + (R.items.length ? R.items.map(x => '<b>' + x + '×1</b>').join(' + ') : '')
+    + (R.revive ? '<b>复活 ×' + R.revive + '</b><span style="opacity:.72;font-size:12px">（本局自动 · 不入道具栏 · 失败时直消 4 张）</span>' : '')
+    + '<span class="lvtag" style="margin-left:8px;background:rgba(255,156,110,.2);color:#FFC7AC;border-color:rgba(255,156,110,.42)">仅本局可用</span>'
+    + '<span style="opacity:.62;font-size:12px;margin-left:8px">' + (R.seeded ? ('种子 ' + R.seed) : '真随机') + '</span>';
+
+  /* —— 本局道具池 —— */
+  const S = RUN || { open:false, items:[], used:[], voided:[], reason:'',
+                     revive:0, reviveUsed:0, reviveVoided:0 };
+  /* 复活机会（自动 · 不入道具栏）—— 先算，chips 与 revText 都要用 */
+  const rl = reviveLeft(S), rvGot = (S.revive || 0), rvVoid = (S.reviveVoided || 0);
+  const chips = S.open
+    ? (S.items.length
+        ? S.items.map(function(it, i){
+            const pick = (it === '任选')
+              ? '<select data-pick="' + i + '">'
+                + ITEMS.filter(function(x){ return x !== '加槽'; })
+                       .map(function(x){ return '<option>' + x + '</option>'; }).join('')
+                + '</select>' : '';
+            return '<span class="chip"><b>' + it + '</b>' + pick
+                 + '<button class="use" data-use="' + i + '">用</button></span>';
+          }).join('')
+        : (S.used.length
+            ? '<span style="opacity:.62">—（本局已用尽）</span>'
+            : '<span style="opacity:.62">—（本局无道具' + (rvGot ? ' · 仅有复活机会' : '') + '）</span>'))
+    : '<span style="opacity:.62">—（本局已结束）</span>';
+
+  /* ★ 复活机会 = 「自动复活」：不进道具栏、不能主动点用；未用随本局作废 */
+  const revText = S.open
+    ? (rl > 0 ? ('可用 ' + rl + ' 次（本局失败时自动生效：' + REVIVE_EFFECT + '）')
+              : (rvGot > 0 ? '—（本局已用完）' : '—（本局未掷出 2 / 12）'))
+    : (rvGot > 0 ? ('已作废 ' + rvVoid + ' 次' + (S.reason ? '（' + S.reason + '）' : '')) : '—');
+
+  $('dvLog').innerHTML =
+      '<div class="pool">'
+    +   '<div><s>本局可用<br>（本局结束即作废）</s></div>'
+    +   '<div><b>' + chips + '</b></div>'
+    +   '<div><s>本局已用</s></div>'
+    +   '<div><b>' + (S.used.length ? S.used.map(function(x){ return x + '×1'; }).join('　') : '—') + '</b></div>'
+    +   '<div><s>复活机会<br>（自动 · 直消 4 张）</s></div>'
+    +   '<div><b>' + revText + '</b></div>'
+    +   '<div><s>本局结束作废</s></div>'
+    +   '<div class="void"><b>' + (S.voided.length
+          ? S.voided.map(function(x){ return x + '×1'; }).join('　') + '（' + (S.reason || '') + '）' : '—') + '</b></div>'
+    +   '<div><s>可继承 / 累计持有</s></div>'
+    +   '<div class="zero"><b>0（定稿口径：不累计 · 不跨局 · 不继承）</b></div>'
+    + '</div>';
+
+  /* innerHTML 会清掉旧监听 → 每次重绘都要重挂 */
+  Array.prototype.forEach.call($('dvLog').querySelectorAll('button.use'), function(b){
+    b.onclick = function(){
+      const i   = +b.dataset.use;
+      const sel = $('dvLog').querySelector('select[data-pick="' + i + '"]');
+      const raw = (RUN && RUN.items[i]) || '';
+      runUse(raw, (raw === '任选' && sel) ? sel.value : raw);
+    };
+  });
+  $('rFa').textContent = R.a + ' / ' + R.b;
+}
+
+/* ── 随机性压测：掷 N 局，做 χ² 拟合优度检验（两颗骰子各 6 面） ── */
+function stressRoll(n){
+  const bin = [0,0,0,0,0,0,0], sumCnt = {};
+  for(let i=0;i<11;i++) sumCnt[i+2] = 0;
+  for(let i=0;i<n;i++){
+    const a = randFace(), b = randFace();
+    bin[a]++; bin[b]++; sumCnt[a+b]++;
+  }
+  const exp = n*2/6;
+  let chi = 0;
+  for(let f=1;f<=6;f++) chi += Math.pow(bin[f]-exp, 2)/exp;
+  /* χ²(5) 的 0.05 临界值 11.07、0.01 临界值 15.09 */
+  const pass = chi < 15.09;
+  let chiSum = 0;
+  for(let s=2;s<=12;s++){ const e = n*P2D6[s]/36; chiSum += Math.pow(sumCnt[s]-e,2)/e; }
+  return { n, bin, sumCnt, chi, pass, chiSum };
+}
+
+/* ── DOM ── */
+const el = {
+  screen:$('screen'), camera:$('camera'), tableImg:$('tableImg'),
+  trayFloor:$('trayFloor'), trayHalo:$('trayHalo'), fxLayer:$('fxLayer'),
+  dieA:$('dieA'), dieB:$('dieB'), imgA:$('imgA'), imgB:$('imgB'), glowA:$('glowA'), glowB:$('glowB'),
+  shadowA:$('dieA').querySelector('.dieShadow'), shadowB:$('dieB').querySelector('.dieShadow'),
+  squashA:$('dieA').querySelector('.dieSquash'), squashB:$('dieB').querySelector('.dieSquash'),
+  spinA:$('dieA').querySelector('.dieSpin'), spinB:$('dieB').querySelector('.dieSpin'),
+  hud:$('hud'), vignette:$('vignette'), envTop:$('envTop'), envGround:$('envGround'),
+  corners:[$('corner'),$('corner2'),$('corner3'),$('corner4')],
+  fx:[]
+};
+
+/* ── 冲击特效池：每个"碰撞事件"一组（组内元素以组原点为中心） ── */
+(function buildFx(){
+  const GRP = 3, NSP = 6, NRP = 2;      // 同时事件最多 3 个（方案 C = 2 次壁碰 + 1 次对撞）
+  for(let i=0;i<GRP;i++){
+    const root = document.createElement('div'); root.className = 'fx';
+    const flash = document.createElement('div'); flash.className = 'flash'; root.appendChild(flash);
+    const rips = [], sps = [];
+    for(let k=0;k<NRP;k++){ const r = document.createElement('div'); r.className = 'rip'; root.appendChild(r); rips.push(r); }
+    for(let k=0;k<NSP;k++){ const q = document.createElement('div'); q.className = 'spark'; root.appendChild(q); sps.push(q); }
+    el.fxLayer.appendChild(root);
+    el.fx.push({ root, flash, rips, sps, nodes:[flash].concat(rips, sps) });
+  }
+})();
+
+/* HUD 占位：8 槽位 + 4 道具 */
+(function buildHud(){
+  const SLOT_W = 68, GAP = 6, N = 8, TOTAL_W = 660;
+  const strip = (TOTAL_W - (N*SLOT_W + (N-1)*GAP))/2;
+  const names = ['消除','移出','洗牌','加槽'];
+  let h = '';
+  for(let i=0;i<N;i++) h += `<div class="slot" style="left:${(strip+i*(SLOT_W+GAP)).toFixed(0)}px"></div>`;
+  $('hudSlots').innerHTML = h;
+  h = '';
+  for(let i=0;i<4;i++) h += `<div class="item" style="left:${i*(112+32)}px">${names[i]}<b>+</b></div>`;
+  $('hudItems').innerHTML = h;
+})();
+
+/* ── 预加载 ── */
+for(let i=1;i<=6;i++){ const im = new Image(); im.src = `./dice/face_${i}.png`; }
+const SRC = {
+  master: '../_src/game-start/table_default_1024.jpg',
+  engine: './table_default.jpg'
+};
+
+/* ══════════════════════════════════════════════════════════════════════
+   音效（第 11 轮）：候选 #3「サイコロを振る・二個」——真实录音，非合成
+   · 与动画 t 同一时基：t=0 起播；不做按钮层、不做电机层
+   · 音频实测：起音 80ms / 主碰撞脉冲 310ms / 有效段 80–630ms / 其后自然衰减
+   · 同步口径：音频 310ms 主脉冲 ↔ 动画 300ms 追尾碰撞（同起播即 10ms 内对齐）
+   ══════════════════════════════════════════════════════════════════════ */
+const SFX = { el:null, on:true, gain:0.85, dur:2.064, driftMs:45, lead:55 };
+const SFX_CUES = { start:0, loud:80, main:310, decay:630 };
+function sfxInit(){
+  SFX.el = document.getElementById('sfx');
+  if(!SFX.el) return;
+  try{ SFX.el.volume = SFX.gain; }catch(e){}
+}
+const sfxLen = () => (SFX.el && isFinite(SFX.el.duration) && SFX.el.duration > 0) ? SFX.el.duration : SFX.dur;
+function sfxStart(v){
+  const A = SFX.el; if(!A || !SFX.on) return;
+  /* +lead 补偿 <audio>.play() 的启动延迟（实测约 55ms），否则声音会稳定滞后画面 */
+  try{ A.currentTime = clamp((v + SFX.lead)/1000, 0, sfxLen() - 0.01); }catch(e){}
+  const p = A.play(); if(p && p.catch) p.catch(()=>{});
+}
+function sfxPause(){ const A = SFX.el; if(A){ try{ A.pause(); }catch(e){} } }
+function sfxSeek(v){
+  const A = SFX.el; if(!A) return;
+  try{ A.currentTime = clamp(v/1000, 0, sfxLen() - 0.01); }catch(e){}
+}
+/* 播放中每帧做漂移监控：偏差 > driftMs 才硬校（避免抖动/爆音） */
+function sfxTick(){
+  const A = SFX.el; if(!A) return;
+  if(!SFX.on){ $('rSfx').textContent = '已关闭'; $('rSfxDev').textContent = '—'; return; }
+  if(playing && A.paused) sfxStart(t);
+  $('rSfx').textContent = (A.currentTime*1000).toFixed(0) + ' ms';
+  if(playing && !A.paused){
+    if(Math.abs(A.currentTime*1000 - t) > SFX.driftMs) sfxSeek(t);
+    const d = Math.round(A.currentTime*1000 - t);
+    $('rSfxDev').textContent = (d > 0 ? '+' : '') + d + ' ms';
+  } else {
+    $('rSfxDev').textContent = '定格';
+  }
+}
+/* 音效 × 动画 的节拍对照条（静态画一次，游标随 t 走） */
+(function drawSfxTl(){
+  const X0 = 8, X1 = 392, px = v => X0 + (v/CFG.T.total)*(X1-X0);
+  const yo = 13, y2 = 35, hgt = 13;
+  let g = '';
+  g += `<rect x="${px(0).toFixed(1)}" y="${yo}" width="${(px(630)-px(0)).toFixed(1)}" height="${hgt}" rx="3" fill="rgba(85,183,154,.40)"/>`;
+  g += `<rect x="${px(630).toFixed(1)}" y="${yo}" width="${(px(1200)-px(630)).toFixed(1)}" height="${hgt}" rx="3" fill="rgba(255,255,255,.05)"/>`;
+  g += `<line x1="${px(310).toFixed(1)}" y1="${yo+1}" x2="${px(310).toFixed(1)}" y2="${yo+hgt-1}" stroke="#8FE3C5" stroke-width="2"/>`;
+  g += `<text x="${X0+2}" y="${yo-4}" fill="rgba(143,227,197,.9)" font-size="8.5">音效 80–630ms（▏310ms 主脉冲）</text>`;
+  g += `<text x="${X1-2}" y="${yo-4}" fill="rgba(143,227,197,.62)" font-size="8.5" text-anchor="end">尾段自然衰减</text>`;
+  g += `<rect x="${px(0).toFixed(1)}" y="${y2}" width="${(px(70)-px(0)).toFixed(1)}" height="${hgt}" rx="3" fill="rgba(255,255,255,.10)"/>`;
+  g += `<rect x="${px(70).toFixed(1)}" y="${y2}" width="${(px(740)-px(70)).toFixed(1)}" height="${hgt}" rx="3" fill="rgba(246,196,69,.26)"/>`;
+  g += `<rect x="${px(740).toFixed(1)}" y="${y2}" width="${(px(1200)-px(740)).toFixed(1)}" height="${hgt}" rx="3" fill="rgba(85,183,154,.30)"/>`;
+  g += `<line x1="${px(300).toFixed(1)}" y1="${y2+1}" x2="${px(300).toFixed(1)}" y2="${y2+hgt-1}" stroke="#FFE08A" stroke-width="2"/>`;
+  g += `<text x="${X0+2}" y="${y2-4}" fill="rgba(255,224,138,.85)" font-size="8.5">动画 70 起转 ▏300 追尾碰撞 · 740 落定</text>`;
+  $('tl2').innerHTML = g + '<line id="tlHead2" x1="0" y1="6" x2="0" y2="53" stroke="#FFE08A" stroke-width="1"/>';
+})();
+function tlHead2(v){
+  const h = $('tlHead2'); if(!h) return;
+  const x = (v/CFG.T.total)*400;
+  h.setAttribute('x1', x.toFixed(1)); h.setAttribute('x2', x.toFixed(1));
+}
+
+/* ══════════════ 核心：render(t) ══════════════ */
+let dieVis = 48, curFaceA = 4, curFaceB = 5;
+
+/* 当前时刻落在第几段 / 第几拍（取最后一个 from <= t 的） */
+function idxOf(arr, t){ for(let i=arr.length-1;i>=0;i--) if(t >= arr[i].from) return i; return 0; }
+
+function render(t){
+  const S = SCHEMES[curScheme];
+  const camS = camScale(t);
+  el.camera.style.transform = `scale(${camS.toFixed(5)})`;
+
+  /* ── ① 驱动反馈（0–hold）：盘底金环亮起一圈 ── 此时骰子完全静止 ── */
+  const drive = bell(t, CFG.T.hold*0.5, CFG.T.hold*2.2);
+  el.trayHalo.style.opacity = (0.20 + 0.55*drive + 0.72*bell(t, S.impact+4, 300)).toFixed(3);
+
+  /* ── ② 冲击特效：按"当前方案的碰撞事件表"逐组驱动 ── */
+  const evs = eventsOf(dieVis);
+  el.fx.forEach((g,i)=>{
+    const ev = evs[i];
+    if(!ev || t < ev.t - 6 || t > ev.t + 470){ g.nodes.forEach(n=>n.style.opacity = 0); return; }
+    g.root.style.transform = `translate(${ev.x.toFixed(1)}px, ${ev.y.toFixed(1)}px)`;
+    const age = t - ev.t, k = ev.str, big = ev.kind === 'die';
+    const fl = bell(age, 4, big ? 210 : 140);
+    g.flash.style.opacity = ((big ? 0.92 : 0.55)*k*fl).toFixed(3);
+    g.flash.style.transform = `scale(${(0.5 + 0.95*(1-fl)).toFixed(3)})`;
+    g.rips.forEach((node,r)=>{
+      const st = ev.t - 2 + r*66, dur = big ? 430 : 300, q = (t-st)/dur;
+      if(q < 0 || q > 1){ node.style.opacity = 0; return; }
+      const d0 = big ? 116 : 88, d1 = big ? 257 : 176;
+      const d = d0 + (d1-d0)*easeOutCubic(q);
+      node.style.width = node.style.height = d.toFixed(1)+'px';
+      node.style.marginLeft = node.style.marginTop = (-d/2).toFixed(1)+'px';
+      node.style.opacity = (0.55*k*Math.pow(1-q,1.3)).toFixed(3);
+    });
+    const nsp = big ? 6 : 3;
+    g.sps.forEach((node,r)=>{
+      if(r >= nsp){ node.style.opacity = 0; return; }
+      const dist = 26 + (big ? 96 : 60)*easeOutCubic(tClamp(age, 2, 240));
+      const op = 0.95*k*Math.pow(1-clamp((age-2)/280,0,1), 1.6);
+      const ang = (r*63 + 12 + (big ? 0 : 17)) * Math.PI/180;
+      node.style.transform = `translate(${(Math.cos(ang)*dist).toFixed(1)}px, ${(Math.sin(ang)*dist).toFixed(1)}px)`
+        + ` scale(${(0.35+0.75*(1-clamp((age-2)/280,0,1))).toFixed(2)})`;
+      node.style.opacity = op.toFixed(3);
+    });
+  });
+
+  /* 骰盘按压（主碰撞时刻） */
+  el.trayFloor.style.transform = `scale(${(1 - 0.075*bell(t, S.impact-12, 170)).toFixed(4)})`;
+
+  /* ── ③ 骰子：位置/姿态/面 全部由纯函数给出 ── */
+  const dw = dieVis / CFG.RATIO;
+  const hop = S.hop(t), sq = S.squash(t);
+  const glow = 0.85*bell(t, S.impact+22, 300);
+  const base = dieScaleBase(t), fade = dieFade(t), dieOp = 1 - fade;
+  const axDeg = dieAxis(t, dieVis);
+  const sx = base * (1 - S.squashAmp*sq), sy = base * (1 + STRETCH*sq);
+
+  [[el.dieA, el.shadowA, el.squashA, el.spinA, el.imgA, el.glowA, 'A'],
+   [el.dieB, el.shadowB, el.squashB, el.spinB, el.imgB, el.glowB, 'B']].forEach(
+   ([wrap, sh, sqz, spin, img, gl, key])=>{
+    const p = diePos(key, t, dieVis);
+    wrap.style.width = wrap.style.height = dw.toFixed(2)+'px';
+    wrap.style.left = (p.x - dw/2).toFixed(2)+'px';
+    wrap.style.top  = (p.y - dw/2).toFixed(2)+'px';
+    wrap.style.opacity = dieOp.toFixed(3);
+    /* 挤压沿"两心连线"施加（世界系，不是骰子自身坐标系）→ 三种撞法自动压对方向 */
+    sqz.style.transform = `rotate(${axDeg.toFixed(2)}deg) scale(${sx.toFixed(4)}, ${sy.toFixed(4)}) rotate(${(-axDeg).toFixed(2)}deg)`;
+    spin.style.transform = `rotate(${S.spin(t, key).toFixed(2)}deg)`;
+    const f = faceOf(key, t);
+    const want = `./dice/face_${f}.png`;
+    if(img.getAttribute('src') !== want) img.setAttribute('src', want);
+    if(key === 'A') curFaceA = f; else curFaceB = f;
+    const sW = dw*0.88*(1 + 0.30*hop);
+    sh.style.width = sW.toFixed(1)+'px'; sh.style.height = (sW*0.42).toFixed(1)+'px';
+    sh.style.left = '50%';
+    sh.style.opacity = (0.5*(1 - 0.55*hop)).toFixed(3);
+    gl.style.opacity = glow.toFixed(3);
+  });
+
+  /* ── ④ 主玩页 HUD（占位 · 末段淡入 · 不随镜头） ── */
+  const hudShow = $('tHudShow').getAttribute('aria-pressed') === 'true';
+  const hp = easeOutCubic(tClamp(t, CFG.T.hudIn, CFG.T.hudEnd));
+  el.hud.style.opacity = (hudShow ? hp : 0).toFixed(3);
+  el.hud.style.transform = `translateY(${((1-hp)*14).toFixed(1)}px)`;
+
+  /* 镜片层：暗角 / 顶光 / 落地 / 四角金饰 依次入画 */
+  el.vignette.style.opacity = (0.22 + 0.78*tClamp(t, 700, 1180)).toFixed(3);
+  const cOp = tClamp(t, 940, 1180);
+  el.corners.forEach((c,i)=>c.style.opacity = (cOp*(i<2?0.52:0.38)).toFixed(3));
+  const gOp = tClamp(t, 800, 1140);
+  el.envTop.style.opacity = (gOp*0.9).toFixed(3);
+  el.envGround.style.opacity = gOp.toFixed(3);
+
+  /* ── 面板联动 ── */
+  const bi = idxOf(S.beats, t);
+  const dist = dieDist(t, dieVis);
+  const rad = diePos('A', t, dieVis).r;
+  const far = dieFarthest(t, dieVis), farOk = far <= CFG.R_IN;
+  $('rT').textContent = Math.round(t) + ' ms';
+  $('rPhase').textContent = S.beats[bi].name;
+  $('playhead').style.left = (t/CFG.T.total*100) + '%';
+  document.querySelectorAll('#strip .seg').forEach((n,i)=>n.classList.toggle('hot', i === idxOf(S.segs, t)));
+  document.querySelectorAll('#beats .beat').forEach((n,i)=>n.classList.toggle('hot', i === bi));
+  $('scrub').value = Math.round(t);
+  $('rCam').textContent  = camS.toFixed(3);
+  $('rR').textContent    = rad.toFixed(1);
+  $('rSep').textContent  = (dist/dieVis).toFixed(3) + (dist >= dieVis - 0.02 ? '  合格' : '  穿插');
+  $('rSep').style.color  = (dist >= dieVis - 0.02) ? 'var(--gold-hi)' : '#FF9E60';
+  $('rTh').textContent   = diePos('A',t,dieVis).thDeg.toFixed(0)+' / '+diePos('B',t,dieVis).thDeg.toFixed(0);
+  $('rFar').textContent  = far.toFixed(1) + (farOk ? '  内' : '  超');
+  $('rFar').style.color  = farOk ? 'var(--gold-hi)' : '#FF9E60';
+  $('rFa').textContent   = curFaceA + ' / ' + curFaceB;
+  $('rSpin').textContent = S.spin(t,'A').toFixed(0)+' / '+S.spin(t,'B').toFixed(0);
+  $('rSq').textContent   = sq.toFixed(3);
+  $('rOp').textContent   = dieOp.toFixed(3);
+  $('cHead').setAttribute('x1', (t/CFG.T.total*400).toFixed(1));
+  $('cHead').setAttribute('x2', (t/CFG.T.total*400).toFixed(1));
+  $('cRead').textContent = 'scale ' + camS.toFixed(3);
+  tlHead(t);
+  tlHead2(t);
+  sfxTick();
+}
+
+/* ── 相机曲线图（方案切换时重画；分界线取当前方案的时间轴段） ── */
+function drawCurve(){
+  const N = 240, x0 = 8, x1 = 392, y0 = 12, y1 = 108;
+  const sMin = 0.94, sMax = 2.20;
+  const px = t => x0 + (t/CFG.T.total)*(x1-x0);
+  const py = s => y1 - ((s-sMin)/(sMax-sMin))*(y1-y0);
+  const pts = [];
+  for(let i=0;i<=N;i++){ const t = CFG.T.total*i/N; pts.push(px(t).toFixed(1)+','+py(camScale(t)).toFixed(1)); }
+  $('cLine').setAttribute('points', pts.join(' '));
+  let g = '';
+  [1.00,1.50,2.00].forEach(v=>{
+    g += `<line x1="${x0}" y1="${py(v).toFixed(1)}" x2="${x1}" y2="${py(v).toFixed(1)}" stroke="rgba(255,255,255,.09)" stroke-width="1"/>
+          <text x="${x1-2}" y="${(py(v)-3).toFixed(1)}" fill="rgba(255,255,255,.28)" font-size="8" text-anchor="end">${v.toFixed(2)}x</text>`;
+  });
+  SCHEMES[curScheme].segs.slice(1).forEach(sg=>{
+    g += `<line x1="${px(sg.from).toFixed(1)}" y1="${y0}" x2="${px(sg.from).toFixed(1)}" y2="${y1}" stroke="rgba(255,255,255,.22)" stroke-width="1" stroke-dasharray="3 3"/>`;
+  });
+  $('cGrid').innerHTML = g;
+}
+
+/* ── ④ 淡出 x 镜头位移 时序条（静态画一次；游标随 t 走） ── */
+(function drawTl(){
+  const X0 = 8, X1 = 392, px = t => X0 + (t/CFG.T.total)*(X1-X0);
+  const yo = 13, y2 = 35, hgt = 13;
+  let g = '';
+  /* 轨 1：相机拉远段（740 → 1200） */
+  g += `<rect x="${px(0).toFixed(1)}" y="${yo}" width="${(px(740)-px(0)).toFixed(1)}" height="${hgt}" rx="3" fill="rgba(255,255,255,.06)"/>`;
+  g += `<rect x="${px(740).toFixed(1)}" y="${yo}" width="${(px(1200)-px(740)).toFixed(1)}" height="${hgt}" rx="3" fill="rgba(246,196,69,.24)"/>`;
+  g += `<text x="${X0+2}" y="${yo-4}" fill="rgba(201,216,204,.72)" font-size="8.5">相机位移</text>`;
+  g += `<text x="${X1-2}" y="${yo-4}" fill="rgba(255,224,138,.82)" font-size="8.5" text-anchor="end">740 到 1200 ms</text>`;
+  /* 轨 2：骰子淡出段（1020 → 1170） */
+  g += `<rect x="${px(0).toFixed(1)}" y="${y2}" width="${(px(1200)-px(0)).toFixed(1)}" height="${hgt}" rx="3" fill="rgba(255,255,255,.06)"/>`;
+  g += `<rect x="${px(1020).toFixed(1)}" y="${y2}" width="${(px(1170)-px(1020)).toFixed(1)}" height="${hgt}" rx="3" fill="rgba(85,183,154,.5)"/>`;
+  g += `<text x="${X0+2}" y="${y2-4}" fill="rgba(201,216,204,.72)" font-size="8.5">骰子淡出</text>`;
+  g += `<text x="${X1-2}" y="${y2-4}" fill="rgba(143,227,197,.88)" font-size="8.5" text-anchor="end">1020 到 1170 ms</text>`;
+  $('tl').innerHTML = g + '<line id="tlHead" x1="0" y1="6" x2="0" y2="53" stroke="#FFE08A" stroke-width="1"/>';
+})();
+function tlHead(t){
+  const h = $('tlHead'); if(!h) return;
+  const x = (t/CFG.T.total)*400;
+  h.setAttribute('x1', x.toFixed(1)); h.setAttribute('x2', x.toFixed(1));
+}
+/* 填充「淡出 × 镜头位移」的量化读数：淡出区间落在拉远位移的哪一段 */
+function fillTlReadout(){
+  const a = camTravel(CFG.T.fadeOut)*100, b = camTravel(CFG.T.fadeOutEnd)*100;
+  $('rTl1').textContent = a.toFixed(1) + '%';
+  $('rTl2').textContent = b.toFixed(1) + '%';
+  /* 关系：淡出起点时位移已完成 a%，终点时 b% → 淡出区间只覆盖位移的最后 (100-a)% */
+  $('rTl3').textContent = '淡出 = 拉远位移的后 ' + (100-a).toFixed(1) + '%';
+}
+
+/* ── 播放循环 ── */
+let t = 0, speed = 1, playing = false, last = 0;
+function tick(now){
+  if(playing){
+    const dt = last ? (now - last) : 16;
+    last = now;
+    t += Math.min(dt, 48) * speed;      // 夹住 dt：标签页被挂起后恢复不长跳
+    if(t >= CFG.T.total){
+      if($('bLoop').getAttribute('aria-pressed') === 'true'){ t = 0; }
+      else { t = CFG.T.total; setPlaying(false); }
+    }
+    render(t);
+  } else last = 0;
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+function setPlaying(v){
+  playing = v; last = 0;
+  $('bPlay').textContent = v ? '❚❚ 暂停' : '▶ 播放';
+  $('bPlay').setAttribute('aria-pressed', String(v));
+  if(v && t >= CFG.T.total) t = 0;
+  if(v) sfxStart(t); else sfxPause();        // ★ 音画同起同停
+}
+function seek(v){ t = clamp(v, 0, CFG.T.total); render(t); if(playing) sfxStart(t); else sfxSeek(t); }
+
+/* ══════════ 面板：时间轴段 / 节拍卡 / 方案说明 ══════════ */
+/* 当前方案的「本次随机参数」读数（让随机结果可见、可复述） */
+function paramReadout(S){
+  const P = S.P, L = [];
+  const put = (k, v) => L.push('<span><s>' + k + '</s><b>' + v + '</b></span>');
+  if(S.key === 'A'){
+    put('对撞轴方向', P.axis.toFixed(0) + '°');
+    put('相向加速指数', P.powIn.toFixed(2));
+    put('反弹时间常数', P.tauOut.toFixed(0) + ' ms');
+    put('滑行角 / 方向', Math.abs(P.sweep).toFixed(0) + '° ' + (P.sweep > 0 ? '正向' : '反向'));
+    put('滑行段自转', P.spinRim.toFixed(0) + '°');
+    put('挤压（压/伸）', '压 ' + (P.squashAmp*100).toFixed(0) + '% / 伸 ' + (STRETCH*100).toFixed(0) + '%');
+  } else if(S.key === 'B'){
+    put('起始角分离', P.sep0.toFixed(0) + '°');
+    put('追尾时刻', '300 ms');
+    put('咬合时长', P.lock + ' ms');
+    put('末角分离', P.sep1.toFixed(0) + '°');
+    put('内收幅度', (P.dip*100).toFixed(1) + '%');
+    put('自转量', P.spinRate.toFixed(0) + '°');
+  } else {
+    put('撞壁时刻 A/B', P.twA + ' / ' + P.twB + ' ms');
+    put('对撞时刻', '460 ms');
+    put('起始半径系数', P.r0k.toFixed(2));
+    put('撞点离壁内收', (P.dip*100).toFixed(1) + '%');
+    put('扫掠方向', P.dir > 0 ? '相向（A 逆向 / B 顺向）' : '相向（A 顺向 / B 逆向）');
+    put('回弹角', P.recoil.toFixed(0) + '°');
+    put('自转量', P.spinRate.toFixed(0) + '°');
+  }
+  return L.join('');
+}
+
+function buildPanel(){
+  const S = SCHEMES[curScheme];
+  $('strip').innerHTML = S.segs.map((g,i)=>
+    `<div class="seg" data-p="${i}" style="flex:${g.to-g.from}">${g.name}<em>${g.from}-${g.to}</em></div>`
+  ).join('') + '<div class="playhead" id="playhead"></div>';
+  $('beats').innerHTML = S.beats.map((b,i)=>
+    `<div class="beat" data-p="${i}"><u>${b.t}</u><div><strong>${b.h}</strong><p>${b.p}</p></div></div>`
+  ).join('');
+  $('schDesc').innerHTML = '<b>' + S.key + ' · ' + S.name + '（' + S.en + '）：</b>' + S.desc;
+  document.querySelectorAll('.sch').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.k === curScheme)));
+  /* 每张方案卡上的「碰撞次数 / 撞点」标签（随随机重掷同步） */
+  ['A','B','C'].forEach(k => {
+    const tg = document.querySelector('.sch[data-k="' + k + '"] .schTag');
+    if(tg) tg.innerHTML = SCHEMES[k].tag;
+  });
+  /* 种子 + 几何校验结论 */
+  $('mSeed').textContent = curSeed ? curSeed : '默认（手工调校）';
+  const rp = curReport || (curReport = validateAll(48, 1));
+  const allOk = ['A','B','C'].every(k => rp[k].ok);
+  const minM = Math.min(...['A','B','C'].map(k => rp[k].margin));
+  $('mCheck').textContent = allOk ? ('通过 · 最小余量 ' + minM.toFixed(1)) : '有未通过项';
+  $('mCheck').style.color = allOk ? 'var(--gold-hi)' : '#FF9E60';
+  /* 当前方案的随机参数读数 */
+  $('pRead').innerHTML = paramReadout(S);
+  $('mSch').textContent = S.key + ' ' + S.name;
+  $('cMarks').textContent = S.segs.slice(1).map(g=>g.from).join(' / ') + ' / 1200';
+  drawCurve();
+  fillTlReadout();
+  realignFace();
+  render(t);
+}
+function setScheme(k){ curScheme = k; buildPanel(); }
+
+/* ── 控件绑定 ── */
+$('bPlay').onclick = () => setPlaying(!playing);
+$('bReplay').onclick = () => { t = 0; render(t); setPlaying(true); };
+$('bStep').onclick = () => { setPlaying(false); seek(t + 10); };
+document.querySelectorAll('[data-spd]').forEach(b => b.onclick = () => {
+  speed = parseFloat(b.dataset.spd);
+  document.querySelectorAll('[data-spd]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  $('rSpd').textContent = speed.toFixed(2) + 'x';
+});
+$('bLoop').onclick = () => {
+  const v = $('bLoop').getAttribute('aria-pressed') !== 'true';
+  $('bLoop').setAttribute('aria-pressed', String(v));
+};
+$('scrub').oninput = e => { setPlaying(false); seek(+e.target.value); };
+document.querySelectorAll('.sch').forEach(b => b.onclick = () => setScheme(b.dataset.k));
+$('bShuffle').onclick = () => { shuffle(); setPlaying(false); seek(0); buildPanel(); };
+$('bReset').onclick = () => { buildSchemes(DEFAULTS); curSeed = 0; curP = DEFAULTS;
+  curReport = validateAll(48, 1); setPlaying(false); seek(0); buildPanel(); };
+
+/* ── 开局掷骰 · 点数与赠礼（第 11 轮） ── */
+function seedInput(){ const v = ($('inSeed').value || '').trim(); return v ? (parseInt(v, 10) >>> 0) : 0; }
+function levelInput(){ const v = parseInt($('inLv').value, 10); return (isFinite(v) && v >= 1) ? Math.min(v, 30) : 1; }
+/* 进入关卡：开局自动掷骰 + 赠送（"每次进入都送"）；上一局未用道具在此立即作废 */
+function enterLevel(lv, seed){
+  LEVEL = lv || levelInput();
+  $('inLv').value = LEVEL;
+  rollDice(seed === undefined ? seedInput() : seed);
+  t = 0; setPlaying(false); render(t);
+}
+$('bRoll').onclick = () => { enterLevel(); setPlaying(true); };
+$('inLv').onchange = () => { LEVEL = levelInput(); rollDice(seedInput()); };
+/* ★ 本局结束 / 提前退出关卡 → 未使用道具立即作废（第 12 轮防刷护栏） */
+$('bSettle').onclick = () => { endRun('本局结算'); };
+$('bQuit').onclick   = () => { endRun('提前退出关卡'); };
+$('bClear').onclick  = () => { rollSeq = 0; runHistory.length = 0; $('dvStress').style.display = 'none';
+                               paintRoll(); };
+$('bStress').onclick = () => {
+  const n = 600, r = stressRoll(n), exp = n*2/6;
+  const box = $('dvStress'); box.style.display = 'block';
+  box.innerHTML = '<b>随机性压测 · ' + r.n + ' 局（' + (r.n*2) + ' 次掷面）</b><br>'
+    + [1,2,3,4,5,6].map(f => '点数 ' + f + '：' + r.bin[f] + ' 次（期望 ' + exp.toFixed(0) + '）'
+        + '▮'.repeat(Math.round(r.bin[f]/r.n*2*22))).join('<br>')
+    + '<br>面分布 χ² = <b>' + r.chi.toFixed(2) + '</b>（自由度 5 · 0.01 临界 15.09）→ '
+    + (r.pass ? '<b>通过：分布均匀，随机性稳定生效</b>' : '<b>偏离：建议复查随机源</b>')
+    + '<br>和值分布 χ² = <b>' + r.chiSum.toFixed(2) + '</b>（自由度 10 · 0.01 临界 23.21）';
+};
+$('tSfx').onclick = () => {
+  SFX.on = $('tSfx').getAttribute('aria-pressed') !== 'true';
+  $('tSfx').setAttribute('aria-pressed', String(SFX.on));
+  $('tSfx').textContent = SFX.on ? '🔊 音效 开' : '🔇 音效 关';
+  if(!SFX.on) sfxPause(); else if(playing) sfxStart(t);
+  render(t);
+};
+$('selFace').onchange = e => {
+  const pair = e.target.value.split(',').map(Number);
+  FACE = { A: pair[0], B: pair[1] }; realignFace(); render(t);
+};
+$('selSrc').onchange = e => { el.tableImg.src = SRC[e.target.value]; };
+[['tAnchor','ovAnchor'],['tSafe','ovSafe'],['tTray','ovTray'],['tHud','ovHud']].forEach(([btn, ov]) => {
+  $(btn).onclick = () => {
+    const v = $(btn).getAttribute('aria-pressed') !== 'true';
+    $(btn).setAttribute('aria-pressed', String(v));
+    $(ov).classList.toggle('on', v);
+  };
+});
+$('tFade').onclick = () => { $('tFade').setAttribute('aria-pressed',
+  String($('tFade').getAttribute('aria-pressed') !== 'true')); render(t); };
+$('tHudShow').onclick = () => { $('tHudShow').setAttribute('aria-pressed',
+  String($('tHudShow').getAttribute('aria-pressed') !== 'true')); render(t); };
+document.addEventListener('keydown', e => {
+  if(e.code === 'Space'){ e.preventDefault(); setPlaying(!playing); }
+  if(e.code === 'ArrowRight'){ setPlaying(false); seek(t + 10); }
+  if(e.code === 'ArrowLeft'){ setPlaying(false); seek(t - 10); }
+  if(e.code === 'Digit1'){ setScheme('A'); }
+  if(e.code === 'Digit2'){ setScheme('B'); }
+  if(e.code === 'Digit3'){ setScheme('C'); }
+});
+$('tHudShow').setAttribute('aria-pressed','true');
+$('tFade').setAttribute('aria-pressed','true');
+$('rSpd').textContent = '1.00x';
+curReport = validateAll(48, 1);      // 默认参数先体检一次（面板要显示校验结论）
+sfxInit();
+/* 关卡号可由 URL 带进来（?lv=12），便于"与关卡绑定"的联调 */
+const uLv = parseInt((new URLSearchParams(location.search).get('lv') || ''), 10);
+if(isFinite(uLv) && uLv >= 1) LEVEL = Math.min(uLv, 30);
+$('inLv').value = LEVEL;
+buildPanel();
+rollDice(seedInput());               // ★ 开局自动掷骰 + 赠礼（= "每次进入都送"）
+setPlaying(false);
+
+/* ── 供真实浏览器断言用的接口 ── */
+window.__sb = {
+  CFG, SCHEMES, render, seek, camScale, camTravel, diePos, dieDist, dieAxis,
+  dieFade, dieScaleBase, dieFarthest, eventsOf, faceOf, rcOf, rollR, hitR, sepDeg,
+  envelopeOf, penetrationOf, validateAll,
+  play: () => setPlaying(true), pause: () => setPlaying(false),
+  setSpeed: v => { speed = v; $('rSpd').textContent = v.toFixed(2)+'x'; },
+  setVis: v => { dieVis = v; $('mVisRo').textContent = v + ' · 分镜口径'; render(t); },
+  setFace: (a,b) => { FACE = {A:a, B:b}; $('selFace').value = a+','+b; realignFace(); render(t); },
+  /* —— 第 11 轮：开局掷骰 / 赠礼 / 音效 —— */
+  roll: (seed) => rollDice(seed),
+  rollNow: () => ROLL,
+  enterLevel,
+  setLevel: v => { LEVEL = v; $('inLv').value = v; },
+  level: () => LEVEL,
+  /* —— 本局道具池（第 12 轮 · 本局限定 / 不累计 / 不跨局） —— */
+  run: () => RUN,
+  useItem: (name, as) => runUse(name, as),
+  endRun: (reason) => endRun(reason),
+  /* —— 自动复活机会（第 13 轮 · 不入道具池 · 未用随本局作废） —— */
+  reviveLeft: (S) => reviveLeft(S),
+  useRevive: () => useRevive(),
+  /* 复活效果口径（第 14 轮确认）：槽内最后 4 张直接消除 */
+  reviveEffect: () => ({ effect: REVIVE_EFFECT, clear: REVIVE_CLEAR }),
+  runs: () => runHistory.slice(),
+  clearRuns: () => { runHistory.length = 0; paintRoll(); },
+  stress: (n) => stressRoll(n || 600),
+  giftTable: () => JSON.parse(JSON.stringify(GIFT_TABLE)),
+  p2d6: () => Object.assign({}, P2D6),
+  sfx: {
+    on: (v) => { SFX.on = v; $('tSfx').setAttribute('aria-pressed', String(v));
+                 $('tSfx').textContent = v ? '🔊 音效 开' : '🔇 音效 关'; if(!v) sfxPause(); },
+    isOn: () => SFX.on,
+    time: () => SFX.el ? SFX.el.currentTime*1000 : -1,
+    paused: () => SFX.el ? SFX.el.paused : true,
+    dur: () => sfxLen(),
+    ready: () => SFX.el ? SFX.el.readyState : -1,
+    cues: () => Object.assign({}, SFX_CUES),
+    seek: (v) => { sfxSeek(v); return SFX.el ? SFX.el.currentTime*1000 : -1; }
+  },
+  scheme: () => curScheme,
+  setScheme: k => setScheme(k),
+  vis: () => dieVis,
+  now: () => t,
+  isPlaying: () => playing,
+  /* ── 随机重掷 ── */
+  shuffle: (sd) => { const r = shuffle(sd); setPlaying(false); seek(0); buildPanel(); return r; },
+  reset: () => { buildSchemes(DEFAULTS); curSeed = 0; curP = DEFAULTS;
+                 curReport = validateAll(48, 1); setPlaying(false); seek(0); buildPanel(); return curSeed; },
+  seed: () => curSeed,
+  params: () => JSON.parse(JSON.stringify(curP)),
+  report: () => curReport,
+  /* ★ 全程极值扫描：物件进容器的判定必须扫每一毫秒，不能用静止位代替 */
+  envelope: (vis = dieVis, step = 1) => envelopeOf(curScheme, vis, step),
+  /* 逐点扫"两骰心距 < 边长"（穿插）的所有时刻 */
+  penetration: (vis = dieVis, step = 0.5) => penetrationOf(curScheme, vis, step),
+  /* 实测（读 CSS 计算值，而非内部变量） */
+  measure: () => {
+    const cam = el.camera.getBoundingClientRect();
+    const sc = cam.width / CFG.W;
+    const pA = diePos('A', t, dieVis), pB = diePos('B', t, dieVis);
+    return {
+      t, scheme: curScheme, dieVis, playing, speed,
+      camScaleBox: sc, camFn: camScale(t), camTravel: camTravel(t),
+      dieLeft: el.dieA.getBoundingClientRect().left, dieTop: el.dieA.getBoundingClientRect().top,
+      dieCanvas: el.dieA.offsetWidth, dieVisible: el.dieA.offsetWidth * CFG.RATIO,
+      tableRectDesign: (()=>{ const r = el.tableImg.getBoundingClientRect(); return { w: r.width/sc, h: r.height/sc, y: (r.top - cam.top)/sc }; })(),
+      hudOpacity: parseFloat(getComputedStyle(el.hud).opacity),
+      dieOpacity: parseFloat(getComputedStyle(el.dieA).opacity),
+      vignette: parseFloat(getComputedStyle(el.vignette).opacity),
+      faceA: el.imgA.getAttribute('src').split('_').pop().replace('.png',''),
+      faceB: el.imgB.getAttribute('src').split('_').pop().replace('.png',''),
+      radiusA: pA.r, radiusB: pB.r, thetaA: pA.thDeg, thetaB: pB.thDeg,
+      dist: dieDist(t, dieVis), distRatio: dieDist(t, dieVis)/dieVis,
+      axis: dieAxis(t, dieVis),
+      spinA: SCHEMES[curScheme].spin(t,'A'), spinB: SCHEMES[curScheme].spin(t,'B'),
+      hop: SCHEMES[curScheme].hop(t), squash: SCHEMES[curScheme].squash(t),
+      farthest: dieFarthest(t, dieVis),
+      events: eventsOf(dieVis).map(e=>({t:e.t, kind:e.kind, x:+e.x.toFixed(1), y:+e.y.toFixed(1)}))
+    };
+  }
+};
+</script>
+</body>
+</html>

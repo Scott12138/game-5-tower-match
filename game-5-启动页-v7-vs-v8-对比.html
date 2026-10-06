@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>game-5 · 启动页 v7↔v8 前后对比 ·《麻麻大消除》</title>
+<style>
+/* 对比页：2×2 矩阵（行=标题A/B，列=微调前v7/微调后v8），用机位截图 <img> 嵌入（稳定不依赖 iframe） */
+:root{--gold:#F6C445;--cream:#FFF7E6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#12140F;color:var(--cream);font-family:"PingFang SC","Hiragino Sans GB",sans-serif;
+  padding:34px 24px 44px;display:flex;flex-direction:column;align-items:center;gap:22px}
+h1{font-size:20px;font-weight:800;letter-spacing:3px}
+h1 em{font-style:normal;color:var(--gold)}
+.sub{font-size:13px;color:#8A967F;letter-spacing:1px;margin-top:-14px}
+.grid{display:grid;grid-template-columns:auto auto;gap:26px 30px}
+.cell{display:flex;flex-direction:column;align-items:center;gap:10px}
+.cell .tag{font-size:14px;font-weight:700;letter-spacing:2px;color:#9AA88F}
+.cell.after .tag{color:var(--gold)}
+.cell .shot{border-radius:20px;overflow:hidden;line-height:0;border:1px solid rgba(255,255,255,.08)}
+.cell .shot img{width:372px;height:660px;display:block}
+.cell.after .shot{border:1px solid rgba(246,196,69,.55);box-shadow:0 0 26px rgba(246,196,69,.18)}
+.legend{max-width:900px;background:rgba(255,255,255,.03);border:1px solid rgba(246,196,69,.25);
+  border-radius:14px;padding:18px 26px;font-size:13.5px;line-height:2;color:#C9D6C0}
+.legend b{color:var(--gold);letter-spacing:1px}
+.legend li{list-style:none}
+.legend li::before{content:"◆ ";color:var(--gold);font-size:9px;vertical-align:2px}
+</style>
+</head>
+<body>
+<h1>启动页 <em>v7 → v8</em> 前后对比</h1>
+<div class="sub">左列 = 微调前存档 · 右列 = 微调后方案 · 行 = 标题 A / B 候选 · 750×1334 设计值 1:1</div>
+
+<div class="grid">
+  <div class="cell"><div class="tag">微调前 · v7 · 标题 A</div>
+    <div class="shot"><img src="docs-verify/game-5/启动页-v7-A-机位.png" alt="v7-A"></div></div>
+  <div class="cell after"><div class="tag">微调后 · v8 · 标题 A</div>
+    <div class="shot"><img src="docs-verify/game-5/启动页-v8-A-机位.png" alt="v8-A"></div></div>
+  <div class="cell"><div class="tag">微调前 · v7 · 标题 B</div>
+    <div class="shot"><img src="docs-verify/game-5/启动页-v7-B-机位.png" alt="v7-B"></div></div>
+  <div class="cell after"><div class="tag">微调后 · v8 · 标题 B</div>
+    <div class="shot"><img src="docs-verify/game-5/启动页-v8-B-机位.png" alt="v8-B"></div></div>
+</div>
+
+<div class="legend">
+  <b>v8 微调清单（不换素材，只调布局/配色/视觉层次）</b>
+  <li>① 标题舞台化：背后新增暖金光晕（缓脉动），把主视觉从深绿毡面上托出来</li>
+  <li>② 骰子/金币加大一号 + 金色光晕垫 + 闪光星，对齐标题拱形两端，不再"孤零零漂浮"</li>
+  <li>③ 吉祥物主舞台：背后新增缓转光芒 + 光池增强 + 三颗闪金星（非对称错落）</li>
+  <li>④ 进度条：填充头部新增辉光圆点，百分比加大至 28px 并带金色辉光</li>
+  <li>⑤ 忠告区：两侧留白放宽、标题字距 6→8px、行距 1.7→1.75</li>
+  <li>⑥ 全局：新增金色细线角饰（四角）+ 底部落地渐变 + 画面铺满手机框（缩放 0.48→0.496）</li>
+  <li>⑦ <b>B 版已定基准</b>：标题下移 40 · 骰子移至标题右上方 · 金币移至标题左下方（均近而不接）· 吉祥物不动；调整前存档 = game-5-启动页-v8-B-调整前.html</li>
+</div>
+</body>
+</html>

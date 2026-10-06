@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>game-5 · 首页小资产 · 首批功能资产预览</title>
+<style>
+/* 首批功能资产预览：在毡面上按首页布局实测（左右列 96px + 中央主按钮） */
+:root{--gold:#F6C445;--cream:#FFF7E6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#12140F;color:var(--cream);font-family:"PingFang SC","Hiragino Sans GB",sans-serif;
+  padding:30px 20px 40px;display:flex;flex-direction:column;align-items:center;gap:20px}
+h1{font-size:19px;font-weight:800;letter-spacing:3px}
+h1 em{font-style:normal;color:var(--gold)}
+.sub{font-size:13px;color:#8A967F;margin-top:-12px;letter-spacing:1px}
+
+.stage{width:560px;background:url("assets/splash/bg_felt.jpg") center/cover;border-radius:18px;
+  padding:22px 28px 26px;box-shadow:0 18px 44px rgba(0,0,0,.6);position:relative}
+.stage::before{content:"";position:absolute;inset:0;border-radius:18px;
+  background:radial-gradient(140% 100% at 50% 38%, transparent 55%, rgba(0,0,0,.30));pointer-events:none}
+.stage>*{position:relative;z-index:1}
+
+/* 顶栏：金币实测 */
+.topbar{display:flex;align-items:center;gap:10px;background:rgba(10,30,20,.55);
+  border:1.5px solid rgba(246,196,69,.45);border-radius:999px;padding:6px 16px 6px 8px;width:max-content}
+.topbar img{width:34px;display:block}
+.topbar b{font-size:18px;font-weight:800;color:var(--gold);letter-spacing:1px;
+  text-shadow:0 2px 4px rgba(0,0,0,.5)}
+
+/* 功能列：左右两列各两枚 96px */
+.funcrow{display:flex;justify-content:space-between;margin-top:26px}
+.fcol{display:flex;flex-direction:column;gap:20px}
+.fitem{display:flex;flex-direction:column;align-items:center;gap:7px;width:110px}
+.fitem img{width:96px;display:block;filter:drop-shadow(0 8px 10px rgba(0,0,0,.38))}
+.fitem span{font-size:14px;font-weight:700;letter-spacing:2px;color:var(--cream);
+  text-shadow:0 2px 4px rgba(0,0,0,.55)}
+
+/* 中央：主按钮 + 文字代码叠加 */
+.btnzone{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:26px}
+.btn{position:relative;width:400px}
+.btn img{width:100%;display:block;filter:drop-shadow(0 12px 14px rgba(0,0,0,.42))}
+.btn b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:40px;font-weight:900;letter-spacing:10px;text-indent:10px;color:var(--gold);
+  text-shadow:0 0 14px rgba(246,196,69,.35),0 3px 5px rgba(0,0,0,.55)}
+.btn i{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);font-style:normal;
+  font-size:15px;letter-spacing:3px;color:var(--cream-dim);text-shadow:0 2px 3px rgba(0,0,0,.5)}
+
+.note{max-width:760px;background:rgba(255,255,255,.03);border:1px solid rgba(246,196,69,.25);
+  border-radius:12px;padding:14px 22px;font-size:13px;line-height:1.9;color:#C9D6C0}
+.note b{color:var(--gold)}
+</style>
+</head>
+<body>
+<h1>首页小资产 · <em>首批功能资产</em>（风格锚点批）</h1>
+<div class="sub">墨绿玉牌 + 金线 · 四功能图标 96px + 主按钮底板（文字代码叠加）· 毡面上按首页布局实测</div>
+
+<div class="stage">
+  <div class="topbar"><img src="assets/home/coin_icon.png" alt=""><b>1,280</b></div>
+
+  <div class="funcrow">
+    <div class="fcol">
+      <div class="fitem"><img src="assets/home/icon_signin.png" alt=""><span>七日签到</span></div>
+      <div class="fitem"><img src="assets/home/icon_shop.png" alt=""><span>道具商城</span></div>
+    </div>
+    <div class="btnzone">
+      <div class="btn"><img src="assets/_src/home/btn_primary.png" alt=""><b>开始游戏</b><i>继续 · 第 3 关</i></div>
+    </div>
+    <div class="fcol">
+      <div class="fitem"><img src="assets/home/icon_rank.png" alt=""><span>排行榜</span></div>
+      <div class="fitem"><img src="assets/home/icon_invite.png" alt=""><span>好友邀战</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>本批清单</b>：七日签到（日历+勾）/ 道具商城（礼盒）/ 排行榜（奖杯）/ 好友邀战（双人+星）/ 主按钮底板（无字，文字代码叠加，可换"开始/继续"零成本）。
+  四枚图标由同一锚点 img2img 派生，玉牌纹理/金线/光影一致。<br>
+  <b>待你拍板的点</b>：① 主按钮出得偏"矮胖"（源图 885×519 ≈ 1.7:1），要不要重出一版更修长的（3.2:1）？② 四枚符号含义是否一目了然？③ 图标下方文字标签是否保留？
+</div>
+</body>
+</html>
