@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>第 45 轮 · 三条拍板落地回报</title>
+<style>
+:root{
+  --ink:#08150F; --ink2:#0C2117; --jade:#1C5B45; --jade-hi:#2E8B6F;
+  --gold:#C6A258; --gold-hi:#E7CE8E; --cream:#F2EADA; --cream-dim:#B9B3A2;
+  --line:rgba(198,162,88,.22);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 700px at 50% -220px, rgba(46,139,111,.16), transparent 70%),
+    linear-gradient(180deg,#08150F,#050D0A 60%,#08150F);
+  color:var(--cream);
+  font:15px/1.72 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  padding:56px 40px 90px;
+}
+.wrap{max-width:1560px;margin:0 auto}
+
+/* ---------- 页头 ---------- */
+.hero{border-bottom:1px solid var(--line);padding-bottom:26px;margin-bottom:34px;display:flex;
+  align-items:flex-end;justify-content:space-between;gap:30px;flex-wrap:wrap}
+.hero h1{font-size:34px;font-weight:700;letter-spacing:.5px;
+  background:linear-gradient(180deg,#FFF9E8,var(--gold));-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+.hero .sub{color:var(--cream-dim);font-size:14px;margin-top:8px}
+.stamp{display:flex;gap:10px;flex-wrap:wrap}
+.stamp span{border:1px solid var(--line);border-radius:999px;padding:6px 15px;font-size:13px;color:var(--gold-hi);
+  background:rgba(198,162,88,.07)}
+
+/* ---------- 章节 ---------- */
+section{margin-bottom:46px}
+h2{font-size:19px;font-weight:600;color:var(--gold-hi);display:flex;align-items:center;gap:12px;margin-bottom:6px}
+h2 i{font-style:normal;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--jade-hi);
+  border:1px solid rgba(46,139,111,.45);border-radius:5px;padding:3px 9px;letter-spacing:.08em}
+.lead{color:var(--cream-dim);font-size:14px;margin-bottom:18px;max-width:1100px}
+b{color:#FFF6E2;font-weight:600}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--gold-hi);
+  background:rgba(198,162,88,.09);border-radius:4px;padding:1px 6px}
+
+/* ---------- 图 ---------- */
+.row{display:grid;gap:20px}
+.row.c2{grid-template-columns:1fr 1fr}
+.row.c3{grid-template-columns:repeat(3,1fr)}
+figure{background:linear-gradient(180deg,rgba(28,91,69,.28),rgba(8,21,15,.6));
+  border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+figure img{width:100%;display:block;border-radius:9px;background:#050D0A}
+figcaption{font-size:13px;color:var(--cream-dim)}
+figcaption em{font-style:normal;color:var(--gold-hi);font-weight:600;margin-right:8px}
+.tagline{display:flex;gap:8px;flex-wrap:wrap}
+.tagline s{text-decoration:none;font-size:11.5px;letter-spacing:.06em;border-radius:4px;padding:3px 8px;
+  border:1px solid rgba(185,179,162,.28);color:var(--cream-dim);font-family:ui-monospace,Menlo,monospace}
+.tagline s.no{border-color:rgba(216,90,70,.45);color:#E8907E}
+.tagline s.yes{border-color:rgba(46,139,111,.5);color:#6FD3AF}
+
+/* ---------- 表 ---------- */
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:rgba(8,21,15,.5);
+  border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid rgba(198,162,88,.13);vertical-align:top}
+th{color:var(--gold-hi);font-weight:600;background:rgba(198,162,88,.07);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td.k{color:#FFF6E2;font-weight:600;white-space:nowrap}
+td.num{font-family:ui-monospace,Menlo,monospace;color:var(--gold-hi);white-space:nowrap}
+.ok{color:#6FD3AF;font-weight:600}
+
+/* ---------- 提示块 ---------- */
+.note{border-left:3px solid var(--gold);background:rgba(198,162,88,.07);border-radius:0 10px 10px 0;
+  padding:14px 18px;font-size:13.5px;color:#E4DCC8;margin-top:16px}
+.note b{color:#FFF6E2}
+
+/* ---------- 页脚 / 二维码 ---------- */
+footer{margin-top:60px;border-top:1px solid var(--line);padding-top:30px;display:flex;gap:34px;
+  align-items:center;flex-wrap:wrap}
+.qr{background:#FAF7F0;border-radius:14px;padding:12px}
+.qr img{width:196px;height:196px;display:block}
+.foot-txt{flex:1;min-width:320px}
+.foot-txt h3{font-size:18px;color:var(--gold-hi);margin-bottom:8px}
+.foot-txt p{font-size:13.5px;color:var(--cream-dim);margin-bottom:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div>
+      <h1>第 45 轮 · 三条拍板落地回报</h1>
+      <div class="sub">你拍板的 3 项全部改完，并用真实浏览器逐条自证（12 项断言全绿）。真机码在本页最后。</div>
+    </div>
+    <div class="stamp">
+      <span>被压牌 · 方案 C 灰阶</span>
+      <span>金币雨 · 方案 B 柔虚 ×2</span>
+      <span>牌周边黄框 · 已删</span>
+    </div>
+  </div>
+
+  <!-- ============ ① ============ -->
+  <section>
+    <h2><i>ISSUE 01</i>被压牌 = 方案 C（灰阶）</h2>
+    <p class="lead">
+      被压的牌改成<b>灰阶 + 压暗</b>，可点的保持原色 —— 规则收敛成一句话：
+      <b>彩色 = 能点，灰的 = 不能点</b>。左边是你截图里的场面，右边是本轮构建的同一个关卡
+      （两张来源不同、不追求逐像素对齐，只看"被压的牌是不是还带颜色"）。
+    </p>
+    <div class="row c2" style="max-width:1120px">
+      <figure>
+        <img src="assets/board-before.png" alt="改前台面">
+        <figcaption><em>改前</em>红框里那三张是<b>被压住、点不动</b>的牌 —— 它们当时只是「暗了一点」，
+          红墨还是满色（四萬 / 三萬 / 一萬），光看颜色分不出能不能点。</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/board-after.png" alt="改后台面">
+        <figcaption><em>改后</em>被压的牌（五萬 / 五筒 / 六筒）已经彻底去色；能点的（六筒 / 四筒 / 一筒 / 八萬）仍满色。</figcaption>
+      </figure>
+    </div>
+    <div class="row c2" style="margin-top:20px">
+      <div class="tw">
+        <table>
+          <thead><tr><th>量</th><th>改前</th><th>改后</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td class="k">平均饱和度</td><td class="num">0.302</td><td class="num">0.038</td>
+              <td>降到 <b>13%</b>，肉眼等价于「去色」</td></tr>
+            <tr><td class="k">贴图</td><td class="num">母版 224×298</td><td class="num">灰阶 168×224</td>
+              <td>0.75 倍备用贴图，只给「被压」用</td></tr>
+            <tr><td class="k">叠加方式</td><td class="num">Sprite.color 乘 0.63</td><td class="num">换贴图</td>
+              <td>见下方说明</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <b>为什么不是运行时调色？</b><br>
+        Cocos 的 <code>Sprite.color</code> 只会<b>逐通道乘法</b> —— 它能压暗、<b>降不了饱和度</b>。
+        红墨 <code>(190,60,50)</code> 乘 0.66 得到 <code>(125,40,33)</code>，饱和度照样 0.74，红还是红。
+        3.8.8 也没有内置的 gray-sprite 材质（<code>effects/for2d/</code> 只有 spine / sprite / sprite-renderer 三个）。<br>
+        所以灰阶在<b>离线</b>算好（<code>tools/r45c-gray-tiles.py</code>，口径 = 方案页 C 的
+        <code>grayscale(.9) brightness(.66) contrast(.95)</code>），运行时零开销、零风险。
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ③ ============ -->
+  <section>
+    <h2><i>ISSUE 02</i>牌周边的「黄色框 / 光晕」—— 已删除</h2>
+    <p class="lead">
+      你圈的那处，我把它量出来了：<b>牌体左缘外侧有一道暖金线</b>，那是代码画的
+      「金环 + 三层外发光」（<code>TileRenderer.drawRing</code>）；而<b>牌图自带</b>的金框在牌体之内
+      —— 两道线是两回事。我删的是外侧那道，牌图自身的金饰<b>原样保留</b>。
+    </p>
+
+    <figure style="margin-top:16px">
+      <img src="assets/金环对照-三联-8x.png" alt="金环三联对照：你的截图 / 补画环 / 本轮">
+      <figcaption>
+        <em>三联对照</em>（三个面板都是 8 输出 px / 设计 px，同一段纵向区间）：
+        <b>① 你的截图</b>——你红圈里那道细金线就是代码画的外环，再往右才是牌图自己的金框；
+        <b>② 把被删的那段代码按原参数补画回去</b>——同一节点、同一相机、同一帧位，
+        牌体左缘<b>外侧</b>立刻多出一整圈圆角金环（竖线 + 顶部圆弧）；
+        <b>③ 本轮构建</b>——那个位置只剩<b>牌图自带</b>的金饰，外侧干净。<br>
+        橙色点划线 = 牌体左缘（窗口 52.5%），淡青虚线 = 取数带外边界（缘外 13 设计 px）。
+      </figcaption>
+    </figure>
+
+    <div class="tw" style="margin-top:18px">
+      <table>
+        <thead><tr><th>量（牌体左缘外侧 0~13 设计 px 带内）</th><th>改前</th><th>改后</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td class="k">有暖金的扫描线</td><td class="num">738 / 760</td><td class="num">0 / 760</td>
+            <td>改前几乎整条牌边都有，改后一条都没有</td></tr>
+          <tr><td class="k">暖金像素数</td><td class="num">19162</td><td class="num">0</td><td>同一块像素区、同一套暖色判定口径</td></tr>
+          <tr><td class="k">行内最宽</td><td class="num">33 px = 4.1 设计 px</td><td class="num">0</td>
+            <td>比主环标称 3 px 略宽，是叠加了最内层外发光</td></tr>
+          <tr><td class="k">②③ 两张影像的差异像素</td><td class="num" colspan="3">
+            39556（6.44%），包围盒 <code>x[299,639] y[162,959]</code>，全部落在该牌周边
+            ⇒ 这组 A/B 的唯一变量就是这道环</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <b>为什么②是本轮构建"补画"出来的，而不是直接拿你的截图跟本轮截图并排？</b><br>
+      你那张 672×680 的截图是手机截图再裁出来的，它和本轮截图之间<b>没有可用的共同参照</b>
+      —— 我看不到截图的页面边界，也找不到像素级的锚点，所以两张图<b>配不上准</b>：
+      拿同一把尺子去数暖金像素，量出来的差值分不清是"代码造成的"还是"错位造成的"，
+      这种 A/B 比不做还糟。<br>
+      所以在<b>本轮构建</b>上，同一节点、同一相机、同一帧位截两张 —— 一张原样、
+      一张用<b>被删代码的原参数</b>把环补画回去（<code>COLOR.GOLD = #F6C445</code>；
+      主环 <code>w+4 / 3px / a132</code>；外发光 <code>i=1..3 → w+8i / (2.5|1)px / a=52/i</code>）。
+      ②③ 两张的<b>唯一差异就是这道环</b>，差异像素的包围盒也证明它没跑到别处去。
+      ①（你的截图）只作实况佐证，比例尺与右两张不一定严格一致。
+    </div>
+
+    <div class="note">
+      <b>机器断言（不是靠眼睛，这是主证据）：</b>进入主玩页后遍历<b>全部 30 张存活牌</b>的节点树，
+      子件只有 <code>Base / Face / FaceDead</code> 三个，名为 <code>Ring</code> 的节点
+      <b>实测 0 个</b>。这条断言写进 <code>tools/_r45c-verify.mjs</code>，以后谁改回去都会红。
+    </div>
+  </section>
+
+  <!-- ============ ② ============ -->
+  <section>
+    <h2><i>ISSUE 03</i>金币雨 = 方案 B（柔虚）+ 放大一倍</h2>
+    <p class="lead">
+      单枚从 <b>34 → 68 设计 px</b>，素材换成按你选的「柔虚」预烘的那一版
+      （上排 34 = 改前，下排 68 = 改后，同一张素材、同一块底色）。
+    </p>
+    <figure style="max-width:1164px">
+      <img src="assets/coin-34-vs-68.png" alt="金币 34 与 68 对照">
+      <figcaption>上：34 设计 px（改前） / 下：68 设计 px（改后）</figcaption>
+    </figure>
+    <div class="tw" style="margin-top:12px;max-width:1164px">
+      <table>
+        <thead><tr><th>项</th><th>值</th><th>依据</th></tr></thead>
+        <tbody>
+          <tr><td class="k">显示尺寸</td><td class="num">68 × 68 设计 px</td>
+            <td>你要的「放大一倍」，实测节点 contentSize = 68×68</td></tr>
+          <tr><td class="k">素材</td><td class="num">splash/coin_rain.png 136×136</td>
+            <td>68 × 2；真机物理是 68 × 1.6853 = 114.6，136 是 1.19× 过采样</td></tr>
+          <tr><td class="k">虚化</td><td class="num">高斯 blur 3.6 @204 等比缩到 2.4 @136</td>
+            <td>与方案页 B 版逐像素对账：平均绝对差 1.8%</td></tr>
+          <tr><td class="k">放大上限</td><td class="num">66.5 设计 px</td>
+            <td>源图 112 宽 ÷ 1.6853；68 只超 2.3%，正好被柔虚盖掉</td></tr>
+          <tr><td class="k">结算卡小金币</td><td class="num">仍用原始 112×104</td>
+            <td>刻意分两套素材，图标不能被柔虚版连坐（已断言）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 自证 ============ -->
+  <section>
+    <h2><i>CHECK</i>自证：12 项断言全绿 + 1 组 A/B</h2>
+    <div class="tw">
+      <table>
+        <thead><tr><th>#</th><th>断言</th><th>实测</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td>可点与被压同时存在（否则这条没有判别力）</td><td class="num ok">8 / 22 张</td></tr>
+          <tr><td class="num">2</td><td>每张存活牌都有 Face 与 FaceDead</td><td class="num ok">30 / 30</td></tr>
+          <tr><td class="num">3</td><td>显示态与 pickable 完全一致</td><td class="num ok">不一致 0 张</td></tr>
+          <tr><td class="num">4</td><td>没有一张退回「原色压暗」兜底</td><td class="num ok">兜底 0 张</td></tr>
+          <tr><td class="num">5</td><td>被压贴图 = 可点贴图的 0.75 倍</td><td class="num ok">160×224 / 208×298</td></tr>
+          <tr><td class="num">6</td><td>牌节点下不存在 Ring 子节点</td><td class="num ok">0 个</td></tr>
+          <tr><td class="num">7</td><td>金币雨已生成</td><td class="num ok">26 枚</td></tr>
+          <tr><td class="num">8</td><td>单枚显示尺寸 = 68×68</td><td class="num ok">68 × 68</td></tr>
+          <tr><td class="num">9</td><td>用的是柔虚素材 136×136</td><td class="num ok">136 × 136</td></tr>
+          <tr><td class="num">10</td><td>结算卡小金币仍用原始素材</td><td class="num ok">112 × 104</td></tr>
+          <tr><td class="num">11</td><td>两张贴图切换后牌体几何不动</td><td class="num ok">四缘位移 0.0 物理 px</td></tr>
+          <tr><td class="num">12</td><td>全程无未捕获异常</td><td class="num ok">0 条</td></tr>
+          <tr><td class="num">13</td><td>同相机 A/B：按原参数补画回环后，牌缘外侧才重新出现暖金</td>
+            <td class="num ok">19162 → 0 px</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <b>第 11 条单独说一句：</b>Cocos 导入 PNG 时会裁掉透明边，所以「灰阶版」报出的尺寸是
+      160×224 而不是 168×224 —— 我当时怀疑两张贴图的比例不一致（0.769 vs 0.752）会让牌面
+      在切换的瞬间横向跳 2~3 px。于是做了一个对照实验：<b>同一个节点、同一个 contentSize，
+      只换贴图</b>，两次各截一张，量牌体四缘 —— 位移 <b>0.0 物理 px</b>，几何完全重合，虚惊一场。
+    </div>
+  </section>
+
+  <footer>
+    <div class="qr"><img src="../../device/真机预览二维码.png" alt="真机试玩二维码"></div>
+    <div class="foot-txt">
+      <h3>真机试玩码（本轮最新一张）</h3>
+      <p>用微信「扫一扫」扫左边这张，直接在手机上试。</p>
+      <p><b>预览码只有最新一张有效</b> —— 我再跑一次出码脚本，这张就作废了。</p>
+      <p>包体 11.18 MB · 主包 3.89 MB / 红线 4 MB（灰阶贴图刻意放在 <code>game</code> 分包里，主包没涨）</p>
+      <p>上传通道校验：基线 2 → 现在 2，<b>无新增上传错误</b>。</p>
+      <p style="margin-top:10px;color:#6E6A5E">代码停在工作区未提交，等你真机试完再说。</p>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

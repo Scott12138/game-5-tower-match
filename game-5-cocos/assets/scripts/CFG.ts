@@ -584,6 +584,17 @@ export const ASSET = {
     SPLASH_MASCOT: 'splash/mascot',
     SPLASH_DICE: 'splash/dice',
     SPLASH_COIN: 'splash/coin',
+    /**
+     * **结算页金币雨专用**素材（第 45 轮新增）。
+     *
+     * 与 `SPLASH_COIN` 分开是刻意的：`SPLASH_COIN` 还要给结算卡里的
+     * "奖励小金币"（`aspectW: 58`）用，那是**要清晰**的图标；
+     * 金币雨这版按用户拍板的**方案 B「柔虚」**预烘了高斯模糊（`blur=3.6@204`
+     * 等比缩到 `blur=2.4@136`），尺寸也是按"显示 68 设计 px"标的 136×136。
+     * 合成一版 = 小图标跟着发虚，所以必须两条路。
+     * 生成脚本：`tools/r45-coin-variants.py --out-size 136 --only b --game b`
+     */
+    SPLASH_COIN_RAIN: 'splash/coin_rain',
     SPLASH_BAR_TRACK: 'splash/bar_track',
     SPLASH_BAR_FILL: 'splash/bar_fill',
 

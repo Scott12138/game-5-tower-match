@@ -142,7 +142,17 @@ const RESULT = {
     BTN_GOLD_MB: 20,
     BTN_GHOST_H: 76,
     BTN_GHOST_FONT: 28,
-    COIN: 34,
+    /**
+     * 金币雨单枚显示尺寸（设计 px）。
+     *
+     * ★ 第 45 轮用户拍板：**放大一倍 + 稍微虚化**，34 → 68。
+     *   素材 `splash/coin_rain.png` 136×136（= 68×2）：
+     *   1 设计 px = 1264/750 = 1.6853 物理 px ⇒ 68 设计 px = 114.6 物理 px，
+     *   136 是 1.19× 过采样，够锐且不吃带宽。
+     *   ⚠️ 原始 `coin.png` 只有 112×104，它的 1:1 上限是 112/1.6853 = **66.5 设计 px**；
+     *      走柔虚版本正好把这个"超一点点"（1.5px）盖掉。
+     */
+    COIN: 68,
 } as const;
 
 @ccclass('GamePage')
@@ -158,6 +168,17 @@ export class GamePage extends PageBase {
     private _slots: number[] = [];
     /** 槽位里每个位置的显示节点 */
     private _slotNodes: Array<Node | null> = [];
+    /**
+     * 「待重排的槽内节点」—— 消除发生到 `relayoutSlots()` 真正执行的 **300ms 窗口期**里，
+     * 存活牌的节点先被摘到这里，等重排时按序放回。
+     *
+     * ⚠️ **为什么需要它**：旧写法让 `relayoutSlots()` 回过头去读 `_slotNodes`，
+     *    而调用方在它之前刚把 `_slotNodes` 清空 ⇒ 拿到空表 ⇒ 每一格都新建
+     *    **没有 Sprite 的空壳节点**。表现是「消除一次之后，槽里剩下的牌全变成看不见的空位」
+     *    （第 45 轮用户实测报「第一个槽里有牌却显示不出来 / 牌像是落在第二个槽」）。
+     *    详见 `relayoutSlots()` 的注释。
+     */
+    private _pendingKeep: Node[] | null = null;
     /** 槽容量（加槽道具 +1，上限 9） */
     private _slotMax = PLAY.SLOT_MAX;
 
@@ -514,7 +535,11 @@ export class GamePage extends PageBase {
     private buildSlotBar(): void {
         if (this._slotBar?.isValid) this._slotBar.destroy();
         this._slotCells = [];
-        this._slotNodes = [];
+        // ⚠️ 一律 `fill(null)`：`refreshSlotDanger()` 用 `=== null` 判空格，
+        //    空数组读出来是 `undefined`，会让所有格子都被当成"有牌"（短横全不画）。
+        this._slotNodes = new Array<Node | null>(this._slotMax).fill(null);
+        // 旧槽位条已销毁 ⇒ 待排队列里的节点引用全部作废
+        this._pendingKeep = null;
 
         const bar = createNode('SlotBar', this.body, {
             w: LAYOUT.SLOT_BAR.w, h: LAYOUT.SLOT_BAR.h,
@@ -795,14 +820,39 @@ export class GamePage extends PageBase {
         });
     }
 
-    /** 在槽位格里放一张小牌 */
+    /**
+     * 在槽位格里放一张小牌（**入槽路径专用**，带弹入动效）。
+     * 重排（`relayoutSlots`）复用底下的 `spawnSlotTile()`，两者**必须是同一套建法** ——
+     * 早先就是"入槽会贴图、重排不贴图"的分叉，才有了那个静默的空白槽 bug。
+     */
     private placeSlotTile(slotIdx: number, face: number): void {
-        const cell = this._slotCells[slotIdx];
-        if (!cell) return;
         // 清掉旧的（理论上这个格是空的）
         const old = this._slotNodes[slotIdx];
         if (old?.isValid) old.destroy();
 
+        const node = this.spawnSlotTile(slotIdx, face);
+        if (!node) return;
+
+        // 落位动效（小幅弹入）
+        node.setScale(v3(1.18, 1.18, 1));
+        tween(node).to(0.16, { scale: v3(1, 1, 1) }, { easing: 'backOut' }).start();
+        const op = node.addComponent(UIOpacity);
+        op.opacity = 200;
+
+        this._slotNodes[slotIdx] = node;
+        // ★ 若正处于「消除 → 重排」的窗口期，这张新牌要登记到待排队列**尾部**，
+        //    否则会被 `relayoutSlots()` 当成多余节点销毁，然后重建出一个空壳。
+        if (this._pendingKeep) this._pendingKeep.push(node);
+        this.refreshSlotDanger();
+    }
+
+    /**
+     * 建一张「槽内小牌」节点（贴图异步加载）。**唯一的建法** ——
+     * `placeSlotTile()`（入槽）与 `relayoutSlots()`（重排）都走它。
+     */
+    private spawnSlotTile(slotIdx: number, face: number): Node | null {
+        const cell = this._slotCells[slotIdx];
+        if (!cell) return null;
         const node = createNode(`SlotTile${slotIdx}`, cell, { w: SLOT_BOX.w, h: SLOT_BOX.h });
         const k = Math.min(SLOT_BOX.w / this._def.w, SLOT_BOX.h / this._def.h);
         const w = Math.round(this._def.w * k);
@@ -820,15 +870,23 @@ export class GamePage extends PageBase {
             holder.getComponent(UITransform)!.setContentSize(w, h);
             holder.active = true;
         });
+        return node;
+    }
 
-        // 落位动效（小幅弹入）
-        node.setScale(v3(1.18, 1.18, 1));
-        tween(node).to(0.16, { scale: v3(1, 1, 1) }, { easing: 'backOut' }).start();
-        const op = node.addComponent(UIOpacity);
-        op.opacity = 200;
-
-        this._slotNodes[slotIdx] = node;
-        this.refreshSlotDanger();
+    /**
+     * 摘出**不会被这次消除波及**的槽内节点，按数据顺序返回。
+     *
+     * ⚠️ 必须在 `_slots` / `_slotNodes` 被改动**之前**调用 —— 它按旧下标读 `_slotNodes`
+     *    （那种"先改数据、再回头找视觉"的写法就是这次 bug 的成因）。
+     */
+    private takeSurvivors(gone: number[]): Node[] {
+        const out: Node[] = [];
+        for (let i = 0; i < this._slots.length; i++) {
+            if (gone.includes(i)) continue;
+            const n = this._slotNodes[i];
+            if (n?.isValid) out.push(n);
+        }
+        return out;
     }
 
     private refreshSlotDanger(): void {
@@ -872,9 +930,12 @@ export class GamePage extends PageBase {
         AudioService.playSfx(m.type === 'peng' ? SFX.peng : SFX.chi, 1.0);
         Haptics.medium();
 
-        // 先从数据里摘掉（**立即**，不等动画）
-        const removedTiles: number[] = [];
-        for (const si of gone) removedTiles.push(this._slots[si]);
+        // ★ 摘出**不会被消掉的**槽内节点，交给 300ms 后的重排 ——
+        //    必须在 `_slots` / `_slotNodes` 改动**之前**（见 `takeSurvivors` / `relayoutSlots`）。
+        //    ⚠️ 这一步早先漏了，直接导致"消除一次之后槽里剩下的牌全部变空白"。
+        this._pendingKeep = this.takeSurvivors(gone);
+
+        // 再从数据里摘掉（**立即**，不等动画）
         this._slots = this._slots.filter((_, i) => !gone.includes(i));
         this._cleared += gone.length;
 
@@ -891,7 +952,9 @@ export class GamePage extends PageBase {
                 this.timer(280, () => { if (dead.isValid) dead.destroy(); });
             }
         }
-        this._slotNodes = [];
+        // ⚠️ 必须是 `fill(null)` 而不是 `[]`：`refreshSlotDanger()` 靠 `=== null` 判"空格"，
+        //    空数组读出来的是 `undefined`，会让**所有格子都被当成"有牌"**（短横不画）。
+        this._slotNodes = new Array<Node | null>(this._slotMax).fill(null);
         this.timer(300, () => {
             this.relayoutSlots();
             this.refreshProgress();
@@ -901,28 +964,57 @@ export class GamePage extends PageBase {
         });
     }
 
-    /** 把槽内小牌重排到前面的格子里 */
+    /**
+     * 把槽内小牌重排到前面的格子里。
+     *
+     * ★★ **第 45 轮修掉的一处静默 bug**（用户实测：「第一个槽里有牌，但是没显示出来」、
+     *    「牌像是直接出现在第二个槽」）。根因在旧写法的这三行：
+     *
+     *        const old = this._slotNodes.slice();      // ← 调用方刚把它清成 []
+     *        for (const n of old) if (...) alive.push(n);   // ← 恒为空
+     *        const node = alive[i] ?? createNode(name, cell, {w, h});
+     *                                     ↑ 兜底分支**只给尺寸、不给 Sprite**
+     *
+     *    调用链是：`resolveMatch()` 先把 `_slotNodes = []`，300ms 后才调本函数
+     *    ⇒ 收集结果恒空 ⇒ **每一格都走兜底分支，建出没有图的空壳节点**。
+     *    而 `_slots` 数据是对的 ⇒ 玩家看到的是「槽里空着，但点第 N 张牌落在第 N+1 格」。
+     *    无头实测证据（第 45 轮复现）：消除一次后 `slots = [3,4,6]`（3 张牌），
+     *    而三个格的 `SlotTile` 节点 `sprites: []` —— 一张图都没有。
+     *
+     *    ⇒ 修法：存活节点改由 `takeSurvivors()` 在**数据变更的同一步**摘出来，
+     *      经 `_pendingKeep` 传进来；窗口期内新入槽的牌由 `placeSlotTile()` 追加到队尾。
+     *      于是"待排队列"的顺序天然等于 `_slots` 的顺序。
+     */
     private relayoutSlots(): void {
+        // 待摆放队列 = 消除时摘出的存活节点（旧序）+ 窗口期新入槽的（入槽序）
+        const queue = (this._pendingKeep ?? []).filter((n) => n.isValid);
+        this._pendingKeep = null;
+
         const board = this._board;
         if (!board) return;
-        // 先把还活着的显示节点按数据顺序收集
-        const alive: Node[] = [];
-        const old = this._slotNodes.slice();
-        for (const n of old) {
-            if (n?.isValid && n.active) alive.push(n);
+
+        // 多余节点（数据里已经没这几张了）→ 直接销毁，别留在格子里当幽灵
+        for (let i = this._slots.length; i < queue.length; i++) {
+            const n = queue[i];
+            if (n?.isValid) n.destroy();
         }
-        // 清空所有格
+
+        // 清掉所有格子里**不在队列中**的 SlotTile（正常情况下就是正在爆开的那几个）
+        const inQueue = new Set(queue);
         for (const c of this._slotCells) {
             for (const ch of c.children.slice()) {
-                if (ch.name.startsWith('SlotTile')) ch.destroy();
+                if (ch.name.startsWith('SlotTile') && ch.isValid && !inQueue.has(ch)) ch.destroy();
             }
         }
+
         this._slotNodes = new Array(this._slotMax).fill(null);
-        // 重新按数据顺序摆放
         this._slots.forEach((tileIdx, i) => {
             const cell = this._slotCells[i];
             if (!cell) return;
-            const node = alive[i] ?? createNode(`SlotTile${i}`, cell, { w: SLOT_BOX.w, h: SLOT_BOX.h });
+            // 队列不够时按牌面**补一张** —— 绝不能留空位（留空位正是这个 bug 的样子）
+            const node = (queue[i]?.isValid ? queue[i] : null)
+                ?? this.spawnSlotTile(i, board.tiles[tileIdx].face);
+            if (!node) return;
             if (node.parent !== cell) cell.addChild(node);
             node.setPosition(0, 0, 0);
             node.setScale(v3(1, 1, 1));
@@ -932,7 +1024,6 @@ export class GamePage extends PageBase {
             op.opacity = 255;
             this._slotNodes[i] = node;
         });
-        void board;
     }
 
     /**
@@ -1008,8 +1099,8 @@ export class GamePage extends PageBase {
             return false;
         }
         const gone = groups[0].indices.slice();
-        const removed: number[] = [];
-        for (const si of gone) removed.push(this._slots[si]);
+        // ★ 与 `resolveMatch` 同口径：先摘存活节点，再动数据（见 `takeSurvivors`）
+        this._pendingKeep = this.takeSurvivors(gone);
         this._slots = this._slots.filter((_, i) => !gone.includes(i));
         this._cleared += gone.length;
         SaveService.instance.addCleared(gone.length);
@@ -1023,7 +1114,7 @@ export class GamePage extends PageBase {
                 this.timer(320, () => { if (dead.isValid) dead.destroy(); });
             }
         }
-        this._slotNodes = [];
+        this._slotNodes = new Array<Node | null>(this._slotMax).fill(null);
         this.timer(340, () => {
             this.relayoutSlots();
             this.refreshProgress();
@@ -1196,6 +1287,10 @@ export class GamePage extends PageBase {
     /** 直消槽内最后 N 张并把控制权交回牌局（赠礼复活与广告复活共用） */
     private performRevive(n0: number, title: string): void {
         const n = Math.min(n0, this._slots.length);
+        // ★ 与 `resolveMatch` 同口径：直消的是**末尾 n 张**，前面几张的节点先摘出来留给重排
+        const gone: number[] = [];
+        for (let k = this._slots.length - n; k < this._slots.length; k++) gone.push(k);
+        this._pendingKeep = this.takeSurvivors(gone);
         for (let i = 0; i < n; i++) {
             const si = this._slots.length - 1;
             const nd = this._slotNodes[si];
@@ -1466,7 +1561,8 @@ export class GamePage extends PageBase {
             const x = (Math.random() - 0.5) * (vw - 40);
             const y0 = vh / 2 + 60;
             const coin = createSprite(layer, `Coin${i}`, {
-                path: ASSET.SPLASH_COIN, w: RESULT.COIN, h: RESULT.COIN, x, y: y0,
+                // 第 45 轮：改走「柔虚」专用素材（方案 B），尺寸 34 → 68
+                path: ASSET.SPLASH_COIN_RAIN, w: RESULT.COIN, h: RESULT.COIN, x, y: y0,
             });
             const dur = 1.0 + Math.random() * 0.9;
             const delay = Math.random() * 0.9;

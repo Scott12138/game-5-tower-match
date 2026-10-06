@@ -2,15 +2,22 @@
  * ============================================================
  *  TileRenderer.ts · 牌面渲染（一张牌 = 一个 TileView）
  * ============================================================
- *  视觉规格**逐条照抄** `game-5-主玩页-排版.html` 的 `.tile` 规则族：
+ *  ★ 第 45 轮用户拍板后的**当前生效口径**（此前是"靠有影/无影表达"）：
  *
  *   ┌ 牌体（`.tile` / `.tile.imgmode`）
  *   │   本工程用 224×298 的 AI 母版，**图片自带金边与厚度** ⇒ 走 imgmode：
  *   │   不加底色、不加描边（加了会与图里的金边打架，边缘变成"双线毛刺"）
- *   ├ 可点（`.tile.live`）= **上浮 + 影加深 + 金色 2px 环 + 外发光**
- *   │   ⚠️ 关键设计口径：**"可点"靠"有影"表达，"被压"靠"无影"表达** ——
- *   │      不是靠灰化。这条是定稿稿写在注释里的自觉，不要改成"灰掉不可点"。
- *   └ 被压（`.tile.dead`）= `saturate(.74) brightness(.85)` + 几乎没有影
+ *   ├ 可点（原 `.tile.live`）= **原色满亮 + 影加深（"浮起来"）**
+ *   │   ⚠️ 第 45 轮**删掉了金环与三层外发光**。用户原话：
+ *   │      「牌本占位符（黄色框框）…指的是每张牌周边的光晕」——
+ *   │      实测他在截图上圈的那道暖金线（x=192~193）正好落在牌节点边界
+ *   │      **外侧** 2~4px（牌图自带的金框在 x=202~206，是另一回事），
+ *   │      即 `drawRing()` 画的主环 + 外发光。删掉后牌堆只剩牌图自身的金饰。
+ *   └ 被压（原 `.tile.dead`）= **换灰阶贴图**（方案 C：grayscale .9 / brightness .66
+ *      / contrast .95，离线烘好，见 `TileData.deadSpritePath`）。
+ *      实测整图饱和 0.302 → 0.038（降到 13%），"彩色 = 能点"一眼可辨。
+ *      ⚠️ 不再叠 `Sprite.color` 灰滤镜 —— 逐通道乘法**降不了饱和度**，
+ *         红墨乘 0.66 还是红的（详见 `deadSpritePath` 的注释）。
  *
  *  ★ 横牌 = **纯旋转**：节点恒为牌体 w×h，只设 `angle = 90`。
  *     绝不允许"换宽高"——那会把牌面横向拉伸 1.33 倍（第 32 轮第 5 条明令禁止）。
@@ -22,14 +29,14 @@ import { Color, Graphics, Layers, Node, Sprite, UIOpacity, UITransform, Vec3, v3
 import { COLOR, FONT, SKIN } from '../CFG';
 import { createLabel, createNode, fillRoundRect, loadFrame, strokeRoundRect } from './UIFactory';
 import { hex2color } from './Palette';
-import { decode, faceLabel, spritePath, type FaceCode } from '../core/TileData';
+import { deadSpritePath, decode, faceLabel, spritePath, type FaceCode } from '../core/TileData';
 
 export type TileState =
-    /** 可点：满亮 + 金环 + 外发光 + 大影（"浮起来"） */
+    /** 可点：原色满亮 + 大影（"浮起来"） */
     | 'pick'
-    /** 被压：降饱和压暗 + 几乎无影（"压住了"） */
+    /** 被压：灰阶贴图 + 几乎无影（"压住了"） */
     | 'cover'
-    /** 系统锁定（例如胜负判定后禁止再点）：可点外观 + 更暗 */
+    /** 系统锁定（例如入槽飞行中 / 胜负判定后禁止再点）：原色 + 更暗 */
     | 'lock';
 
 export interface TileViewOpts {
@@ -41,9 +48,20 @@ export interface TileViewOpts {
     y: number;
 }
 
-/** 被压的降饱和/压暗系数（照抄 `.tile.dead` 的 filter） */
-const DEAD_SAT = 0.74;
-const DEAD_BRI = 0.85;
+/** 锁定态的原色压暗系数（入槽飞行中 / 面板盖住时）—— 与原来写死的 0.55 一致 */
+const LOCK_K = 0.55;
+/** 灰阶贴图**缺失**时的兜底压暗系数（正常路径走不到，只为不让被压牌仍是满亮彩色） */
+const DEAD_FALLBACK_K = 0.62;
+
+/** 把系数折成 `Sprite.color`（灰阶三通道等值 = 只压暗、不改色相） */
+const tint = (k: number): Color => {
+    const v = Math.round(255 * k);
+    return new Color(v, v, v, 255);
+};
+const TINT_LOCK = tint(LOCK_K);
+const TINT_WHITE = tint(1.0);
+const TINT_DEAD_FALLBACK = tint(DEAD_FALLBACK_K);
+
 
 export class TileView {
     public readonly node: Node;
@@ -53,8 +71,10 @@ export class TileView {
     public rot: 0 | 90;
 
     private _sp: Sprite | null = null;
+    private _faceNode: Node | null = null;
+    private _spDead: Sprite | null = null;
+    private _deadNode: Node | null = null;
     private _base: Graphics | null = null;
-    private _ring: Graphics | null = null;
     private _fallback: Node | null = null;
     private _state: TileState = 'cover';
 
@@ -72,29 +92,58 @@ export class TileView {
         const base = createNode('Base', this.node);
         this._base = base.addComponent(Graphics);
 
-        // ② 牌面（图片虽自带金边，但**加载失败时**要有兜底，否则整局看不见牌）
-        const spNode = createNode('Face', this.node, { w: o.w, h: o.h });
-        const sp = spNode.addComponent(Sprite);
+        // ② 牌面 —— **两张叠着**：原色（可点 / 锁定）与灰阶（被压，方案 C）。
+        //    为什么用两个节点而不是切 `spriteFrame`：切贴图每次都要走一遍
+        //    `loadFrame` 的异步回调（首帧会闪一下空白），而 `active` 开关是同步的、
+        //    零加载；两张图的加载也各自只发生一次（`loadFrame` 内部有缓存）。
+        //    图片虽自带金边，但**加载失败时**要有兜底，否则整局看不见牌。
+        const faceNode = createNode('Face', this.node, { w: o.w, h: o.h });
+        const sp = faceNode.addComponent(Sprite);
         // ⚠️ 顺序：先定模式、再赋贴图、最后显式写尺寸（写反会被 TRIMMED 改回原图尺寸）
         sp.sizeMode = Sprite.SizeMode.CUSTOM;
         sp.trim = false;
         this._sp = sp;
-        spNode.active = false;
+        this._faceNode = faceNode;
+        faceNode.active = false;
 
         loadFrame(spritePath(o.face), (sf) => {
             if (!this.node.isValid) return;
             if (!sf) { this.buildFallback(); return; }
             sp.spriteFrame = sf;
-            const ui = spNode.getComponent(UITransform)!;
+            const ui = faceNode.getComponent(UITransform)!;
             ui.setContentSize(o.w, o.h);
-            spNode.active = true;
+            // 显隐交给 applyState 统一裁决（刚加载完时本张牌可能正是"被压"）
+            this.applyState();
         });
 
-        // ③ 金环 / 发光（在牌体之上）
-        const ring = createNode('Ring', this.node, { w: o.w, h: o.h });
-        this._ring = ring.addComponent(Graphics);
+        const deadNode = createNode('FaceDead', this.node, { w: o.w, h: o.h });
+        const spDead = deadNode.addComponent(Sprite);
+        spDead.sizeMode = Sprite.SizeMode.CUSTOM;
+        spDead.trim = false;
+        spDead.color = TINT_WHITE;          // 灰阶已在贴图里烘好，这里不再叠色
+        this._spDead = spDead;
+        this._deadNode = deadNode;
+        deadNode.active = false;
 
+        loadFrame(deadSpritePath(o.face), (sf) => {
+            if (!this.node.isValid) return;
+            // ⚠️ 加载失败**不**建兜底：还有原色那张可以顶着（兜底压暗由 applyState 负责）。
+            //    这里静默即可，避免每张牌刷两遍 warn。
+            if (!sf) return;
+            spDead.spriteFrame = sf;
+            deadNode.getComponent(UITransform)!.setContentSize(o.w, o.h);
+            this.applyState();
+        });
+
+        // ③ 金环 / 外发光 —— **第 45 轮删除**（用户：牌周边的黄色框/光晕）
+        //    原实现在 `Ring` 节点上画 3 层递减 alpha 的金色描边 + 1 道主环，
+        //    实测那道主环落在牌体**外侧** 2~4px，看起来就像一个占位框。
+
+        // ⚠️ `setState` 对相同状态会早退，而字段初值就是 'cover' ⇒ 这一次调用是空转，
+        //    必须显式补一次 `applyState()`，否则"开局即被压"的牌会停在
+        //    "两张贴图都 active=false"的空白态（第 45 轮实测踩到）。
         this.setState('cover');
+        this.applyState();
     }
 
     /** 牌面图缺失时的矢量兜底：画一块牌 + 中文牌名，保证"没有素材也玩得下去" */
@@ -139,21 +188,29 @@ export class TileView {
     private applyState(): void {
         const live = this._state === 'pick';
         const lock = this._state === 'lock';
+        const dead = !live && !lock;
 
-        // 牌面明暗（imgmode：图片自带金边，这里只调明暗，不加任何描边）
-        if (this._sp) {
-            const k = live ? 1.0 : (lock ? 0.55 : DEAD_SAT * DEAD_BRI);
-            this._sp.color = new Color(
-                Math.round(255 * k), Math.round(255 * k), Math.round(255 * k), 255,
-            );
-        }
+        // 矢量兜底态：只调透明度（原色都没加载出来，谈不上灰阶）
         if (this._fallback) {
             const op = this._fallback.getComponent(UIOpacity) ?? this._fallback.addComponent(UIOpacity);
             op.opacity = live ? 255 : (lock ? 150 : 210);
+            this.drawBase(live, lock);
+            return;
         }
 
+        const hasColor = !!this._sp?.spriteFrame;
+        const hasDead = !!this._spDead?.spriteFrame;
+        // 灰阶图没到位时**退回原色**（宁可先彩色，也不能让牌空着）
+        const useDead = dead && hasDead;
+
+        if (this._faceNode) this._faceNode.active = !useDead && hasColor;
+        if (this._deadNode) this._deadNode.active = useDead;
+        if (this._sp) this._sp.color = lock ? TINT_LOCK : TINT_WHITE;
+        if (this._spDead) this._spDead.color = TINT_WHITE;
+        // 兜底：灰阶图缺失时把原色压暗，至少与"可点"拉开距离
+        if (dead && !hasDead && this._sp) this._sp.color = TINT_DEAD_FALLBACK;
+
         this.drawBase(live, lock);
-        this.drawRing(live);
     }
 
     /** 影：可点 = 大而远（"浮起来"）；被压 = 几乎贴地（"压住了"） */
@@ -171,22 +228,6 @@ export class TileView {
         } else {
             fillRoundRect(g, 0, -3, this.w * 0.98, this.h * 0.97, this.w * 0.12, '#000000', 80);
         }
-    }
-
-    /** 金环 + 外发光（只在可点时画；外发光用几层递减 alpha 的描边逼近） */
-    private drawRing(live: boolean): void {
-        const g = this._ring;
-        if (!g) return;
-        g.clear();
-        if (!live) return;
-        const r = Math.max(6, this.w * 0.12);
-        // 外发光（3 层，由外到内渐亮）
-        for (let i = 3; i >= 1; i--) {
-            strokeRoundRect(g, 0, 0, this.w + i * 8, this.h + i * 8, r + i * 4,
-                COLOR.GOLD, i === 1 ? 2.5 : 1.0, Math.round(52 / i));
-        }
-        // 主环
-        strokeRoundRect(g, 0, 0, this.w + 4, this.h + 4, r + 2, COLOR.GOLD, 3, 132);
     }
 
     // --------------------------------------------------------

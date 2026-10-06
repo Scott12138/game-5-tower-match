@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第 45 轮 · 三组视觉方案拍板</title>
+<style>
+/* ============================================================
+   风格：奢华精致 × 样品册
+   底色 = 麻将桌绒布墨玉；金只用于"选中/编号/边线"，不做装饰堆砌
+   记忆点 = 顶部一条常驻"样品编号尺"，两组议题像册页一样翻过去
+   ============================================================ */
+:root{
+  --ink:#08150F;        /* 最深底 */
+  --jade:#0E2619;       /* 绒布底 */
+  --jade-2:#123322;
+  --gold:#C6A258;
+  --gold-hi:#F0D28A;
+  --cream:#EDF3EC;
+  --cream-dim:#9CB3A6;
+  --cream-mute:#6E8A7C;
+  --red:#D8432F;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--cream)}
+body{
+  font:15px/1.65 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 80% at 50% -10%, #143C28 0%, var(--jade) 42%, var(--ink) 100%);
+  background-attachment:fixed;
+}
+.wrap{max-width:1220px;margin:0 auto;padding:38px 24px 90px}
+
+/* ---------- 页头 ---------- */
+header{border-bottom:1px solid rgba(198,162,88,.22);padding-bottom:20px;margin-bottom:30px}
+.eyebrow{font-size:12px;letter-spacing:.34em;color:var(--gold);text-transform:uppercase;margin-bottom:12px}
+h1{
+  font-family:"Songti SC","Source Han Serif SC","Noto Serif SC",Georgia,serif;
+  font-size:35px;line-height:1.25;margin:0 0 12px;font-weight:600;letter-spacing:.01em;
+}
+h1 em{font-style:normal;color:var(--gold-hi)}
+.sub{color:var(--cream-dim);font-size:14.5px;max-width:74ch}
+.sub b{color:var(--cream);font-weight:600}
+
+/* ---------- 议题分隔 ---------- */
+.section{margin-top:56px;padding-top:30px;border-top:1px dashed rgba(198,162,88,.26)}
+.section:first-of-type{border-top:none;padding-top:0;margin-top:0}
+.secHead{display:flex;align-items:baseline;gap:14px;margin-bottom:6px;flex-wrap:wrap}
+.secNo{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;
+  color:var(--gold);border:1px solid rgba(198,162,88,.45);border-radius:5px;padding:2px 8px;
+  letter-spacing:.1em;
+}
+h2{font-family:"Songti SC",Georgia,serif;font-size:25px;margin:0;font-weight:600}
+.secNote{color:var(--cream-dim);font-size:13.5px;margin:2px 0 24px;max-width:80ch}
+.secNote .q{color:var(--gold-hi);font-style:normal}
+
+/* ---------- 方案排布 ---------- */
+.row{display:grid;gap:20px}
+.row.c3{grid-template-columns:repeat(3,1fr)}
+/* 被压牌这组是 4 块（现状 + A/B/C）—— 用 2×2，四块**同尺寸**才比得出来；
+   挤成 4 列会让每块只剩 ~285px，牌堆放不下，只能缩到看不清。 */
+.row.c2{grid-template-columns:repeat(2,1fr)}
+.opt{
+  background:linear-gradient(180deg,rgba(18,51,34,.72),rgba(11,31,22,.86));
+  border:1px solid rgba(198,162,88,.2);border-radius:14px;padding:16px 16px 14px;
+  position:relative;overflow:hidden;
+  animation:rise .42s cubic-bezier(.2,.8,.3,1) both;
+}
+.opt:nth-child(2){animation-delay:.06s}
+.opt:nth-child(3){animation-delay:.12s}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.optTag{
+  display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;letter-spacing:.16em;
+  color:var(--gold);border:1px solid rgba(198,162,88,.4);border-radius:4px;padding:1px 7px;margin-bottom:9px;
+}
+.optTag.rec{color:#08150F;background:var(--gold-hi);border-color:var(--gold-hi);font-weight:700}
+.opt h3{font-size:17px;margin:0 0 6px;font-weight:600;letter-spacing:.02em}
+.opt p{margin:0;font-size:13px;color:var(--cream-dim);line-height:1.6;min-height:3.2em}
+.opt .memory{
+  margin-top:10px;padding-top:9px;border-top:1px solid rgba(198,162,88,.16);
+  font-size:12.5px;color:var(--gold-hi);
+}
+
+/* ---------- 牌堆舞台 ---------- */
+.stage{
+  position:relative;width:100%;height:470px;margin:6px 0 4px;
+  background:
+    radial-gradient(72% 58% at 50% 44%, rgba(30,86,60,.5), transparent 74%),
+    linear-gradient(180deg,#0C2117,#0A1B13);
+  border:1px solid rgba(198,162,88,.14);border-radius:10px;overflow:hidden;
+}
+/* 舞台内的牌堆按设计 px 一比一摆放，外层统一缩放 */
+.pile{position:absolute;left:50%;top:52%;width:352px;height:344px;transform:translate(-50%,-50%) scale(var(--k,1.0))}
+.t{
+  position:absolute;width:112px;height:149.33px;
+  transform-origin:50% 50%;
+  background-size:100% 100%;
+  /* 牌面图自带金边与厚度，这里只叠影与滤镜（与游戏 imgmode 同口径） */
+  transition:none;
+}
+/* 底色滤镜与阴影 —— 由各方案覆写 */
+.t.cover{filter:saturate(.74) brightness(.85)}
+.t.pick{}
+
+/* ===== 现状（改造前）===== */
+#now .t.cover{box-shadow:0 3px 4px rgba(0,0,0,.42)}
+#now .t.pick {box-shadow:0 16px 13px rgba(0,0,0,.5),0 0 0 3px rgba(224,180,74,.82)}
+/* ===== 方案 A · 压深 ===== */
+#A .t.cover{filter:saturate(.5) brightness(.6);box-shadow:0 2px 3px rgba(0,0,0,.5)}
+#A .t.pick {filter:saturate(1.06) brightness(1.04);box-shadow:0 15px 13px rgba(0,0,0,.62),0 0 0 3px rgba(240,210,138,.9)}
+#A .t.pick::after{
+  content:"";position:absolute;left:5%;right:5%;bottom:-19px;height:22px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0));
+  border-radius:0 0 50% 50%;
+}
+/* ===== 方案 B · 浮沉 ===== */
+#B .t.cover{filter:saturate(.82) brightness(.8);transform:translateY(5px) scale(.955);
+  box-shadow:0 1px 2px rgba(0,0,0,.42)}
+#B .t.pick {transform:translateY(-7px) scale(1.035);
+  box-shadow:0 20px 16px rgba(0,0,0,.62),0 0 0 3px rgba(240,210,138,.9)}
+/* ===== 方案 C · 灰阶 ===== */
+#C .t.cover{filter:grayscale(.9) brightness(.66) contrast(.95);
+  box-shadow:0 2px 3px rgba(0,0,0,.45),0 0 0 2px rgba(158,182,196,.34)}
+#C .t.pick {filter:none;box-shadow:0 15px 13px rgba(0,0,0,.6),0 0 0 3px rgba(240,210,138,.92)}
+
+/* 被压牌上的小角标（方案 C 的"层级"提示，也可单独选用） */
+.badge{
+  position:absolute;right:-7px;bottom:-7px;min-width:26px;height:26px;border-radius:13px;
+  background:#0B1F16;border:1.5px solid rgba(158,182,196,.6);color:#B9CDD6;
+  font:700 14px/23px ui-monospace,Menlo,monospace;text-align:center;padding:0 6px;
+}
+
+/* ---------- 图例 ---------- */
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin:2px 0 20px;font-size:13px;color:var(--cream-dim)}
+.legend span{display:flex;align-items:center;gap:7px}
+.dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+/* ---------- 参数表 ---------- */
+table{width:100%;border-collapse:collapse;margin:24px 0 6px;font-size:13.5px}
+th,td{padding:9px 11px;text-align:left;border-bottom:1px solid rgba(198,162,88,.15);vertical-align:top}
+th{background:rgba(198,162,88,.09);color:var(--gold);font-size:12.5px;font-weight:600;white-space:nowrap}
+td.k{color:var(--cream);font-weight:600;white-space:nowrap}
+td code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--gold-hi)}
+td .dim{display:block;font-family:-apple-system,"PingFang SC",sans-serif;font-size:11px;color:var(--cream-mute);margin-top:2px}
+.tw{overflow-x:auto}
+
+/* ---------- 金币部分 ---------- */
+.phone{
+  position:relative;width:100%;aspect-ratio:750/900;border-radius:16px;overflow:hidden;
+  background:
+    radial-gradient(84% 52% at 50% 42%, rgba(30,86,60,.55), transparent 74%),
+    linear-gradient(180deg,#0C2117,#08150F);
+  border:1px solid rgba(198,162,88,.22);
+}
+/* 压暗层必须在**卡片之前** —— 放到卡片后面会把弹层自己也压灰，
+   第一版就是这么错的：卡片看着像一块灰塑料。 */
+.phone .dim{position:absolute;inset:0;background:rgba(4,20,15,.66)}
+.phone .card{
+  position:absolute;left:8%;right:8%;top:27%;height:44%;border-radius:20px;
+  background:linear-gradient(180deg,#FBF7EC,#E9E1CE);
+  border:3px solid var(--gold);box-shadow:0 0 0 2px #0A3327,0 18px 34px rgba(0,0,0,.55);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+}
+.phone .cTitle{font-family:"Songti SC",Georgia,serif;font-size:20px;font-weight:700;color:#8A5A16;letter-spacing:.06em}
+.phone .cSub{font-size:11.5px;color:#A08B62;margin-top:-8px}
+.phone .cCoin{font-family:ui-monospace,Menlo,monospace;font-size:28px;font-weight:700;color:#C08A22;
+  text-shadow:0 1px 0 rgba(255,255,255,.75)}
+.phone .cBtn{width:58%;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#F0D28A,#C6A258);color:#3A2A08;font-size:14px;font-weight:700;
+  border:2px solid #8A6A24;box-shadow:0 3px 0 #8A6A24}
+.rain{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+/* 位置与旋转全部由 JS 逐帧写 top/transform（见页面底部 script 的注释），
+   这里**故意不写 @keyframes** —— 用 CSS 动画时 `translateY(%)` 的百分比
+   是相对元素自身高度，金币根本落不到底，这里踩过一次。 */
+.rain i{
+  position:absolute;top:-16%;display:block;
+  background-size:100% 100%;background-repeat:no-repeat;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.38));
+  will-change:top,transform;
+}
+
+.specBody{display:grid;grid-template-columns:120px 1fr;gap:6px 16px;margin-top:12px;font-size:12.5px}
+.specBody dt{color:var(--cream-mute)}
+.specBody dd{margin:0;color:var(--cream-dim)}
+.specBody dd b{color:var(--gold-hi);font-weight:600}
+
+.zoom{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-end;margin:8px 0 0}
+.zoom figure{margin:0;text-align:center}
+.zoom figcaption{font-size:12px;color:var(--cream-mute);margin-top:8px}
+.zoom .chip{
+  width:150px;height:150px;background-size:contain;background-repeat:no-repeat;background-position:center;
+  border-radius:12px;background-color:rgba(8,21,15,.72);border:1px solid rgba(198,162,88,.14);
+}
+
+/* ---------- 页脚 ---------- */
+footer{margin-top:64px;padding-top:22px;border-top:1px solid rgba(198,162,88,.2);
+  color:var(--cream-mute);font-size:13px}
+footer ol{margin:10px 0 0;padding-left:20px}
+footer li{margin:5px 0}
+.warn{
+  margin-top:16px;padding:12px 14px;border-radius:9px;font-size:13px;
+  background:rgba(216,67,47,.1);border:1px solid rgba(216,67,47,.4);color:#FFC8BD;
+}
+.warn b{color:#FF9E88}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Game 5 · Round 45 · Pick One</div>
+  <h1>三组视觉方案 · <em>等你拍板</em></h1>
+  <p class="sub">
+    第一组解决「看得见却点不到」—— 让被上层压住的牌一眼就能认出来；第二组是结算页的
+    <b>金币雨</b>，按你的要求整体放大一倍并轻微虚化，做了三种虚化程度。
+    每组挑一个编号告诉我即可（也可以说"都不行，重做"）。
+  </p>
+</header>
+
+<!-- ============================================================
+     议题一 · 被压住的牌
+     ============================================================ -->
+<section class="section" id="s1">
+  <div class="secHead">
+    <span class="secNo">ISSUE 01</span>
+    <h2>被压住的牌怎么才明显</h2>
+  </div>
+  <p class="secNote">
+    你说的现象是：<span class="q">"有一些明明能看到，但是点不到，其实他在第二层被压住了"</span>。
+    现在的做法只把被压的牌压暗到 63%（降饱和 + 压亮度），在深绿绒布上这个差别人眼很难判。
+    下面三块用的是 <b>同一个牌堆、同一组坐标</b> —— 顶层那张金色描边的是可点的，其余都被压着。
+  </p>
+
+  <div class="legend">
+    <span><i class="dot" style="background:#F0D28A;box-shadow:0 0 0 2px rgba(240,210,138,.5)"></i>可点（金环）</span>
+    <span><i class="dot" style="background:#5B6B62"></i>被压（点不到）</span>
+  </div>
+
+  <div class="row c2">
+    <!-- 现状 -->
+    <div class="opt" id="now">
+      <span class="optTag">BEFORE</span>
+      <h3>现在的样子</h3>
+      <p>被压 = 只压暗到 63%。放在深绿绒布上，和"可点"的差别小到需要盯着看。</p>
+      <div class="stage"><div class="pile" style="--k:1.16"></div></div>
+      <div class="memory">纯明度差 · 层级关系看不出来</div>
+    </div>
+
+    <!-- 方案 A -->
+    <div class="opt" id="A">
+      <span class="optTag rec">方案 A · 推荐</span>
+      <h3>压深</h3>
+      <p>被压的牌明显变暗变灰（压到 60%），同时让<b>上层牌往下投一道影</b>落在它身上 ——
+         牌的"上下关系"立刻成立。</p>
+      <div class="stage"><div class="pile" style="--k:1.16"></div></div>
+      <div class="memory">记忆点 · 被压的牌像陷进桌面里</div>
+    </div>
+
+    <!-- 方案 B -->
+    <div class="opt" id="B">
+      <span class="optTag">方案 B</span>
+      <h3>浮沉</h3>
+      <p>不用滤镜说话，用<b>位置</b>说话：可点的整体上浮 7px 并放大 3.5%，被压的下沉 5px 并缩小 4.5%。</p>
+      <div class="stage"><div class="pile" style="--k:1.16"></div></div>
+      <div class="memory">记忆点 · 能点的浮在表面，不能点的沉下去</div>
+    </div>
+
+    <!-- 方案 C -->
+    <div class="opt" id="C">
+      <span class="optTag">方案 C</span>
+      <h3>灰阶</h3>
+      <p>最狠的一刀：被压的牌<b>去掉近乎全部颜色</b>（灰阶 90%）并压暗，同时描一圈冷灰细边。
+         规则变成"彩色 = 能点，灰的 = 不能点"。</p>
+      <div class="stage"><div class="pile" style="--k:1.16"></div></div>
+      <div class="memory">记忆点 · 颜色本身就是能不能点的开关</div>
+    </div>
+  </div>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>方案</th><th>被压态（参数）</th><th>可点态</th>
+      <th>实测 · 被压牌亮度</th><th>实测 · 饱和度</th><th>代价 / 风险</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="k">BEFORE</td>
+        <td class="mono">saturate(.74) brightness(.85)<br>（＝游戏里的现值）</td>
+        <td class="mono">原色 + 金环 3px</td>
+        <td class="mono">135.3<span class="dim">（基准 1.00×）</span></td>
+        <td class="mono">0.16</td>
+        <td>纯明度差 —— 这是你报"看不出被压"的原因</td>
+      </tr>
+      <tr>
+        <td class="k">A · 压深</td>
+        <td class="mono">saturate(.5) brightness(.6)<br>+ 上层投影</td>
+        <td class="mono">brightness(1.04) + 金环 3px</td>
+        <td class="mono"><b>95.5（0.71×）</b></td>
+        <td class="mono">0.11</td>
+        <td>最暗的牌在暗底上细节会丢一点；但"被压"读得最准</td>
+      </tr>
+      <tr>
+        <td class="k">B · 浮沉</td>
+        <td class="mono">translateY(5px) scale(.955)</td>
+        <td class="mono">translateY(-7px) scale(1.035)</td>
+        <td class="mono">126.7（0.94×）<br><span class="dim">亮度不是它的手段</span></td>
+        <td class="mono">0.18</td>
+        <td>位移会让牌堆边缘的牌稍微"出框"；不需改滤镜，最省性能</td>
+      </tr>
+      <tr>
+        <td class="k">C · 灰阶</td>
+        <td class="mono">grayscale(.9) brightness(.66)<br>+ 冷灰描边 2px</td>
+        <td class="mono">原色 + 金环 3px</td>
+        <td class="mono">106.0（0.78×）</td>
+        <td class="mono"><b>0.02</b></td>
+        <td>最好认，但牌堆整体会"花掉"—— 灰牌和彩牌混在一起，桌面看着脏</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="secNote" style="margin-top:10px;font-size:12.5px">
+    <b>实测怎么来的：</b>四块牌堆取<b>同一张牌</b>（右下那张三条）、<b>同一相对位置</b>的
+    37×81 像素区域，直接在这张截图上取样求均值 —— 不是估的。
+    ⚠ B 的亮度之所以几乎没降，是因为它的手段是<b>位移</b>而不是滤镜；而且它把牌缩了 4.5%，
+    取样区域落在牌上的<b>位置</b>也跟着变了一点，所以那一格别当滤镜强度读。
+  </p>
+</section>
+
+<!-- ============================================================
+     议题二 · 金币雨
+     ============================================================ -->
+<section class="section" id="s2">
+  <div class="secHead">
+    <span class="secNo">ISSUE 02</span>
+    <h2>结算页金币雨 · 放大一倍 + 虚化</h2>
+  </div>
+  <p class="secNote">
+    现在每枚金币是 <span class="q">34 设计 px</span>，你要放大一倍到 <b>68</b>，并且"不要太实，稍微虚化一些"。
+    源图 <span class="mono">splash/coin.png</span> 是 112×104 像素，按真机 1 设计 px = 1.6853 物理 px 换算，
+    它的 <b>1:1 上限是 66.5 设计 px</b> —— 68 略微超出（约 2.3%），肉眼看不出差别，可以放心用。
+    下面三块是同一个结算弹层里跑同一场金币雨，只有金币的虚化程度不同。
+  </p>
+
+  <div class="row c3">
+    <div class="opt">
+      <span class="optTag">版本 A</span>
+      <h3>微虚</h3>
+      <p>只把边缘化开一点点，币面纹路、方孔、高光全部保留。像"拍清楚的一枚硬币"。</p>
+      <div class="phone">
+        <div class="dim"></div>
+        <div class="card">
+          <div class="cTitle">关卡完成</div>
+          <div class="cSub">第 12 关 · 剩余 3 步</div>
+          <div class="cCoin">+ 168</div>
+          <div class="cBtn">下一关</div>
+        </div>
+        <div class="rain" data-coin="coin-a.png"></div>
+      </div>
+      <dl class="specBody">
+        <dt>显示尺寸</dt><dd><b>68 × 68</b> 设计 px（原 34）</dd>
+        <dt>模糊半径</dt><dd>1.6 px @3x（≈0.53 设计 px）</dd>
+        <dt>保留细节</dt><dd>几乎全部</dd>
+      </dl>
+    </div>
+
+    <div class="opt">
+      <span class="optTag rec">版本 B · 推荐</span>
+      <h3>柔虚</h3>
+      <p>明显柔化、圆边化开，纹路还在但不抢眼。正好配"落在空中正在下落"的动势，
+         又不会糊到看不出是钱。</p>
+      <div class="phone">
+        <div class="dim"></div>
+        <div class="card">
+          <div class="cTitle">关卡完成</div>
+          <div class="cSub">第 12 关 · 剩余 3 步</div>
+          <div class="cCoin">+ 168</div>
+          <div class="cBtn">下一关</div>
+        </div>
+        <div class="rain" data-coin="coin-b.png"></div>
+      </div>
+      <dl class="specBody">
+        <dt>显示尺寸</dt><dd><b>68 × 68</b> 设计 px（原 34）</dd>
+        <dt>模糊半径</dt><dd>3.6 px @3x（≈1.2 设计 px）</dd>
+        <dt>不透明度</dt><dd>0.95</dd>
+      </dl>
+    </div>
+
+    <div class="opt">
+      <span class="optTag">版本 C</span>
+      <h3>朦胧 + 光晕</h3>
+      <p>模糊最重，外加一圈暖金光晕，最有"钱雨下不停"的氛围感 —— 代价是币面细节基本没了。</p>
+      <div class="phone">
+        <div class="dim"></div>
+        <div class="card">
+          <div class="cTitle">关卡完成</div>
+          <div class="cSub">第 12 关 · 剩余 3 步</div>
+          <div class="cCoin">+ 168</div>
+          <div class="cBtn">下一关</div>
+        </div>
+        <div class="rain" data-coin="coin-c.png"></div>
+      </div>
+      <dl class="specBody">
+        <dt>显示尺寸</dt><dd><b>68 × 68</b> 设计 px（原 34）</dd>
+        <dt>模糊半径</dt><dd>6.6 px @3x（≈2.2 设计 px）</dd>
+        <dt>光晕</dt><dd>暖金 10px 外扩</dd>
+      </dl>
+    </div>
+  </div>
+
+  <h3 style="margin:30px 0 4px;font-size:16px;font-weight:600">细节对照（同一外框，直接比大小和清晰度）</h3>
+  <div class="zoom" id="zoomRow">
+    <figure><div class="chip" style="background-image:url('assets/coin-now.png')"></div>
+      <figcaption>现在 · 34px<br><span style="color:#4C6157">（同框下只有一半大）</span></figcaption></figure>
+    <figure><div class="chip" style="background-image:url('assets/coin-a.png')"></div>
+      <figcaption>A · 微虚<br><span style="color:#4C6157">边缘微化，纹路全留</span></figcaption></figure>
+    <figure><div class="chip" style="background-image:url('assets/coin-b.png')"></div>
+      <figcaption>B · 柔虚<br><span style="color:#4C6157">整体柔化，不糊</span></figcaption></figure>
+    <figure><div class="chip" style="background-image:url('assets/coin-c.png')"></div>
+      <figcaption>C · 朦胧 + 光晕<br><span style="color:#4C6157">氛围最强，细节最少</span></figcaption></figure>
+  </div>
+</section>
+
+<!-- ============================================================
+     已处理 · 不需要拍板
+     ============================================================ -->
+<section class="section" id="s3">
+  <div class="secHead">
+    <span class="secNo">ISSUE 03 / 04</span>
+    <h2>另外两条已经处理完 · 只回报，不用你选</h2>
+  </div>
+
+  <div class="row c2">
+    <div class="opt" id="fixSlot">
+      <span class="optTag">第 3 条 · 已修</span>
+      <h3>槽位显示错位 —— 找到真凶了</h3>
+      <p>
+        <b>根因不是"第一个槽没渲染"，而是"每一次消除都会把后面所有槽位变成空壳"。</b>
+        消除时先把槽内节点表清空，300 毫秒后再回头按它重排 —— 那时读到的已经是空表，
+        于是每一格都走了「只给尺寸、不给图片」的兜底分支，建出一批<b>看不见的空壳节点</b>。
+        数据是对的、外观是空的，所以你看到的现象正是「第一个槽里有牌却没显示出来」。
+      </p>
+      <p style="margin-top:8px">
+        修法：存活节点在<b>数据变更的同一步</b>就被摘出来排队，重排时按序放回；
+        万一对不上，也强制<b>补一张带图的</b>，绝不填空壳。同一个毛病在
+        「消除道具」和「复活直消」两条路径上也各有一处，一并修掉。
+      </p>
+      <div class="memory">
+        复测证据 · 真实鼠标走「入槽 → 成组 → 消除 → 重排」：
+        修前 槽内数据 [3,4,6] 而三格<span class="mono"> sprites:[] </span>（一张图都没有）
+        → 修后三格<span class="mono"> spriteFrame: true </span>
+      </div>
+    </div>
+
+    <div class="opt" id="fixTool">
+      <span class="optTag">第 4 条 · 已验</span>
+      <h3>四个道具都是好的 · 实测 7/7</h3>
+      <p>
+        用真实鼠标把四个道具逐个点了一遍（含"该失败时不许消耗"的反向用例），
+        <b>全部通过</b>。所以「用了没成功」不是功能没实现，而是下面两种前置条件之一。
+      </p>
+      <div class="memory" style="border-top:none;padding-top:0">
+        <div class="mono" style="line-height:1.9">
+          ✅ 加槽 槽位上限 +1（8 → 9）<br>
+          ✅ 移出 槽内 −1 且牌回桌（桌上 11 → 12）<br>
+          ✅ 洗牌 桌面牌位真的重排了<br>
+          ✅ 消除 无组时<b>不消耗</b>道具、局面不变<br>
+          ✅ 消除 槽里真成组时能消掉（槽 3 → 0）<br>
+          ✅ 消除 生效时<b>消耗</b> 1 个（角标 1 → ＋）
+        </div>
+      </div>
+      <p style="margin-top:10px">
+        <b>「用了没成功」的两个真实原因：</b>
+        ① 这一关的四种道具<b>本局数量是 0</b> —— 此时点格子不会生效，只会弹「看广告补 1 个」；
+        ② 「消除」的前置条件是<b>槽内已经凑成一组</b>（三张同面／同花色连号）。
+        但自动判定会在牌入槽的那一刻就把成组的牌当场消掉，所以
+        <b>正常玩下去你几乎永远碰不到「用消除」这个时机</b> —— 这不叫坏，叫用不上。
+        要不要给它换个更顺手的行为，你说了算。
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <b style="color:#EDF3EC">怎么回话最省事</b>
+  <ol>
+    <li>第一组：<span class="mono">A</span> / <span class="mono">B</span> / <span class="mono">C</span></li>
+    <li>第二组：<span class="mono">A</span> / <span class="mono">B</span> / <span class="mono">C</span></li>
+    <li>想混搭也行，例如「被压用 A，但金环再细一点」—— 直接说即可。</li>
+  </ol>
+  <div class="warn">
+    <b>第 2 条需求要你指一下（点击放大附图「请指认-黄色框框候选.png」）：</b>
+    你说的「牌本占位符（黄色框框）」，我在这张截图上把所有黄色元素都单独抽出来看过了，
+    能称得上「黄色框」的只有下面这几处 —— <b>回一个数字就行</b>，我立刻改。
+    <ol style="margin:8px 0 0;padding-left:22px">
+      <li><b>1</b> 左上角的暂停键（金色描边方框）</li>
+      <li><b>2</b> 右上角的「规则」按钮（金色描边胶囊）</li>
+      <li><b>3</b> 底下那排槽位（含空槽的虚线框）</li>
+      <li><b>4</b> 底带四个道具格的金色描边框</li>
+      <li><b>5</b> 牌堆里被压住的牌露出来的那圈浅色边</li>
+    </ol>
+    <div style="margin-top:8px;color:#E9C9A8">
+      都不是的话，说一句「是别的，在____位置」也行 —— 我不想改错地方反而把你原本满意的东西动了。
+    </div>
+  </div>
+</footer>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------
+   牌堆布局：与游戏同一口径 —— 牌宽 112、高 149.33 设计 px，
+   坐标以牌堆中心为原点（y 向下为正，方便和排版直觉一致）
+   ------------------------------------------------------------ */
+var LAYOUT = [
+  // [牌面, x, y, 状态]
+  ['A1', -120,  55, 'cover'],
+  ['B1',    0,  55, 'cover'],
+  ['C1',  120,  55, 'cover'],
+  ['D1',  -60, -50, 'cover'],
+  ['E1',   60, -50, 'cover'],
+  ['F1',    0, -140, 'pick'],
+];
+var FACES = {
+  A1: 'assets/tiao1.png',
+  B1: 'assets/wan4.png',
+  C1: 'assets/tiao3.png',
+  D1: 'assets/wan5.png',
+  E1: 'assets/tong6.png',
+  F1: 'assets/wan1.png',
+};
+var CX = 352 / 2, CY = 344 / 2;
+var W = 112, H = 149.33;
+
+document.querySelectorAll('.pile').forEach(function (pile) {
+  LAYOUT.forEach(function (t) {
+    var d = document.createElement('div');
+    d.className = 't ' + t[3];
+    d.dataset.k = t[0];          /* 面值标识 —— 供脚本按"同一张牌"跨方案取像素对账 */
+    d.style.backgroundImage = "url('" + FACES[t[0]] + "')";
+    d.style.left = (CX + t[1] - W / 2) + 'px';
+    d.style.top  = (CY + t[2] - H / 2) + 'px';
+    d.style.zIndex = String(Math.round(50 - t[2] / 4));
+    pile.appendChild(d);
+  });
+});
+
+/* ------------------------------------------------------------
+   金币雨：每块 16 枚，边落边转
+
+   ★★ 为什么不用 CSS @keyframes（第 45 轮实测，两层坑叠在一起）：
+     ① `transform: translateY(148%)` 里那个 % 是**相对元素自身高度**，
+        不是相对雨框 —— 34px 的金币实际只下移 50px，而雨框高 538px，
+        于是 16 枚全卡在顶端、被 overflow:hidden 裁掉，肉眼就是"没有金币雨"。
+     ② 无头环境里动画时钟不一定推进，截图/断言拿到的相位不可复现。
+   ⇒ 改成 JS 逐帧驱动 `top`（% 在 top 上是相对**包含块**高度，语义正确），
+     并把 seek() 暴露出去：任何时刻都能把这场雨**冻结在指定时刻**取证。
+   ------------------------------------------------------------ */
+var RAIN_N = 16;
+var RAIN_BOXES = [];
+var rainT0 = 0, rainFrozen = false;
+
+document.querySelectorAll('.rain').forEach(function (box) {
+  var src = box.getAttribute('data-coin');
+  var coins = [];
+  for (var i = 0; i < RAIN_N; i++) {
+    var el = document.createElement('i');
+    var size = 34 + (i % 3) * 3;                  /* 34 / 37 / 40 CSS px ≈ 68 设计 px 档 */
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    /* 横向：按黄金步长错开，避免相邻两枚叠在同一条竖线上 */
+    el.style.left = (((i * 0.618 + 0.04) % 1) * 84 + 4).toFixed(2) + '%';
+    el.style.backgroundImage = "url('assets/" + src + "')";
+    el.style.opacity = (0.68 + (i % 3) * 0.12).toFixed(2);
+    box.appendChild(el);
+    coins.push({
+      el: el,
+      dur: 2600 + (i % 5) * 420,                /* ms */
+      phase: (i + 0.5) / RAIN_N,                /* ★ 相位均匀铺开 ⇒ 任意瞬间都铺满整条路径 */
+      spin: 540 * (i % 2 ? 1 : -1),             /* 正反转交替，看着更自然 */
+    });
+  }
+  RAIN_BOXES.push({ box: box, coins: coins });
+});
+
+/** 把整场雨渲染到「从开始算起 ms 毫秒」这一瞬间。t 可以是任意值，与真实时钟无关。 */
+function renderRain(ms) {
+  RAIN_BOXES.forEach(function (b) {
+    b.coins.forEach(function (c) {
+      var p = (ms / c.dur + c.phase) % 1;
+      if (p < 0) p += 1;
+      c.el.style.top = (-16 + p * 130).toFixed(2) + '%';   /* -16% → 114%，穿过整个弹层 */
+      c.el.style.transform = 'rotate(' + (p * c.spin).toFixed(1) + 'deg)';
+    });
+  });
+}
+
+rainT0 = (window.performance && performance.now) ? performance.now() : Date.now();
+function rainLoop() {
+  if (!rainFrozen) {
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    renderRain(now - rainT0);
+  }
+  requestAnimationFrame(rainLoop);
+}
+renderRain(0);
+requestAnimationFrame(rainLoop);
+
+/* 取证接口：seek(ms) 定格到某瞬间；freeze()/resume() 开关自动播放 */
+window.__rain = {
+  seek: function (ms) { rainFrozen = true; renderRain(ms); return RAIN_BOXES.length; },
+  freeze: function () { rainFrozen = true; return true; },
+  resume: function () { rainFrozen = false; return true; },
+  count: function () { return RAIN_BOXES.reduce(function (n, b) { return n + b.coins.length; }, 0); },
+};
+</script>
+</body>
+</html>
