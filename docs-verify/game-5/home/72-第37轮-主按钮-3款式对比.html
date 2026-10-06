@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>第37轮 · 首页主按钮 · 3 款式对比（待拍板）</title>
+<style>
+  :root {
+    --ink:#16211C; --sub:#5D6B64; --line:#DFE5E0; --bg:#F5F7F5; --card:#FFFFFF;
+    --green:#1B5E4A; --green2:#2E8B63; --gold:#B8860B; --red:#C0392B; --amber:#B7791F;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --serif:"Songti SC","STSong",serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:40px 32px 60px; background:var(--bg); color:var(--ink);
+         font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+         font-size:15px; line-height:1.72; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1120px; margin:0 auto; }
+  header { border-bottom:3px solid var(--green); padding-bottom:18px; margin-bottom:26px; }
+  h1 { margin:0 0 8px; font-size:27px; letter-spacing:.4px; }
+  .sub { color:var(--sub); font-size:14px; }
+  .verdict { background:var(--green); color:#F2F7F4; border-radius:12px;
+              padding:22px 26px; margin:0 0 30px; }
+  .verdict .lbl { font-size:12.5px; letter-spacing:2.5px; opacity:.75; margin-bottom:8px; }
+  .verdict .txt { font-size:16px; line-height:1.85; }
+  .verdict b { color:#FFD98A; }
+  .verdict code { background:rgba(255,255,255,.13); color:#FFE9A8; padding:1px 6px;
+                   border-radius:4px; font-family:var(--mono); font-size:13px; }
+  h2 { font-size:18px; margin:38px 0 14px; padding-left:12px;
+        border-left:4px solid var(--green2); }
+  h2 .en { font-size:12px; color:var(--sub); font-weight:400; margin-left:8px;
+            letter-spacing:1px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+           overflow:hidden; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { background:#EEF3EF; text-align:left; padding:11px 14px; font-weight:600;
+        font-size:13px; color:#2C3B34; border-bottom:1px solid var(--line); }
+  td { padding:11px 14px; border-bottom:1px solid #EDF1EE; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  .mono { font-family:var(--mono); font-size:12.8px; }
+  .bad { color:var(--red); font-weight:600; }
+  .good { color:#1E8449; font-weight:600; }
+  code { font-family:var(--mono); font-size:12.6px; background:#EEF3EF;
+          padding:1px 5px; border-radius:4px; color:#22483A; }
+  b { color:#0F3D2E; }
+
+  /* ---- 现状解剖 ---- */
+  .autopsy { display:grid; grid-template-columns:auto 1fr; gap:26px; align-items:start; }
+  .autopsy img { display:block; border-radius:10px; border:1px solid #2A3A34; }
+  .faults { margin:0; padding:0; list-style:none; }
+  .faults li { padding:10px 0 10px 34px; position:relative; border-bottom:1px dashed #E2E8E4;
+                font-size:14px; }
+  .faults li:last-child { border-bottom:none; }
+  .faults li::before { content:attr(data-n); position:absolute; left:0; top:10px;
+      width:22px; height:22px; border-radius:50%; background:#FDE8E6; color:var(--red);
+      font-size:12px; font-weight:700; text-align:center; line-height:22px;
+      font-family:var(--mono); }
+  .faults .t { font-weight:600; color:#0F3D2E; }
+
+  /* ---- 候选卡 ---- */
+  .cand { background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:20px 22px 18px; margin-bottom:20px; }
+  .cand.hot { border-color:#B9D6C6; box-shadow:0 2px 14px rgba(27,94,74,.09); }
+  .chead { display:flex; align-items:baseline; gap:12px; margin-bottom:16px;
+            flex-wrap:wrap; }
+  .cname { font-size:20px; font-weight:700; color:#0F3D2E; letter-spacing:.5px; }
+  .ctitle { font-size:13.5px; color:var(--sub); }
+  .pick { margin-left:auto; background:#E3F4EA; color:#1E8449; font-size:12.5px;
+           font-weight:600; padding:3px 12px; border-radius:20px; }
+  .shots { display:flex; gap:22px; align-items:flex-end; flex-wrap:wrap; }
+  figure { margin:0; }
+  figcaption { font-size:11.5px; color:var(--sub); margin-bottom:7px;
+                font-family:var(--mono); }
+
+  /* ---- 按钮舞台（真实毡面） ---- */
+  .stage { position:relative; border-radius:6px; overflow:hidden;
+      background:url(round37/felt.jpg) center/cover;
+      background-color:#0E2A1E; }
+  .stage img { position:absolute; top:0; display:block; image-rendering:auto; }
+  .stage .mid { object-fit:fill; }
+  .stage .shade { position:absolute; left:0; top:0; pointer-events:none;
+      background:
+        linear-gradient(90deg, rgba(2,24,13,.34) 0, rgba(2,24,13,.34) var(--band),
+                        rgba(2,24,13,0) calc(var(--band) * 1.6)),
+        linear-gradient(270deg, rgba(2,24,13,.34) 0, rgba(2,24,13,.34) var(--band),
+                        rgba(2,24,13,0) calc(var(--band) * 1.6)),
+        linear-gradient(180deg, rgba(255,255,255,.10) 0, rgba(255,255,255,0) 50%,
+                        rgba(0,20,10,.16) 100%); }
+  .cut { position:absolute; top:0; bottom:0; width:0; border-left:1px dashed rgba(255,225,150,.85); }
+  .tag { position:absolute; top:2px; font-size:10px; color:#FFE9A8; font-style:normal;
+          transform:translateX(-50%); font-family:var(--mono); }
+  .labelbox { position:absolute; inset:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:calc(6px * var(--s)); }
+  .labelbox .l1 { font-size:calc(36px * var(--s)); font-weight:800; color:#FFE9A8;
+      letter-spacing:calc(2px * var(--s)); line-height:1;
+      text-shadow:0 calc(2px * var(--s)) calc(4px * var(--s)) rgba(0,0,0,.55); }
+  .labelbox .l2 { font-size:calc(24px * var(--s)); font-family:var(--serif); font-weight:700;
+      color:rgba(255,247,230,.92); line-height:1; display:flex; align-items:center;
+      gap:calc(12px * var(--s));
+      text-shadow:0 calc(2px * var(--s)) calc(4px * var(--s)) rgba(0,0,0,.5); }
+  .labelbox .l2 i { display:block; width:calc(40px * var(--s)); height:1px;
+      background:rgba(246,196,69,.63); }
+
+  .facts { margin:16px 0 0; padding:0; list-style:none; display:flex; gap:26px;
+            flex-wrap:wrap; }
+  .facts li { font-size:13px; color:#41504A; position:relative; padding-left:13px; }
+  .facts li::before { content:''; position:absolute; left:0; top:8px; width:5px; height:5px;
+      border-radius:50%; background:var(--green2); }
+  .why { margin:14px 0 0; font-size:13.5px; color:#41504A; background:#F7FAF8;
+          border-left:3px solid #B9D6C6; padding:11px 14px; border-radius:0 8px 8px 0; }
+
+  .rec { background:#FFFDF4; border:1px solid #EDE0BC; border-radius:10px;
+          padding:18px 22px; margin-top:8px; }
+  .rec h3 { margin:0 0 10px; font-size:15px; color:#8A6D1F; }
+  .rec ol { margin:0; padding-left:20px; font-size:14px; }
+  .rec li { margin-bottom:7px; }
+  .ask { background:var(--green); color:#F2F7F4; border-radius:10px; padding:16px 22px;
+          margin-top:16px; font-size:14.5px; }
+  .ask b { color:#FFD98A; }
+</style></head><body><div class="wrap">
+
+<header>
+  <h1>第 37 轮 · 首页主按钮换素材 · 3 款式对比</h1>
+  <div class="sub">《麻麻大消除》· 微信小游戏 · 750×1334 设计值 ·
+    用户反馈：中间亮度提高 / 四周边缘违和 · <b>待拍板</b></div>
+</header>
+
+<div class="verdict">
+  <div class="lbl">先给结论</div>
+  <div class="txt">
+    <b>病灶不在素材，在"九宫格怎么拼"。</b>
+    当前引擎把 <code>btn9_mid</code> 的 <b>228×280 强制拉成 320×140</b> ——
+    横向 ×1.40、纵向 ×0.50，<b>各向异性 2.81×</b>，玉纹被压扁拉长；
+    再叠一层 <code>rgba(255,255,255,.10)</code> 的中央白渐变，
+    就成了你圈出来的"<b>中间发亮</b>"；两端 78/75 宽的帽又盖在中段上，
+    接缝落进可见区 ⇒ "<b>边缘违和</b>"。
+    而原设计稿 v2 写的是「<b>两端圆角固定、中段水平拉伸</b>」——
+    引擎里没照这个做。<br>
+    下面三款都按<b>正确九宫格</b>渲染（本轮已把 v1/v2 实测弧宽切好），你挑一款即可。
+  </div>
+</div>
+
+<h2>一、现状解剖<span class="en">你的实拍 2× 放大</span></h2>
+<div class="card" style="padding:20px 22px">
+  <div class="autopsy">
+    <img src="round37/现状实拍.png" width="670" height="380"
+         alt="当前主按钮实拍 2× 放大">
+    <ul class="faults">
+      <li data-n="1"><span class="t">中段被强制非等比拉伸</span><br>
+        源图 228×280 → 显示 320×140：横向 ×1.403、纵向 ×0.500。
+        玉纹本来是一团一团云雾，被压成横向拉丝 ⇒ 中间看着"平、假、发亮"。</li>
+      <li data-n="2"><span class="t">中央白渐变叠加</span><br>
+        <code>fillVGradient(..., 'rgba(255,255,255,0.10)', ...)</code> 铺在中段上方，
+        再叠 <code>rgba(0,20,10,0.16)</code> 压底 —— 中段整体比两端亮一档。</li>
+      <li data-n="3"><span class="t">两端的帽与中段接不上</span><br>
+        左帽 78 宽、右帽 75 宽（按高 140 等比），都<b>压在中段之上</b>；
+        帽的金框是圆弧、中段的金线是直线，落在 x≈78 / 245 处形成硬接缝。
+        两端另有 80 宽 <code>rgba(2,24,13,.34)</code> 压暗带 ⇒ 那两条"灰条"。</li>
+    </ul>
+  </div>
+</div>
+
+<h2>二、三款候选<span class="en">全部按正确九宫格渲染 · 真实毡面 + 真实文案</span></h2>
+
+<section class="cand hot">
+  <div class="chead">
+    <span class="cname">方案 B</span>
+    <span class="ctitle">v2 底板（设计稿 v2 选定的那块）</span>
+    <span class="pick">设计稿推荐</span>
+  </div>
+  <div class="shots">
+    <figure><figcaption>1:1 真实尺寸 · 320×140</figcaption><div class="stage" style="width:320px;height:140px"><img class="cap" src="round37/v2_cap_l.png" style="left:0;width:56.7px;height:140px"><img class="mid" src="round37/v2_mid.png" style="left:56.7px;width:208.2px;height:140px"><img class="cap" src="round37/v2_cap_r.png" style="left:264.8px;width:55.2px;height:140px"><div class="labelbox" style="--s:1"><span class="l1">开始游戏</span><span class="l2"><i></i>继续 · 第 3 关<i></i></span></div></div></figure>
+    <figure><figcaption>2× 细节 · 640×280（虚线 = 九宫格切点，帽固定 / 中段拉伸）</figcaption>
+      <div class="stage" style="width:640px;height:280px"><img class="cap" src="round37/v2_cap_l.png" style="left:0;width:113.3px;height:280px"><img class="mid" src="round37/v2_mid.png" style="left:113.3px;width:416.4px;height:280px"><img class="cap" src="round37/v2_cap_r.png" style="left:529.7px;width:110.3px;height:280px"><i class="cut" style="left:113.3px"></i><i class="cut" style="left:529.7px"></i><i class="tag" style="left:113.3px">切</i><i class="tag" style="left:529.7px">切</i><div class="labelbox" style="--s:2"><span class="l1">开始游戏</span><span class="l2"><i></i>继续 · 第 3 关<i></i></span></div></div></figure>
+  </div>
+  <ul class="facts"><li>素材 <b>890×467</b>（1.91:1）</li><li>左右弧宽实测 <b>189 / 184</b></li><li>显示 <b>320×140</b>（2.29:1）</li><li>中段横向拉伸 <b>1.34×</b>（纵向 1:1）</li></ul>
+  <p class="why">这是 <code>assets/_src/home/btn_primary_v2.png</code>。设计稿 v2 的正文原话就是「采用游戏 UI 标准的九宫格工艺（两端圆角固定、中段水平拉伸——金线横平竖直、玉纹云雾状，拉伸无损）」。拉伸量最小、玉纹保留最完整。</p>
+</section>
+<section class="cand ">
+  <div class="chead">
+    <span class="cname">方案 A</span>
+    <span class="ctitle">v1 底板（最早的存档版）</span>
+    
+  </div>
+  <div class="shots">
+    <figure><figcaption>1:1 真实尺寸 · 320×140</figcaption><div class="stage" style="width:320px;height:140px"><img class="cap" src="round37/v1_cap_l.png" style="left:0;width:57.5px;height:140px"><img class="mid" src="round37/v1_mid.png" style="left:57.5px;width:205.1px;height:140px"><img class="cap" src="round37/v1_cap_r.png" style="left:262.5px;width:57.5px;height:140px"><div class="labelbox" style="--s:1"><span class="l1">开始游戏</span><span class="l2"><i></i>继续 · 第 3 关<i></i></span></div></div></figure>
+    <figure><figcaption>2× 细节 · 640×280（虚线 = 九宫格切点，帽固定 / 中段拉伸）</figcaption>
+      <div class="stage" style="width:640px;height:280px"><img class="cap" src="round37/v1_cap_l.png" style="left:0;width:114.9px;height:280px"><img class="mid" src="round37/v1_mid.png" style="left:114.9px;width:410.2px;height:280px"><img class="cap" src="round37/v1_cap_r.png" style="left:525.1px;width:114.9px;height:280px"><i class="cut" style="left:114.9px"></i><i class="cut" style="left:525.1px"></i><i class="tag" style="left:114.9px">切</i><i class="tag" style="left:525.1px">切</i><div class="labelbox" style="--s:2"><span class="l1">开始游戏</span><span class="l2"><i></i>继续 · 第 3 关<i></i></span></div></div></figure>
+  </div>
+  <ul class="facts"><li>素材 <b>885×519</b>（1.71:1）</li><li>左右弧宽实测 <b>213 / 213</b></li><li>显示 <b>320×140</b>（2.29:1）</li><li>中段横向拉伸 <b>1.66×</b>（纵向 1:1）</li></ul>
+  <p class="why">这是 <code>assets/_src/home/btn_primary.png</code>。形体更"胖"一些、玉纹更浓，但因为素材比 320×140 更接近方形，中段要拉伸 1.66× —— 玉纹会被横向拉长的程度比 v2 明显。设计稿当初正是因此重出了 v2。</p>
+</section>
+
+<section class="cand">
+  <div class="chead">
+    <span class="cname">方案 C</span>
+    <span class="ctitle">当前在用的 btn9 三段拼接（现状，供对照）</span>
+  </div>
+  <div class="shots">
+    <figure><figcaption>1:1 真实尺寸 · 320×140</figcaption><div class="stage" style="width:320px;height:140px"><img class="mid" src="round37/btn9_mid.png" style="left:0;width:320px;height:140px"><img class="cap" src="round37/btn9_left.png" style="left:0;width:78.0px;height:140px"><img class="cap" src="round37/btn9_right.png" style="left:245.0px;width:75.0px;height:140px"><div class="shade" style="width:320px;height:140px;--band:80px"></div><div class="labelbox" style="--s:1"><span class="l1">开始游戏</span><span class="l2"><i></i>继续 · 第 3 关<i></i></span></div></div></figure>
+    <figure><figcaption>2× 细节 · 640×280</figcaption><div class="stage" style="width:640px;height:280px"><img class="mid" src="round37/btn9_mid.png" style="left:0;width:640px;height:280px"><img class="cap" src="round37/btn9_left.png" style="left:0;width:156.0px;height:280px"><img class="cap" src="round37/btn9_right.png" style="left:490.0px;width:150.0px;height:280px"><div class="shade" style="width:640px;height:280px;--band:160px"></div><div class="labelbox" style="--s:2"><span class="l1">开始游戏</span><span class="l2"><i></i>继续 · 第 3 关<i></i></span></div></div></figure>
+  </div>
+  <ul class="facts">
+    <li>中段素材 <b>228×280</b></li><li>左帽 <b>156×280</b> → 78×140</li><li>右帽 <b>150×280</b> → 75×140</li><li>中段 <b>横向 1.40× / 纵向 0.50×</b></li>
+  </ul>
+  <p class="why">这就是你截图里看到的效果 —— 与上面「现状解剖」同一处病灶。放在这里是为了让你能<b>并排对比</b>：同样的文案与毡面，换成正确九宫格后差别有多大。</p>
+</section>
+
+<h2>三、数据对比<span class="en">同一显示尺寸 320×140 下的几何</span></h2>
+<div class="card">
+<table>
+  <tr><th>项</th><th>方案 A · v1 底板</th><th>方案 B · v2 底板</th><th>方案 C · 现状 btn9</th></tr>
+  <tr><td>素材文件</td><td class="mono">btn_primary.png</td><td class="mono">btn_primary_v2.png</td>
+      <td class="mono">btn9_left/mid/right.png</td></tr>
+  <tr><td>素材尺寸</td><td class="mono">885×519</td><td class="mono">890×467</td>
+      <td class="mono">156 / 228 / 150 ×280</td></tr>
+  <tr><td>素材比例</td><td class="mono">1.71:1</td><td class="mono">1.91:1</td>
+      <td class="mono">—（三段拼）</td></tr>
+  <tr><td>左右弧宽（实测）</td><td class="mono">213 / 213</td><td class="mono">189 / 184</td>
+      <td class="mono">108 / 107</td></tr>
+  <tr><td>中段横向拉伸</td><td class="mono">1.66×</td>
+      <td class="mono good">1.34×</td><td class="mono bad">1.40×</td></tr>
+  <tr><td>中段纵向拉伸</td><td class="mono good">1.00×</td><td class="mono good">1.00×</td>
+      <td class="mono bad">0.50×</td></tr>
+  <tr><td>各向异性（横÷纵）</td><td class="mono good">1.66×</td>
+      <td class="mono good">1.34×</td><td class="mono bad">2.81×</td></tr>
+  <tr><td>额外叠加层</td><td>无</td><td>无</td>
+      <td class="bad">Shade：中央白 10% + 两端压暗 34%</td></tr>
+  <tr><td>玉纹保留</td><td>中段被拉长 66%，云雾感有损失</td>
+      <td class="good">中段只拉长 34%，云雾感基本保留</td>
+      <td class="bad">压扁 50%，呈横向拉丝</td></tr>
+  <tr><td>金线是否受影响</td><td>否（水平直线）</td><td>否（水平直线）</td>
+      <td class="bad">是（直线被拉细、圆弧对不上）</td></tr>
+</table>
+</div>
+
+<h2>四、我的建议<span class="en">依据给足，拍板在你</span></h2>
+<div class="rec">
+  <h3>推荐方案 B（<code>btn_primary_v2</code>），理由三条</h3>
+  <ol>
+    <li><b>它就是设计稿 v2 当初选的底板。</b> 设计稿正文写明"九宫格可拉至 2.2~2.6:1"，
+        而 320×140 = 2.29:1 正落在区间内 —— 等于<b>把定稿意图原样实现</b>，不是新做决定。</li>
+    <li><b>拉伸量最小。</b> 中段只需横向 1.34×（v1 要 1.66×），纵向严格 1:1，
+        金线横平竖直不受影响，玉纹云雾感保留最完整。</li>
+    <li><b>与整体色调同源。</b> 与「墨绿玉牌 + 金线」基准（七日签到锚点那套）同一材质族，
+        和顶栏金币、四功能图标、静音图标是一条线。</li>
+  </ol>
+</div>
+<div class="ask">
+  <b>请你拍板：</b>方案 A / 方案 B / 方案 C（维持现状）选哪一个？
+  另外确认一条：显示尺寸维持定稿的 <b>320×140</b>，还是要跟着素材比例改（会牵动下方关卡进度条的位置）？
+</div>
+
+</div></body></html>

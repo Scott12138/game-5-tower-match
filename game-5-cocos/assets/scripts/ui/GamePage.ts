@@ -24,7 +24,7 @@
  * ============================================================
  */
 
-import { Node, Sprite, UIOpacity, UITransform, _decorator, tween, v3 } from 'cc';
+import { Input, Node, Sprite, Texture2D, UIOpacity, UITransform, _decorator, input, tween, v3 } from 'cc';
 
 import { ASSET, COLOR, DEBUG, FONT, LAYOUT, PAGE, PLAY, SFX, SKIN, TOOL, TOOL_ICON, TOOL_META,
     TOOL_ORDER, timeLimitOf } from '../CFG';
@@ -57,6 +57,24 @@ const SLOT_BOX = { w: 62, h: 74 };
 const INPUT_LOCK = PLAY.INPUT_LOCK_MS;
 
 /**
+ * 估算单行文字宽度（设计 px）。
+ *
+ * 【用途】只给"胶囊 / 卡片跟着文案变宽"用（关卡胶囊「第 N 关」的一段一段摆位）。
+ *   CJK 按 `fontSize × 0.96`、其余（数字 / 空格 / 冒号）按 `0.60` 估。
+ *
+ * 【为什么不去量真实宽度】`createLabel` 用的是 `overflow: NONE`，contentSize 由引擎
+ *   在**渲染帧**里重算 —— 在同一个构建函数里**同步读出来的是旧值**。
+ *   要拿真值就得 `scheduleOnce(0)` 再重排 + 重画底，代价大且容易和别的时间轴打架。
+ *   这里只是"排布"，±3px 的误差完全看不出来（真源 `.lv` 本来就是 `padding:0 32px` 自适应）。
+ *   ⚠️ 所以这个函数**不得**参与任何几何断言。
+ */
+function textW(s: string, fontSize: number): number {
+    let w = 0;
+    for (const ch of s) w += /[\u4e00-\u9fff\u3000-\u303f]/.test(ch) ? fontSize * 0.96 : fontSize * 0.6;
+    return w;
+}
+
+/**
  * 结算弹层几何 —— **逐值照抄** `game-5-UI-六页视觉稿-v2.html` 的 `.dim / .modal`：
  *   `.dim`   background: rgba(4,20,15,.6)          → DIM = 0.6*255 ≈ 154
  *   `.modal` left/right:65px  ⇒ 卡宽 = 750 − 130 = 620
@@ -85,8 +103,33 @@ const RESULT = {
     PAD_TOP: 44,
     PAD_BOTTOM: 40,
     RIBBON_FONT: 88,
-    MASCOT_H: 250,
+    /**
+     * 缎带 Label 的**实测**高度 —— **不是**传进去的 `h: 110`。
+     *
+     * 【为什么必须写成实测值】`createLabel` 在 `overflow: NONE` 下把 contentSize
+     *   交给引擎按"文本 + 描边"重算：88 号字 + 8px 描边实测得到 **155**。
+     *   布局里凡是"要让开缎带"的地方都必须用 155 算 —— 按 110 算会少让开 22.5，
+     *   然后你会看到一个"明明留了间距却仍然贴着"的诡异现象。
+     *   （第 38 轮实测：`--page result --depth 5` 打印 `Label 326 ± 77.5`。）
+     */
+    RIBBON_H: 155,
+    /** 缎带中心相对卡顶**向上**的偏移（骑缝：一半压在卡顶之上） */
+    RIBBON_LIFT: 34,
+    /**
+     * 吉祥物显示**宽**（定宽等比）。
+     * ⚠️ 高由素材宽高比决定，见下面的 `MASCOT_H`。
+     */
+    MASCOT_W: 240,
+    /**
+     * 吉祥物显示**高** —— 由素材宽高比推出，**不许写死**。
+     *   `splash/mascot.png = 960×875`（宽高比 1.0971）⇒ 240 宽对应 **218.9** 高。
+     *   旧代码写 `aspectW: 210` 却把占位高当成 250（两者不自洽），实际只占 191，
+     *   凭空多出 59 的缝，`cur` 的累加也跟着虚高。
+     */
+    MASCOT_H: 240 / (960 / 875),
     MASCOT_MT: 30,
+    /** 吉祥物底 → 副标题 的间距 */
+    MASCOT_MB: 18,
     DESC_FONT: 28,
     DESC_H: 40,
     DESC_MB: 30,
@@ -140,6 +183,8 @@ export class GamePage extends PageBase {
     private _progressLabel: ReturnType<typeof createLabel> | null = null;
     private _reviveBadge: Node | null = null;
     private _topLayer: Node | null = null;
+    /** 规则页的全局"点任意处关闭"回调（挂在 `input` 上，关闭/离页时必须摘掉） */
+    private _ruleTapCb: (() => void) | null = null;
 
     private _tableScale = 1;
 
@@ -162,28 +207,88 @@ export class GamePage extends PageBase {
         this.log(`关卡 ${this._level} · ${this._def.n} 张 / ${this._def.layers} 层 / ${this._def.segs.length} 段`);
     }
 
-    // ---- 环境 ----
+    /** 离开本页：把挂在**全局 input** 上的规则页兜底监听摘掉（否则会跨页残留） */
+    protected onLeave(): void {
+        this.detachRuleTap();
+        this.uninstallDebugBridge();
+    }
+
+    // ---- 环境（第 42 轮换血：桌外底色 = B「织锦经纬」× 1.20）----
+    /**
+     * 桌外底色 = 「低频渐变（小图拉伸）」+「高频织锦（无缝平铺）」两层。
+     *
+     * ── 为什么不是一张整页图 ──────────────────────────────
+     * 整页 1263×2781 的 PNG 要 3.2 MB，主包红线 4 MB、本轮还要塞一条 BGM
+     * ⇒ 只能拆成「程序/小图渐变 + 无缝平铺纹样」，合计 **59 KB**。
+     *
+     * ── ★ 为什么贴图是「白墨 + 单边 alpha」 ────────────────
+     * 定稿（候选 B）的纹样是**加法**：`底色 + v·amp`，幅度绝对恒定。
+     * 而 Sprite 只有 normal 混合 `out = dst·(1−a) + src.rgb·a`：
+     *   · src 取黑 ⇒ 乘性，底部暗带（底色只有 9）纹样几乎消失 ⇒ 与定稿不符；
+     *   · src 取**白** ⇒ `out = dst + a·(255−dst)`。底色很暗（5~30）而 255
+     *     远高于它，`255−dst` 整页只变 ±4% ⇒ **近似加法**。
+     * 令 `渐变色 = 目标 − D`（D = 纹样峰值幅度）、`a = (dev+D)/denom`，则有
+     *     out = (B−D) + a·(255−(B−D)) = B + dev     （dev ∈ [−D, +D]）
+     * ⇒ 除「渐变色被钳到 0」的底部暗带外**逐像素等于定稿**。实测：
+     *     上带 29.7 / 目标 30.2（幅 36.9 / 35.8）；底部暗带 14.8 / 9.5。
+     * 底部那 5.3 的不符是模型固有的（目标在暗带也被钳到 0），
+     * 而它换来的收益是**上带逐像素精确** + 不需要自定义材质
+     * （3.8 的 `UIRenderer.srcBlendFactor` 已是 deprecated，踩进去是双重不确定性）。
+     */
     private buildEnv(): void {
         const vs = this.visible();
-        const { g } = createGraphicsNode('Env', this.body, { w: vs.width, h: vs.height });
-        // 桌外深色：中心 #0C110D → 边缘 #030403（照抄 .env 的径向渐变）
-        for (let i = 18; i >= 1; i--) {
-            const t = i / 18;
-            g.fillColor = hex2color(t > 0.45 ? '#0C110D' : '#070A07', Math.round(255 * (1 - t * 0.75)));
-            g.ellipse(0, 0, vs.width * 0.62 * t + 40, vs.height * 0.46 * t + 40);
-            g.fill();
-        }
-        const { g: eg } = createGraphicsNode('EnvFx', this.body, { w: vs.width, h: vs.height });
-        eg.fillColor = hex2color('#000000', 255);
-        eg.rect(-vs.width, -vs.height / 2, vs.width * 2, vs.height); eg.fill();
-        g.clear();
-        for (let i = 18; i >= 1; i--) {
-            const t = i / 18;
-            g.fillColor = hex2color('#0C110D', Math.round(255 * (1 - t * 0.8)));
-            g.ellipse(0, 0, vs.width * 0.62 * t + 40, vs.height * 0.46 * t + 40);
-            g.fill();
-        }
-        fillRadialGlow(g, 0, Layout.tableBox().cy, LAYOUT.TABLE_SIZE * 0.62, '#12241A', 90, 12);
+
+        // ① 兜底垫色：两层贴图都是**异步**加载的，就绪前 / 失败时不能一片死黑
+        //    （死黑正是本轮要修的东西）。垫色取渐变件最暗那档。
+        const { g } = createGraphicsNode('EnvBase', this.body, { w: vs.width, h: vs.height });
+        g.fillColor = hex2color('#0A1710', 255);
+        g.rect(-vs.width / 2, -vs.height / 2, vs.width, vs.height);
+        g.fill();
+
+        // ② 低频渐变层：128×282 的小图拉伸铺满（23 KB）
+        //    ⚠️ 用 w/h 显式拉伸（不是 aspectH）：它是「整页缩略」，
+        //       宽高比本来就该被拉到与屏幕一致，各向异性在这里是**对的**。
+        createSprite(this.body, 'EnvGrad', { path: ASSET.BG_GRAD, w: vs.width, h: vs.height });
+
+        // ③ 高频织锦层：256×256 无缝平铺（36 KB）
+        this.buildWeaveLayer(vs);
+    }
+
+    /**
+     * 织锦平铺层（`Sprite.Type.TILED`）。
+     *
+     * 【平铺尺度怎么来的】TILED 装配器按**贴图原始像素**在节点局部空间重复
+     * （节点 scale=1 时 1 texel = 1 设计 px，见引擎 `assembler/sprite/tiled.ts`
+     * 用 `frame.getRect()`）。贴图 256 texel 里排了 **27 个斜纹周期**（整数 ⇒
+     * 无缝）⇒ 周期 = 256/27 = 9.4815 设计 px = 15.97 物理 px（定稿 16.0）。
+     *
+     * ⚠️ 贴图**必须是 2 的整数幂**：引擎 `TextureBase.setWrapMode` 注释写明
+     *    「非 2 的整数幂只允许 CLAMP_TO_EDGE」⇒ 非 POT 的 REPEAT 在 WebGL1
+     *    （微信小游戏）上直接失效，平铺会退化成「只有一张」。
+     * ⚠️ `sf.packable = false`：动态合图会把贴图塞进一张大图，
+     *    那样 UV 不再是 [0,1]、REPEAT 失效 —— 同样是"静默变成一张"。
+     */
+    private buildWeaveLayer(vs: { width: number; height: number }): void {
+        const node = createNode('EnvWeave', this.body, { w: vs.width, h: vs.height });
+        const sp = node.addComponent(Sprite);
+        // 顺序同 createSprite：先定模式 → 再赋贴图 → **最后**写尺寸
+        sp.sizeMode = Sprite.SizeMode.CUSTOM;
+        sp.trim = false;
+        sp.type = Sprite.Type.TILED;
+        node.active = false;                 // 贴图就绪前先隐藏，避免白块闪一下
+
+        loadFrame(ASSET.BG_WEAVE, (sf) => {
+            if (!node.isValid) return;
+            if (!sf) return;                 // 失败时保持隐藏 ⇒ 露出下面的渐变层
+            sf.packable = false;
+            const tex = sf.texture;
+            if (tex) tex.setWrapMode(Texture2D.WrapMode.REPEAT, Texture2D.WrapMode.REPEAT);
+            sp.spriteFrame = sf;
+            node.getComponent(UITransform)!.setContentSize(vs.width, vs.height);
+            node.active = true;
+            console.log(`[GamePage] 织锦平铺层就绪 贴图 ${sf.rect.width}×${sf.rect.height}`
+                + ` wrap=${tex ? 'REPEAT' : 'n/a'} 节点 ${vs.width.toFixed(1)}×${vs.height.toFixed(1)}`);
+        });
     }
 
     // ---- 桌子 + 牌堆 ----
@@ -248,17 +353,42 @@ export class GamePage extends PageBase {
         fillRoundRect(pg, 10, 0, 9, 32, 3, 'rgba(255,247,230,0.9)', 255);
         this.tap(pause, () => this.togglePause());
 
-        // ② 关卡胶囊（150,88 h64）
+        // ② 关卡胶囊（150,88 h64）—— 文案「第 N 关」，**数字走金色 + 大一号**
+        //
+        //  【真源】`game-5-主玩页-排版.html` 第 160~163 行的 `.lv`：
+        //      .lv{left:150;top:88;height:64;padding:0 32px;font-size:30px;color:var(--cream)}
+        //      .lv b{font-size:34px;color:var(--gold-hi);margin:0 6px}
+        //    即「第」与「关」是 30 号奶油白、**中间的数字是 34 号金**，且胶囊宽度
+        //    由 `padding:0 32px` **自适应**。
+        //  ⚠️ 旧代码把整串塞进一个 30 号白 Label、胶囊写死 150 宽 —— 数字完全不突出，
+        //    而且关卡号涨到两位数（第 10~30 关）时文字会顶到胶囊左右边。
+        //  ⇒ 这里拆成三段 Label 按估算宽度排，胶囊宽度跟着文案走。
+        const lvNum = String(this._level);
+        // `lvGap` 只给 3：字宽是**估**出来的，估宽会略大于实际字形宽，留 6 会显得松散。
+        const lvF = 30, lvNumF = 34, lvGap = 3, lvPad = 30;
+        const lvW1 = textW('第', lvF), lvW2 = textW(lvNum, lvNumF), lvW3 = textW('关', lvF);
+        const lvInner = lvW1 + lvW2 + lvW3 + lvGap * 2;
+        const lvW = Math.round(lvInner + lvPad * 2);
         const pill = createNode('LevelPill', this.body, {
-            w: 150, h: 64, x: Layout.xOf(LAYOUT.LEVEL_PILL.left) + 75,
+            w: lvW, h: LAYOUT.LEVEL_PILL.h, x: Layout.xOf(LAYOUT.LEVEL_PILL.left) + lvW / 2,
             y: Layout.hudCenterY(LAYOUT.LEVEL_PILL.top, LAYOUT.LEVEL_PILL.h),
         });
-        const { g: lg } = createGraphicsNode('G', pill, { w: 150, h: 64 });
-        fillRoundRect(lg, 0, 0, 150, 64, 32, 'rgba(4,20,14,0.62)', 255);
-        strokeRoundRect(lg, 0, 0, 150, 64, 32, 'rgba(246,196,69,0.25)', 2, 255);
-        createLabel(pill, `第 ${this._level} 关`, {
-            fontSize: 30, color: COLOR.CREAM, bold: true, serif: true, w: 140, h: 64,
-        });
+        const { g: lg } = createGraphicsNode('G', pill, { w: lvW + 8, h: LAYOUT.LEVEL_PILL.h });
+        fillRoundRect(lg, 0, 0, lvW, LAYOUT.LEVEL_PILL.h, LAYOUT.LEVEL_PILL.h / 2,
+            'rgba(4,20,14,0.62)', 255);
+        strokeRoundRect(lg, 0, 0, lvW, LAYOUT.LEVEL_PILL.h, LAYOUT.LEVEL_PILL.h / 2,
+            'rgba(246,196,69,0.25)', 2, 255);
+        let lvX = -lvInner / 2;
+        const lvSeg = (t: string, f: number, c: string, w: number): void => {
+            createLabel(pill, t, {
+                fontSize: f, color: c, bold: true, serif: true,
+                w: w + 8, h: LAYOUT.LEVEL_PILL.h, x: lvX + w / 2,
+            });
+            lvX += w + lvGap;
+        };
+        lvSeg('第', lvF, COLOR.CREAM, lvW1);
+        lvSeg(lvNum, lvNumF, COLOR.GOLD_HI, lvW2);
+        lvSeg('关', lvF, COLOR.CREAM, lvW3);
 
         // ③ 复活徽标（344,88 h64）—— 有复活机会才显示
         const rev = createNode('ReviveBadge', this.body, {
@@ -281,7 +411,15 @@ export class GamePage extends PageBase {
             w: 300, h: 56, x: 0, y: Layout.hudCenterY(LAYOUT.TIMER.top, 56),
         });
 
-        // ⑤ 进度条（40,206 230×28 r14）
+        // ⑤ 进度条（40 / 中线 311 / 230×28 r14）
+        //
+        //  ★「已清 n/m」**嵌在条内**、左内缩 14。
+        //  【真源】`game-5-主玩页-排版.html` 第 168、174 行：
+        //      /* 进度条 + 条内嵌「已清 n/m」—— 原先文字浮在条上方…已修 */
+        //      .progTxt{position:absolute;left:14px;top:0;height:28px;line-height:28px;font-size:19px}
+        //  ⚠️ 旧代码把文字放在**条外下方**（`y:-26`）—— 它成了信息行里唯一"下沿突出去"
+        //     的元素，整行看着参差不齐（用户反馈的"顶带下沿不齐"主因就在这）。
+        //  ⚠️ 文字压在进度填充上 ⇒ 必须带**深色描边**，否则走到浅色填充段就糊了。
         const prog = createNode('Progress', this.body, {
             w: LAYOUT.PROGRESS.w, h: LAYOUT.PROGRESS.h,
             x: Layout.xOf(LAYOUT.PROGRESS.left) + LAYOUT.PROGRESS.w / 2,
@@ -292,23 +430,82 @@ export class GamePage extends PageBase {
             GraphicsCtor,
         );
         this._progressLabel = createLabel(prog, '已清 0/0', {
-            fontSize: 20, color: 'rgba(255,247,230,0.9)', bold: true,
-            w: LAYOUT.PROGRESS.w, h: 22, y: -26,
+            fontSize: 19, color: 'rgba(255,247,230,0.96)', bold: true,
+            outline: '#04140F', outlineWidth: 2.5,
+            alignLeft: true,
+            w: LAYOUT.PROGRESS.w - LAYOUT.PROGRESS_PAD_L - 8, h: LAYOUT.PROGRESS.h,
+            x: -LAYOUT.PROGRESS.w / 2 + LAYOUT.PROGRESS_PAD_L, y: 0,
         });
 
-        // ⑥ 规则按钮（right 40 / top 192 / 126×60 r30）
+        // ⑥ 规则按钮（right 40 / 中线 311 / 126×60 r30）
+        //  【真源】第 184~189 行 `.ruleBtn` 是「**书页图标** + 「规则」文字」：
+        //      .ruleBtn{height:60;padding:0 22px 0 18px;gap:9px;font-size:23px}
+        //      .ruleBtn svg{width:26px;height:26px}
+        //  ⚠️ 旧代码只有「规则」两个字 ⇒ 顶上四个胶囊里它最空、最像占位符。
+        //     这里补上用 Graphics 画的摊开书页（画法见 `drawBookGlyph`）。
+        const RB = LAYOUT.RULE_BTN;
         const rule = createNode('RuleBtn', this.body, {
-            w: LAYOUT.RULE_BTN.w, h: LAYOUT.RULE_BTN.h,
-            x: Layout.xOf(DW - LAYOUT.RULE_BTN.right - LAYOUT.RULE_BTN.w) + LAYOUT.RULE_BTN.w / 2,
-            y: Layout.hudCenterY(LAYOUT.RULE_BTN.top, LAYOUT.RULE_BTN.h),
+            w: RB.w, h: RB.h,
+            x: Layout.xOf(DW - RB.right - RB.w) + RB.w / 2,
+            y: Layout.hudCenterY(RB.top, RB.h),
         });
-        const { g: gg } = createGraphicsNode('G', rule, { w: 126, h: 60 });
-        fillRoundRect(gg, 0, 0, 126, 60, 30, 'rgba(4,20,14,0.62)', 255);
-        strokeRoundRect(gg, 0, 0, 126, 60, 30, 'rgba(246,196,69,0.25)', 2, 255);
-        createLabel(rule, '规则', { fontSize: 26, color: 'rgba(255,247,230,0.9)', bold: true, w: 126, h: 60 });
+        const { g: gg } = createGraphicsNode('G', rule, { w: RB.w, h: RB.h });
+        fillRoundRect(gg, 0, 0, RB.w, RB.h, RB.r, 'rgba(4,20,14,0.62)', 255);
+        strokeRoundRect(gg, 0, 0, RB.w, RB.h, RB.r, 'rgba(246,196,69,0.25)', 2, 255);
+        // 图标：左内缩 18、图标宽 26 ⇒ 图标中心 = −W/2 + 18 + 13
+        this.drawBookGlyph(gg, -RB.w / 2 + 31, 0, 26, COLOR.GOLD);
+        // 文字：图标右 9 起，到右内缩 22 为止，在这段里居中
+        const ruleTxtX = (-RB.w / 2 + 44 + RB.w / 2 - 22) / 2;
+        createLabel(rule, '规则', {
+            fontSize: 23, color: 'rgba(255,247,230,0.9)', bold: true,
+            w: RB.w - 44 - 22, h: RB.h, x: ruleTxtX,
+        });
         this.tap(rule, () => this.openRule());
 
         this.refreshRevive();
+    }
+
+    /**
+     * 画「摊开的书」图标（规则按钮用）。
+     *
+     * 【真源】`game-5-主玩页-排版.html` 第 189 行是一个 26×26 的 svg，左右两页镜像：
+     *   `M4 4.6A1.6 1.6 0 0 1 5.6 3H10a2 2 0 0 1 2 2v14.2a1.7 1.7 0 0 0-1.7-1.7H4z`
+     *   （24 viewBox 里单页 x 4..12 / y 3..19 ⇒ **窄而高、宽高比约 1:2**，这是书页的正确比例。）
+     *
+     * 【为什么不用两个圆角矩形】实测过：26px 下两个 10.6×22 的圆角矩形描边后
+     *   中间 2.4px 的缝会被 1.8px 的线宽吃掉 ⇒ 读起来是**两根竖条**，不是书。
+     *   改法有两步：
+     *     ① 两页用**梯形**（内侧上端抬高 0.86、下端收 0.80）⇒ 中间自然形成"书脊抬起"的 V；
+     *     ② 两页写进**同一条路径的两个闭合子路径**，只 `stroke()` 一次
+     *       —— 既不会互相污染（`fill()/stroke()` 作用于整条路径），也没有重复描边。
+     */
+    private drawBookGlyph(g: Graphics, cx: number, cy: number, size: number, color: string): void {
+        const h = size / 2;
+        const spine = 1.6;              // 书脊：左右页内边缘的 x（正负对称）
+        /** 两个闭合子路径（左右页）—— 写一次，`fill()` 与 `stroke()` 各用一次 */
+        const pagePath = (): void => {
+            g.moveTo(cx - h, cy + h * 0.60);
+            g.lineTo(cx - spine, cy + h * 0.86);
+            g.lineTo(cx - spine, cy - h * 0.80);
+            g.lineTo(cx - h, cy - h * 0.58);
+            g.close();
+            g.moveTo(cx + h, cy + h * 0.60);
+            g.lineTo(cx + spine, cy + h * 0.86);
+            g.lineTo(cx + spine, cy - h * 0.80);
+            g.lineTo(cx + h, cy - h * 0.58);
+            g.close();
+        };
+        // ① 先填一层半透明的"纸"——只描边的话，26px 下（DPR1 截图 ≈15 CSS px）
+        //    两条 1.9px 的细线几乎贴在一起，会被读成"两根竖条"。给一点体量才认得出是书。
+        pagePath();
+        g.fillColor = hex2color(color, 62);
+        g.fill();
+        // ② 再描一次外轮廓（路径重建了一次；`Graphics` 的 fill/stroke 只作用于**新增段**，
+        //    所以这里不会把 ① 重复描粗，见 `Impl._updatePathOffset` 的行为）
+        pagePath();
+        g.lineWidth = 2.0;
+        g.strokeColor = hex2color(color, 255);
+        g.stroke();
     }
 
     private _reviveLabel: ReturnType<typeof createLabel> | null = null;
@@ -335,19 +532,46 @@ export class GamePage extends PageBase {
                 x: -LAYOUT.SLOT_BAR.w / 2 + left + cw / 2,
             });
             const { g } = createGraphicsNode('G', cell, { w: cw, h: LAYOUT.SLOT_CELL.h });
-            this.paintSlotCell(g, false);
+            this.paintSlotCell(g, false, true);
             this._slotCells.push(cell);
             this._slotNodes.push(null);
         }
     }
 
-    private paintSlotCell(g: ReturnType<typeof createGraphicsNode>['g'], danger: boolean): void {
+    /**
+     * 画一个槽位格（**只画底**，牌是它上面的子节点）。
+     *
+     * 【逐值来源】`game-5-主玩页-排版.html` 的 `.slot` / `.slot.empty::after`：
+     *   .slot{width:68px;height:80px;border-radius:10px;
+     *         background:rgba(4,20,14,.5);border:2px solid rgba(46,139,111,.30);
+     *         box-shadow:inset 0 2px 0 rgba(255,255,255,.05)}
+     *   .slot.empty::after{content:"";width:22px;height:2px;border-radius:1px;
+     *                      background:rgba(46,139,111,.34)}
+     *
+     * ⚠️ 改前这里是**整套偏离真源**的：奶油白底 `rgba(255,247,230,.10)` + **金**描边
+     *   + 圆角 16，而且**没有中心短横** —— 真机截图里那排"空无一物的灰盒子"就是它。
+     *   真源是「深玉底 + 玉绿描边」，属**冷色**、与桌面绒布同族；金线才是外来色
+     *   （金是"可交互/奖励"的语义，不该用在一排静态占位框上）。
+     *
+     * 【为什么短横可以常驻、不用在放牌时重画】
+     *   牌是格子的子节点，尺寸 62×74 而短横只有 22×2 且在正中 ⇒ 有牌时被完全盖住、
+     *   牌被消掉后自动重新露出来。所以只需在构建时画一次。
+     */
+    private paintSlotCell(
+        g: ReturnType<typeof createGraphicsNode>['g'], danger: boolean, empty: boolean,
+    ): void {
         g.clear();
         const w = LAYOUT.SLOT_CELL.w;
         const h = LAYOUT.SLOT_CELL.h;
-        fillRoundRect(g, 0, 0, w, h, SKIN.SLOT.RADIUS, danger ? 'rgba(216,67,47,0.18)' : SKIN.SLOT.FILL, 255);
-        strokeRoundRect(g, 0, 0, w, h, SKIN.SLOT.RADIUS,
-            danger ? 'rgba(216,67,47,0.72)' : SKIN.SLOT.LINE, SKIN.SLOT.LINE_W, 255);
+        const S = SKIN.SLOT;
+        fillRoundRect(g, 0, 0, w, h, S.RADIUS, danger ? S.DANGER_FILL : S.FILL, 255);
+        // 顶内缘高光（真源 `inset 0 2px 0`）—— 先画，后面描边会把它两端压住，不会戳出圆角
+        fillRoundRect(g, 0, h / 2 - 4, w - 8, 3, 1.5, S.TOP_LIGHT, 255);
+        if (empty && !danger) {
+            fillRoundRect(g, 0, 0, S.DASH.w, S.DASH.h, S.DASH.r, S.DASH.color, 255);
+        }
+        strokeRoundRect(g, 0, 0, w, h, S.RADIUS,
+            danger ? S.DANGER_LINE : S.LINE, S.LINE_W, 255);
     }
 
     // ---- 道具栏（87,1150 576×112；4 格 126×112 gap24）----
@@ -375,17 +599,30 @@ export class GamePage extends PageBase {
             fillRoundRect(g, 0, 0, cw, LAYOUT.TOOL_CELL.h, SKIN.TOOL.RADIUS, SKIN.TOOL.FILL, 255);
             strokeRoundRect(g, 0, 0, cw, LAYOUT.TOOL_CELL.h, SKIN.TOOL.RADIUS, SKIN.TOOL.LINE, 2, 255);
 
-            createSprite(cell, 'Icon', { path: TOOL_ICON[id], aspectW: 60, y: 12 });
+            // 图标：真源 `.item img{width:78px;height:78px}` —— 改前只有 60，格子里空得很。
+            //   格高 112，底部要留 ~30 给文字 ⇒ 图标可用带只有 82 高。
+            //   取 74（而不是写死 78）是为了让图标顶部离格顶留 6、底部离文字留 2，
+            //   整格视觉重心略上移，看起来"装得满"又不挤。
+            createSprite(cell, 'Icon', { path: TOOL_ICON[id], aspectW: SKIN.TOOL.ICON_W, y: 13 });
             createLabel(cell, TOOL_META[id].name, {
-                fontSize: 20, color: 'rgba(255,247,230,0.86)', w: cw, h: 22, y: -38,
+                fontSize: 19, color: 'rgba(201,216,204,0.72)', w: cw, h: 22, y: -37,
             });
 
-            // 角标（数量 / ＋）
-            const cnt = createNode('Cnt', cell, { w: 38, h: 38, x: cw / 2 - 14, y: LAYOUT.TOOL_CELL.h / 2 - 12 });
-            const { g: cg } = createGraphicsNode('G', cnt, { w: 38, h: 38 });
-            fillRoundRect(cg, 0, 0, 38, 38, 19, '#C8912B', 255);
-            strokeRoundRect(cg, 0, 0, 38, 38, 19, 'rgba(246,196,69,0.7)', 1.5, 255);
-            createLabel(cnt, '0', { fontSize: 22, color: '#2A1C06', bold: true, w: 38, h: 38 });
+            // 角标（数量 / ＋）：真源 `.cnt{min-width:42px;height:42px;border-radius:21px;
+            //   right:-6px;top:-6px;font-size:25px;color:#4A2B18}` ⇒ 中心比格右上角再外扩 6
+            const B = SKIN.TOOL.BADGE;
+            const cnt = createNode('Cnt', cell, {
+                w: B, h: B,
+                x: cw / 2 + 6 - B / 2,
+                y: LAYOUT.TOOL_CELL.h / 2 + 6 - B / 2,
+            });
+            const { g: cg } = createGraphicsNode('G', cnt, { w: B, h: B });
+            fillRoundRect(cg, 0, 0, B, B, B / 2, '#C8912B', 255);
+            strokeRoundRect(cg, 0, 0, B, B, B / 2, 'rgba(246,196,69,0.7)', 1.5, 255);
+            createLabel(cnt, '0', {
+                fontSize: SKIN.TOOL.BADGE_FONT, color: SKIN.TOOL.BADGE_TEXT,
+                bold: true, w: B, h: B,
+            });
             this._toolCounts.push(cnt);
 
             this.tap(cell, () => this.useTool(id));
@@ -423,8 +660,12 @@ export class GamePage extends PageBase {
         const total = this._def.n;
         const done = this._cleared;
         if (this._progressG) {
+            // 填充色 = 真源 `.progFill{background:linear-gradient(90deg,var(--jade),var(--jade-hi));
+            //   box-shadow:inset 0 0 12px rgba(85,183,154,.5)}`（第 171~173 行）。
+            // ⚠️ 改前写的是 `COLOR.GOLD_HI, COLOR.GOLD` —— 金渐变。金在本作是
+            //   "奖励/可交互"语义，而进度条讲的是"我已清掉多少牌"，该用玉绿主色。
             drawProgressBar(this._progressG, done / total, LAYOUT.PROGRESS.w, LAYOUT.PROGRESS.h,
-                LAYOUT.PROGRESS.r, 'rgba(255,247,230,0.12)', COLOR.GOLD_HI, COLOR.GOLD);
+                LAYOUT.PROGRESS.r, 'rgba(255,247,230,0.12)', COLOR.JADE, COLOR.JADE_HI);
         }
         if (this._progressLabel?.isValid) {
             this._progressLabel.string = `已清 ${done}/${total}`;
@@ -448,7 +689,7 @@ export class GamePage extends PageBase {
             const face = cell.getChildByName('Face')?.getComponent(GraphicsCtor);
             if (face) {
                 face.clear();
-                face.fillColor = hex2color(n > 0 ? 'rgba(4,20,14,0.62)' : 'rgba(4,20,14,0.38)');
+                face.fillColor = hex2color(n > 0 ? SKIN.TOOL.FILL : SKIN.TOOL.FILL_EMPTY);
                 face.roundRect(-LAYOUT.TOOL_CELL.w / 2, -LAYOUT.TOOL_CELL.h / 2,
                     LAYOUT.TOOL_CELL.w, LAYOUT.TOOL_CELL.h, SKIN.TOOL.RADIUS);
                 face.fill();
@@ -592,9 +833,10 @@ export class GamePage extends PageBase {
 
     private refreshSlotDanger(): void {
         const danger = this._slots.length >= this._slotMax - 1;
-        this._slotCells.forEach((c) => {
+        this._slotCells.forEach((c, i) => {
             const g = c.getChildByName('G')?.getComponent(GraphicsCtor);
-            if (g) this.paintSlotCell(g, danger && this._slots.length > 0);
+            // 第 3 参 = 本格是否为空（决定画不画中心短横）—— 真源里短横只属于 `.slot.empty`
+            if (g) this.paintSlotCell(g, danger && this._slots.length > 0, this._slotNodes[i] === null);
         });
     }
 
@@ -624,7 +866,10 @@ export class GamePage extends PageBase {
         // ⚠️ 用 `m.type`（'peng'|'chi'）—— 曾把这里写成 `m.kind`，
         //    `undefined === 'peng'` 恒为假，于是**所有"碰"都被显示成"吃"**且不报错。
         this.popToast(m.type);
-        AudioService.playSfx(SFX.matchPop, 1.0);
+        // 碰 / 吃 **各自一条人声念白**（第 42 轮从隔壁麻将项目复用）。
+        // ⚠️ 传的是 `m.type`（'peng' | 'chi'），曾把这里写成 `m.kind` ⇒ undefined，
+        //    所有"碰"都会被静默播成"吃"—— 这类错别字不报错，只能靠耳朵听出来。
+        AudioService.playSfx(m.type === 'peng' ? SFX.peng : SFX.chi, 1.0);
         Haptics.medium();
 
         // 先从数据里摘掉（**立即**，不等动画）
@@ -993,7 +1238,9 @@ export class GamePage extends PageBase {
         }, sg.node);
 
         const REWARDS = win ? 2 : 0;
-        const cardH = RESULT.PAD_TOP + RESULT.MASCOT_MT + RESULT.MASCOT_H
+        // ⚠️ 这个式子与下面 `cur` 的累加**必须逐项同步**（同一个 `RESULT` 表、同一顺序）——
+        //    少一项的表现是"卡底留白凭空少一截"，而且**不报错**。末尾有自检兜底。
+        const cardH = RESULT.PAD_TOP + RESULT.MASCOT_MT + RESULT.MASCOT_H + RESULT.MASCOT_MB
             + RESULT.DESC_H + RESULT.DESC_MB
             + (REWARDS ? RESULT.REWARD_H + RESULT.REWARD_MB : 0)
             + RESULT.BTN_GOLD_H + RESULT.BTN_GOLD_MB + RESULT.BTN_GHOST_H + RESULT.PAD_BOTTOM;
@@ -1017,7 +1264,7 @@ export class GamePage extends PageBase {
         const ribbon = createLabel(card, win ? '通关啦！' : '就差一点！', {
             fontSize: RESULT.RIBBON_FONT, color: COLOR.CREAM, bold: true, serif: true,
             outline: '#4A2B18', outlineWidth: 8,
-            w: RESULT.CARD_W + 120, h: 110, y: 34,
+            w: RESULT.CARD_W + 120, h: RESULT.RIBBON_H, y: RESULT.RIBBON_LIFT,
         });
         // 缎带的"厚底"：#5C361D 向下偏移 8px（照抄 text-shadow 的 0 8px 0）
         const { g: rg } = createGraphicsNode('RibbonShadow', card, {
@@ -1026,19 +1273,29 @@ export class GamePage extends PageBase {
         void rg;
         ribbon.node.setSiblingIndex(999);          // 缎带永远在最上（含盖过吉祥物）
 
+        // 起点 = 缎带下沿让开后的位置。
+        //  缎带覆盖卡顶 −111.5 ~ **+43.5**（= RIBBON_H/2 − RIBBON_LIFT），
+        //  所以 `PAD_TOP + MASCOT_MT = 74` 与它留出 30.5 的呼吸量 —— 这个关系是
+        //  **算出来的**，不是手感；改 RIBBON_H / RIBBON_LIFT / MASCOT_MT 任一项都要重核。
         let cur = RESULT.PAD_TOP;
 
-        // ④ 吉祥物位（250 高）
+        // ④ 吉祥物位
         cur += RESULT.MASCOT_MT;
+        const mascotY = -(cur + RESULT.MASCOT_H / 2);
         const mascot = createSprite(card, 'Mascot', {
-            path: ASSET.SPLASH_MASCOT, aspectW: 210, y: -(cur + RESULT.MASCOT_H / 2),
+            path: ASSET.SPLASH_MASCOT, aspectW: RESULT.MASCOT_W, y: mascotY,
         });
+        // ★★ 浮动动效**必须先算出绝对目标 y 再插值**。
+        //   tween 的 `position` 是**绝对坐标**，不是"相对当前值" —— 旧代码写成
+        //   `{ position: v3(0, 12, 0) }` ⇒ 吉祥物被直接**拽到卡顶**（实测中心 356.3，
+        //   而它本该在 559），正好钻到缎带底下，于是看起来"位置不对、被标题压住"。
+        //   这类 bug 不报错、静态截图看着只是"位置怪"，只有量过坐标才认得出来。
         tween(mascot)
             .repeatForever(
-                tween(mascot).to(1.7, { position: v3(0, 12, 0) }, { easing: 'sineInOut' })
-                    .to(1.7, { position: v3(0, 0, 0) }, { easing: 'sineInOut' }),
+                tween(mascot).to(1.7, { position: v3(0, mascotY + 12, 0) }, { easing: 'sineInOut' })
+                    .to(1.7, { position: v3(0, mascotY, 0) }, { easing: 'sineInOut' }),
             ).start();
-        cur += RESULT.MASCOT_H;
+        cur += RESULT.MASCOT_H + RESULT.MASCOT_MB;
 
         // ⑤ 副标题
         const desc = win
@@ -1072,24 +1329,33 @@ export class GamePage extends PageBase {
         }
         cur += RESULT.BTN_GOLD_H + RESULT.BTN_GOLD_MB;
 
-        // ⑧ 次按钮
+        // ⑧ 次按钮 —— ★ 宽度与主按钮**同宽**（`CARD_W - 80`）。
+        //   旧代码是 `CARD_W - 80 - 80` ⇒ 上 540 / 下 460，两个按钮上下紧贴却差 80px，
+        //   呈"上宽下窄"的梯形 —— 这就是观感上"下一关那两组按钮很突兀"的直接来源。
         if (win) {
             this.resultButton(card, 'BtnShare', cur, RESULT.BTN_GHOST_H, '分享', 'ghost',
-                RESULT.BTN_GHOST_FONT, RESULT.CARD_W - 80 - 80, () => {
+                RESULT.BTN_GHOST_FONT, RESULT.CARD_W - 80, () => {
                     Haptics.light();
                     toast(this.body, '分享功能待接入微信开放能力');
                 });
         } else {
             // 负态第二排：重新挑战（同一个出口语义 → 走 endRun 作废本局赠礼）
             this.resultButton(card, 'BtnRetry', cur, RESULT.BTN_GHOST_H, '重新挑战', 'ghost',
-                RESULT.BTN_GHOST_FONT, RESULT.CARD_W - 80 - 80, () => {
+                RESULT.BTN_GHOST_FONT, RESULT.CARD_W - 80, () => {
                     endRun();
                     this.closeResult();
                     this.goto(PAGE.START, { level: this._level });
                 });
         }
         cur += RESULT.BTN_GHOST_H + RESULT.PAD_BOTTOM;
-        void cur;
+        // ★ 自检：内容总高必须**恰好**等于卡高。
+        //   两者不同步时卡片底部会莫名其妙多/少一截留白，而**不会有任何报错**
+        //   （第 38 轮就是这么漏掉 `MASCOT_MB` 的）。用 dev 期的 console.warn 喊出来 ——
+        //   release 构建里 `cc.warn` 是空函数，所以这里用 console。
+        if (Math.abs(cur - cardH) > 0.5) {
+            console.warn(`[结算弹层] cardH(${cardH}) ≠ 内容总高(${cur})，差 ${(cur - cardH).toFixed(1)}`
+                + ' —— 检查 openResult 里 cardH 与 cur 两处累加是否同步');
+        }
 
         // ⑨ 胜态：金币雨（全局唯一峰值）—— z 在卡之上（照抄视觉稿 .coins z-index:8 > .modal:7）
         if (win) this.coinRain(layer, vs.width, vs.height);
@@ -1104,20 +1370,55 @@ export class GamePage extends PageBase {
         this.log(`结算弹层：${win ? '胜' : `负（${reason}）`}`);
     }
 
-    /** 结算弹层里的按钮（比通用 createButton 更贴规格：高度 / 字号 / 留白都是定稿值） */
+    /**
+     * 结算弹层里的按钮。
+     *
+     * 【逐值来源】`game-5-UI-六页视觉稿-v2.html` 的 `.btn-gold` / `.btn-ghost`（第 86 / 93 行）——
+     * 那是结算弹层按钮的**需求真源**，本函数所有颜色都照抄它，不许凭手感调：
+     *
+     *   .btn-gold {
+     *     background: linear-gradient(180deg, var(--gold-hi) 0%, var(--gold) 45%, #E8A92E 100%);
+     *     border: 3px solid #8A5A10;  border-radius: 60px;  color: #5C3610;
+     *     box-shadow: 0 8px 0 #9A6A15, 0 18px 26px rgba(0,0,0,.45),
+     *                 inset 0 3px 4px rgba(255,255,255,.7);   ← 顶缘柔光，见 draw3dFace ④
+     *   }
+     *   .btn-ghost {
+     *     border: 3px solid rgba(255,247,230,.55);  color: var(--cream);
+     *     background: rgba(0,0,0,.18);   ← 半透明！下面是玉卡的绿会透出来
+     *   }
+     *
+     * ⚠️ 改前这里有两处**明显偏离真源**、也是"按钮突兀"的帮凶：
+     *   ① 金按钮 border `#5C3F0C`（比真源 #8A5A10 暗一档，看着像烧焦的边）、
+     *      depth `#7A5310`（真源 0 8px 0 #9A6A15）、字 `#2A1C06`（真源 #5C3610）；
+     *   ② 次按钮 border 写成了**金色 42%**，而真源是**暖白 55%**；
+     *      底色写成 `rgba(11,20,15,0.9)`（几乎全黑），而真源是 `rgba(0,0,0,.18)`
+     *      —— 半透明黑压在玉卡上应该是"深玉绿"，不是"纯黑条"。（截图里它就是一条黑带。）
+     *
+     * 【次按钮为什么用不透明色写「半透明黑压玉卡」】
+     *   `fillVGradient` 是**逐条带叠加**（每条带 0.6px 重叠），拿半透明色去填：
+     *   每像素被 ~1.2 条带覆盖 ⇒ alpha 被抬高、且条带交界处会浮出横向条纹。
+     *   所以这里先算好"rgba(0,0,0,.18) 压在卡片渐变上"的等效实色：
+     *     上端 0.82 × #1B6047 = #164E3A ；下端 0.82 × #123F30 = #0F3427。
+     *   视觉与真源一致，且是不透明填充、没有叠加问题。
+     */
     private resultButton(
         parent: Node, name: string, topOffset: number, h: number, text: string,
         tone: 'gold' | 'ghost', fontSize: number, w: number, onClick: () => void,
     ): void {
         const spec = tone === 'gold'
-            ? { top: '#FFE08A', bottom: '#C8912B', depth: '#7A5310', border: '#5C3F0C', textc: '#2A1C06' }
-            : { top: 'rgba(11,20,15,0.9)', bottom: 'rgba(6,12,9,0.95)', depth: '#04100B',
-                border: 'rgba(246,196,69,0.42)', textc: COLOR.CREAM };
+            ? {
+                top: '#FFE08A', bottom: '#E8A92E', depth: '#9A6A15',
+                border: '#8A5A10', textc: '#5C3610', thick: 8,
+            }
+            : {
+                top: '#164E3A', bottom: '#0F3427', depth: '#0A2A1F',
+                border: 'rgba(255,247,230,0.55)', textc: COLOR.CREAM, thick: 0,
+            };
 
         const btn = createNode(name, parent, { w, h, y: -(topOffset + h / 2) });
         const { g } = createGraphicsNode('Face', btn, { w, h });
         draw3dFace(g, 0, 0, {
-            w, h, radius: Math.min(h / 2, SKIN.R_PILL), depth: 8,
+            w, h, radius: Math.min(h / 2, SKIN.R_PILL), depth: spec.thick,
             top: spec.top, bottom: spec.bottom, depthColor: spec.depth, border: spec.border,
         });
         createLabel(btn, text, {
@@ -1356,7 +1657,15 @@ export class GamePage extends PageBase {
         this._paused = true;
 
         const vs = this.visible();
-        const layer = createNode('RulePanel', this._topLayer, { w: 1, h: 1 });
+        // ★★ 第 40 轮修 bug：原来这里是 `{ w: 1, h: 1 }` ——
+        //   `Node.EventType.TOUCH_END` 的命中判定走的是节点自己的 `UITransform`，
+        //   尺寸 1×1 就等于**触摸命中区只有 1 像素**：用户怎么点都在命中区之外，
+        //   事件永远不会派发到这一层 ⇒「点击任意处关闭」从来就没生效过。
+        //   （同目录的 PausePanel / AdPanel 也是 1×1，但它们靠卡内按钮关闭，所以没暴露。）
+        //   修法：与 scrim 同口径给足 1.4× 全屏，边缘 20% 也能点到。
+        const layer = createNode('RulePanel', this._topLayer, {
+            w: vs.width * 1.4, h: vs.height * 1.4,
+        });
         layer.addComponent(UIOpacity).opacity = 0;
 
         const { g: sg } = createGraphicsNode('Scrim', layer, { w: vs.width, h: vs.height });
@@ -1379,17 +1688,37 @@ export class GamePage extends PageBase {
         });
 
         layer.on(Node.EventType.TOUCH_END, () => this.closeRule(), layer);
+
+        // ★★ 双保险（第 40 轮）：再挂一条**全局输入**监听。
+        //   节点触摸的命中判定要过 `UITransform`，一旦尺寸/层级有任何意外就是静默失效；
+        //   而 `input.on(TOUCH_END)` 不参与命中判定，只要屏幕被点就一定触发。
+        //   · 延迟 120ms 注册：`openRule()` 本身正是被一次 TOUCH_END 调起来的，
+        //     同帧注册有概率把"打开它的那一次点击"也吃掉 ⇒ 规则页刚开就被关。
+        //   · 只保留一份（重复 open 已被前面的 `getChildByName('RulePanel')` 挡住）。
+        this._ruleTapCb = (): void => this.closeRule();
+        this.timer(120, () => {
+            if (this._ruleTapCb) input.on(Input.EventType.TOUCH_END, this._ruleTapCb);
+        });
+
         MotionFx.fadeTo(layer.getComponent(UIOpacity), 255, 0.24);
     }
 
     private closeRule(): void {
         const l = this._topLayer?.getChildByName('RulePanel');
         this._paused = false;
+        this.detachRuleTap();
         if (!l?.isValid) return;
         const op = l.getComponent(UIOpacity)!;
         MotionFx.fadeTo(op, 0, 0.2);
         const dead = l;
         this.timer(240, () => { if (dead.isValid) dead.destroy(); });
+    }
+
+    /** 摘掉规则页的全局兜底监听（关闭时 / 离开本页时都要摘，否则会跨页残留） */
+    private detachRuleTap(): void {
+        if (!this._ruleTapCb) return;
+        input.off(Input.EventType.TOUCH_END, this._ruleTapCb);
+        this._ruleTapCb = null;
     }
 
     /** 道具不足 → 看广告补 1 个（**只进本局道具栏**，与赠礼同规） */
@@ -1500,13 +1829,9 @@ export class GamePage extends PageBase {
         this.refreshAllStates();
         this.startTimer();
         // 预加载音效（本局要用的）
-        AudioService.preloadAll([SFX.tilePick, SFX.matchPop, SFX.slotWarn, SFX.toolUse, SFX.shuffle, SFX.revive]);
+        AudioService.preloadAll([SFX.tilePick, SFX.peng, SFX.chi, SFX.slotWarn, SFX.toolUse, SFX.shuffle, SFX.revive]);
         this.installDebugBridge();
         this.log(`入场完成 · 开局可点 ${this._board?.pickable().length ?? 0} 张`);
-    }
-
-    protected onLeave(): void {
-        this.uninstallDebugBridge();
     }
 
     // ========================================================
@@ -1596,6 +1921,22 @@ export class GamePage extends PageBase {
              * 不会出现在 `pickables()` 里）。
              */
             slotFaces: () => this._slots.map((i) => faceLabel(this._board?.tiles[i].face ?? 0)),
+            /**
+             * ⚠️ **仅调试用**：直接把局面推到结算弹层，用于量结算层版式。
+             *
+             * 【为什么要它】结算弹层只在"胜/负"那一刻存在，用截图脚本"等一会儿再拍"
+             *   永远拍不到，于是这一屏的版式**从来没被真实几何量过** —— 本轮
+             *   「下一关按钮比分享按钮宽 80px」「吉祥物被缎带压住」两个问题都是靠人眼
+             *   从截图上看出来的，机器一句断言都没有。
+             *   它**不清盘、不算分**，只走 `openResult()` 的绘制路径 ⇒ **只能用来量几何**，
+             *   不能当作"通关流程"的验证（那是 `g5-smoke.mjs` 的活）。
+             */
+            demoResult: (win = true) => {
+                if (this._over) return false;
+                this._over = true;
+                this.openResult(win, 20 + this._level * 5, 'slotsFull');
+                return true;
+            },
         };
         (globalThis as unknown as { __game5?: unknown }).__game5 = api;
         this.log('调试桥已挂载：globalThis.__game5');

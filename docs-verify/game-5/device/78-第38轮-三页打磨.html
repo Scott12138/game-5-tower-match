@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>第 38 轮 · 三页打磨（开局页 / 结算页 / 主玩页）</title>
+<style>
+  :root{
+    --ink:#22201B; --ink2:#5A554A; --ink3:#8C8676;
+    --line:#DCD6C8; --bg:#F5F3EE; --card:#FFFFFF;
+    --bad:#B4342A; --good:#1F7A4D; --hi:#8A6A12;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:15px;line-height:1.5;padding:22px 30px 30px}
+  h1{font-size:25px;font-weight:800;letter-spacing:.5px}
+  h1 small{font-size:14px;font-weight:500;color:var(--ink3);margin-left:10px;letter-spacing:0}
+  h2{font-size:19px;font-weight:800;margin:22px 0 10px;padding-left:11px;
+    border-left:5px solid var(--hi)}
+  h2 i{font-style:normal;font-size:13px;font-weight:600;color:var(--ink3);margin-left:9px}
+  p.note{color:var(--ink2);margin:8px 0 12px;font-size:14px}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    background:#EDE9DF;border-radius:4px;padding:1px 5px}
+  .row{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin:12px 0 6px}
+  .row.nowrap{flex-wrap:nowrap}
+  figure{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:8px 8px 6px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  figure figcaption{font-size:12.5px;color:var(--ink2);text-align:center;padding-top:5px}
+  .shot{display:block;width:100%;max-width:900px;border-radius:5px}
+  .sm{width:320px}
+  .sm .shot{width:320px;max-width:320px}
+  .phone{width:180px}
+  .phone .shot{width:180px}
+  .mid{width:430px}
+  .mid .shot{width:430px;max-width:430px}
+  table{border-collapse:collapse;width:100%;margin:10px 0 4px;background:var(--card);
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:13.5px}
+  th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+  th{background:#EDE9DF;font-weight:700;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.k{white-space:nowrap;color:var(--ink2)}
+  td.b{color:var(--bad);white-space:nowrap}
+  td.g{color:var(--good);font-weight:700;white-space:nowrap}
+  td.src{color:var(--ink3);font-size:12.5px}
+  .tag{display:inline-block;font-size:12px;font-weight:700;border-radius:5px;
+    padding:1px 7px;margin-right:7px;color:#fff;background:var(--ink3)}
+  .tag.fix{background:var(--good)}
+  .tag.keep{background:#6B6455}
+  ul{margin:6px 0 6px 20px}
+  li{margin:3px 0}
+  .foot{margin-top:26px;color:var(--ink3);font-size:12.5px;
+    border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+
+<h1>第 38 轮 · 三页打磨<small>开局页 / 结算页 / 主玩页 · 真机 1264x2780 口径（可视高 1651.43 设计 px）</small></h1>
+
+<p class="note">
+  本轮用户报的三个问题：<b>1</b> 开局页骰子与背景完全错位、赠礼页「开始挑战」按钮突兀；
+  <b>2</b> 结算页「下一关」按钮突兀、吉祥物位置不对；
+  <b>3</b> 主玩页所有展示位太丑，且进度条/倒计时下移、槽位/道具栏上移。
+  下面每一处都走「<b>需求真源 -&gt; 代码实测 -&gt; 改后实测</b>」三段对账，
+  真源 = <code>game-5-主玩页-排版.html</code> / <code>game-5-UI-六页视觉稿-v2.html</code> / <code>game-5-开局页-规格.md</code>。
+</p>
+
+<!-- ============================================================ -->
+<h2>T1 · 开局页：骰盘与贴图金环同心<i>骰子现已落在金环里</i></h2>
+
+<div class="row nowrap">
+  <figure class="sm">
+    <img class="shot" src="78-img/crop-dice.png" alt="掷骰落定帧（金环内）">
+    <figcaption>改后 · 掷骰落定帧（t=0.88s）。骰子落在<b>贴图自带的金环</b>内 —— 原来那个盖住金环的代码圆盘已删除</figcaption>
+  </figure>
+</div>
+
+<table>
+  <tr><th>项</th><th>改前</th><th>改后</th><th>依据</th></tr>
+  <tr>
+    <td class="k">骰盘中心（设计 y）</td>
+    <td class="b">534.7（错 291）</td><td class="g">826.4</td>
+    <td class="src">规格 §109 列两个值：桌面局部 376 / 屏绝对 667。旧代码把<b>局部值当屏绝对用</b></td>
+  </tr>
+  <tr>
+    <td class="k">对齐目标</td>
+    <td class="b">代码自画的深色圆盘</td><td class="g">贴图金环</td>
+    <td class="src">实测金环 bbox x 256–489 / y 261–489、外径约 232、质心 (372.6, 375.7) ⇒ 与贴图中心只差 (−2.4, −0.7)</td>
+  </tr>
+  <tr>
+    <td class="k">TrayFloor 深色圆盘</td>
+    <td class="b">半径 83，把金环整圈盖住</td><td class="g">删除</td>
+    <td class="src">环内孔半径实测约 84 = 旧圆盘半径 83 ⇒ 视觉上"金环不见了"</td>
+  </tr>
+  <tr>
+    <td class="k">骰盘坐标口径</td>
+    <td class="b">屏绝对</td><td class="g">桌面局部 (dx −2.4, dy −0.7)</td>
+    <td class="src">改挂到 Table 节点下，镜头缩放时跟着走；相机层坐标只留给镜头聚焦用</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>T2 · 开局页：赠礼卡与「开始挑战」按钮<i>卡高由内容推出，按钮由卡底派生</i></h2>
+
+<div class="row nowrap">
+  <figure class="phone"><img class="shot" src="78-img/before-gs.png" alt="开局页 改前"><figcaption>改前</figcaption></figure>
+  <figure class="phone"><img class="shot" src="78-img/after-gs.png" alt="开局页 改后"><figcaption>改后</figcaption></figure>
+</div>
+
+<table>
+  <tr><th>项</th><th>改前</th><th>改后</th><th>依据 / 真源</th></tr>
+  <tr>
+    <td class="k">赠礼卡覆盖区间（设计 y）</td>
+    <td class="b">718.7–1188.7（内容溢出卡底 8）</td><td class="g">498–976（高 478）</td>
+    <td class="src">卡高由行表 <code>CARD_ROWS</code> 推出，不再写死 470</td>
+  </tr>
+  <tr>
+    <td class="k">卡底 -&gt; 按钮底 间隙</td>
+    <td class="b">1px（按钮压住卡内末行）</td><td class="g">34px</td>
+    <td class="src">按钮 y 由 <code>BTN_CY = 卡顶 + 卡高 + 间隙 + 半高</code> 派生，卡高再变它跟着走</td>
+  </tr>
+  <tr>
+    <td class="k">「开始挑战」按钮</td>
+    <td class="b">320x108</td><td class="g">480x112，字号 42</td>
+    <td class="src">规格「赠礼层：按钮 930 / 480x112」</td>
+  </tr>
+  <tr>
+    <td class="k">按钮配色（厚度/渐变尾/描边/字）</td>
+    <td class="b">#7A5310 / #C8912B / #5C3F0C / #2A1C06</td>
+    <td class="g">#9A6A15 / #E8A92E / #8A5A10 / #5C3610</td>
+    <td class="src">视觉稿 <code>.btn-gold</code> 第 86 行逐值；旧值四处都暗一档</td>
+  </tr>
+  <tr>
+    <td class="k">顶缘高光</td>
+    <td class="b">高 34% 的白色硬边方块</td><td class="g">贴顶柔光（垂直渐变 alpha .62 -&gt; 0）</td>
+    <td class="src">真源是 <code>inset 0 3px 4px rgba(255,255,255,.7)</code>：3px 实 + 4px 模糊，不是一条 34% 高的色带</td>
+  </tr>
+  <tr>
+    <td class="k">四角金饰位置</td>
+    <td class="b">距顶 196.7 / 距底 194（不在角上）</td><td class="g">距顶 38 / 距底 1616.1</td>
+    <td class="src">改用贴边口径 <code>fromTop/fromBottom</code>，与页面内容坐标解耦</td>
+  </tr>
+  <tr>
+    <td class="k">整页纵向口径</td>
+    <td class="b">CFG.topY（1334 口径，整体下移 158.7）</td><td class="g">Layout.topY（真机 1651.43 口径）</td>
+    <td class="src">一处 <code>const topY = Layout.topY</code> 全局生效</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>T3 · 结算页：「下一关」按钮与吉祥物<i>吉祥物被 tween 拽到卡顶</i></h2>
+
+<div class="row nowrap">
+  <figure class="phone"><img class="shot" src="78-img/before-result.png" alt="结算页 改前"><figcaption>改前</figcaption></figure>
+  <figure class="phone"><img class="shot" src="78-img/after-result.png" alt="结算页 改后"><figcaption>改后</figcaption></figure>
+</div>
+
+<div class="row nowrap">
+  <figure class="mid"><img class="shot" src="78-img/crop-btn-before.png" alt="结算按钮 改前"><figcaption>改前：34% 高硬边浅色方带 + 次按钮近黑金边</figcaption></figure>
+  <figure class="mid"><img class="shot" src="78-img/crop-btn-after.png" alt="结算按钮 改后"><figcaption>改后：贴顶柔光 + 暖白描边的半透明次按钮</figcaption></figure>
+</div>
+
+<table>
+  <tr><th>项</th><th>改前</th><th>改后</th><th>依据 / 真源</th></tr>
+  <tr>
+    <td class="k">吉祥物中心（设计 y）</td>
+    <td class="b">356.3（被拽到卡顶，压在缎带下）</td><td class="g">531.8（240x218.9，完整露出）</td>
+    <td class="src">病根是 <code>tween(x).to(d,{position:v3(0,12,0)})</code> —— tween 的 position 是<b>绝对坐标</b>，不是相对偏移</td>
+  </tr>
+  <tr>
+    <td class="k">结算卡高</td>
+    <td class="b">790（含缎带压吉祥物）</td><td class="g">777（= 内容总高）</td>
+    <td class="src">卡高与 <code>cur</code> 游标两处累加必须逐项同步；现加 <code>console.warn</code> 自检兜底</td>
+  </tr>
+  <tr>
+    <td class="k">主 / 次按钮宽</td>
+    <td class="b">540 / 460</td><td class="g">540 / 540</td>
+    <td class="src">视觉稿 <code>.modal .btn-ghost{margin:0 40px}</code> 给的是 460；<b>本轮按用户"突兀"的反馈统一为等宽，此处偏离真源，待拍板</b></td>
+  </tr>
+  <tr>
+    <td class="k">次按钮底色</td>
+    <td class="b">rgba(11,20,15,.9) 近黑不透明</td><td class="g">#164E3A -&gt; #0F3427（= .18 黑压玉卡）</td>
+    <td class="src">真源 <code>background:rgba(0,0,0,.18)</code> 是<b>半透明</b>；用不透明实色写等效值，避开 <code>fillVGradient</code> 逐带叠加把 alpha 抬高的坑</td>
+  </tr>
+  <tr>
+    <td class="k">次按钮描边</td>
+    <td class="b">金色 42%</td><td class="g">暖白 55%</td>
+    <td class="src">真源 <code>border:3px solid rgba(255,247,230,.55)</code>；旧值是另一套色，所以看着像"一条黑带"</td>
+  </tr>
+  <tr>
+    <td class="k">缎带占位高</td>
+    <td class="b">按传入的 110 算</td><td class="g">155（实测）</td>
+    <td class="src">88 号字 + 8px 描边时引擎会按文本重算 contentSize</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>T4 · 主玩页：顶带重排与纵向压紧<i>三元素中线对齐 + 上下各收 85</i></h2>
+
+<div class="row nowrap">
+  <figure class="phone"><img class="shot" src="78-img/before-game.png" alt="主玩页 改前"><figcaption>改前</figcaption></figure>
+  <figure class="phone"><img class="shot" src="78-img/after-game.png" alt="主玩页 改后"><figcaption>改后</figcaption></figure>
+</div>
+
+<div class="row nowrap">
+  <figure class="mid"><img class="shot" src="78-img/crop-hud-before.png" alt="顶带 改前"><figcaption>改前：「已清 0/12」在条外下方，下行参差</figcaption></figure>
+  <figure class="mid"><img class="shot" src="78-img/crop-hud-after.png" alt="顶带 改后"><figcaption>改后：入条内 · 中线一致 · 数字转金 · 补书页图标</figcaption></figure>
+</div>
+
+<table>
+  <tr><th>项</th><th>改前</th><th>改后</th><th>依据 / 真源</th></tr>
+  <tr>
+    <td class="k">信息行三元素中线</td>
+    <td class="b">220 / 218 / 222（差 4）</td><td class="g">311 / 311 / 311</td>
+    <td class="src">真源 <code>.infoRow{top:190;height:68}</code> 是一整行；三个 top 由高度反推保证中线相等</td>
+  </tr>
+  <tr>
+    <td class="k">「已清 n/m」</td>
+    <td class="b">条外下方 <code>y:-26</code></td><td class="g">条内、左内缩 14</td>
+    <td class="src">真源第 168 行原话：「进度条 + <b>条内嵌</b>「已清 n/m」…已修」；<code>.progTxt{left:14}</code>。文字压在填充上，故加 2.5px 深色描边</td>
+  </tr>
+  <tr>
+    <td class="k">关卡胶囊</td>
+    <td class="b">单段 30 号奶油白 + 写死 150 宽</td>
+    <td class="g">三段：第/关 30 号白、数字 34 号金；宽度自适应（第 1 关 = 144）</td>
+    <td class="src">真源 <code>.lv b{font-size:34px;color:var(--gold-hi)}</code> + <code>padding:0 32px</code> 自适应</td>
+  </tr>
+  <tr>
+    <td class="k">规则按钮</td>
+    <td class="b">只有「规则」两个字</td><td class="g">书页图标 26x26 + 文字（内缩 18 / 间距 9 / 右 22）</td>
+    <td class="src">真源 <code>.ruleBtn svg{width:26px;height:26px}</code>；顶带四个胶囊里它原是最空的一个</td>
+  </tr>
+  <tr>
+    <td class="k">TOP_H（顶带声明高）</td>
+    <td class="b">292</td><td class="g">377</td>
+    <td class="src">只作桌面可用区边界；桌面在区内居中，<b>改它不会挪动桌面</b></td>
+  </tr>
+  <tr>
+    <td class="k">BOT.PAD（道具栏距底）</td>
+    <td class="b">72</td><td class="g">157</td>
+    <td class="src">上移 85；上移后道具栏底距屏底 157 &gt;= SAFE_BOTTOM(68) [OK]</td>
+  </tr>
+</table>
+
+<h2>纵向压紧实测对账<i>单位：设计 px，屏顶为 0</i></h2>
+
+<table>
+  <tr><th>间距</th><th>改前</th><th>改后</th><th>说明</th></tr>
+  <tr><td class="k">首行下沿 -&gt; 次行上沿</td><td class="b">26</td><td class="g">117</td><td class="src">首行不动（必须与微信胶囊带 88–152 的中线 120 对齐）</td></tr>
+  <tr><td class="k">次行下沿 -&gt; 桌面顶</td><td class="b">200.7</td><td class="g">113.7</td><td class="src">与上一项取等 ⇒ 顶带读作一个整体，不再是"一头挤一头空"</td></tr>
+  <tr><td class="k">桌面底 -&gt; 槽位条上沿</td><td class="b">166.7</td><td class="g">81.7</td><td class="src">底带整体上移 85</td></tr>
+  <tr><td class="k">桌面本身位置</td><td class="k">中心 833.7</td><td class="k">中心 833.7（不变）</td><td class="src">桌面在可用区居中（scale 1），压紧只改两侧留白</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>本轮断言与自证<i>全部为实测，不是"现状即期望"</i></h2>
+<table>
+  <tr><th>断言</th><th>结果</th></tr>
+  <tr><td class="k">TypeScript 类型检查</td><td class="g">0 错误（每步复验）</td></tr>
+  <tr><td class="k"><code>g5-smoke.mjs</code> 真实事件冒烟</td><td class="g">25 / 25，未捕获异常 0，console error 0</td></tr>
+  <tr><td class="k">真机审计（开局 / 主玩 / 结算）</td><td class="g">三页均「无非页面节点越界」</td></tr>
+  <tr><td class="k">结算弹层自检 <code>cardH === cur</code></td><td class="g">777 === 777，console.warn 0 条</td></tr>
+  <tr><td class="k">主玩页底带安全区</td><td class="g">道具栏底距屏底 157 &gt;= 68</td></tr>
+</table>
+
+<h2>本轮未动 · 交回拍板<i>都是"实现偏离需求真源"，不是审美分歧</i></h2>
+<table>
+  <tr><th>位置</th><th>真源</th><th>现状</th></tr>
+  <tr>
+    <td class="k">槽位空格（8 格）</td>
+    <td class="src">底 <code>rgba(4,20,14,.5)</code> + 描边 <code>rgba(46,139,111,.30)</code> 玉绿 + 圆角 10；空格中心一道 22x2 玉绿短横</td>
+    <td class="b">奶油白底 + 金线 + 圆角 16，且空格里什么都没有 ⇒ 截图里那排"灰盒子"</td>
+  </tr>
+  <tr>
+    <td class="k">道具格图标</td><td class="src">78x78，格圆角 24，角标 42x42</td><td class="b">图标 60，格圆角见 <code>SKIN.TOOL.RADIUS</code>，角标 38x38</td>
+  </tr>
+  <tr>
+    <td class="k">进度条填充色</td><td class="src">真源写的是玉绿 <code>var(--jade)</code>，但它引用的 <code>--jade-hi</code> 在该文件里<b>没有定义</b>（渐变整条失效）</td>
+    <td class="k">金色。真源自相矛盾，本轮未改</td>
+  </tr>
+  <tr>
+    <td class="k">复活徽标文案</td><td class="src">真源：「本局复活 直消 4 张」</td><td class="k">现为「复活 x1」。属文案口径，未擅自改</td>
+  </tr>
+</table>
+
+<p class="foot">
+  取证方式：改前图片来自 <code>/tmp/g5-a38-res3</code>（本轮动手前的最后一次审计），
+  改后来自 <code>/tmp/g5-a38-all</code>；骰盘帧来自 <code>tools/r38-shot-dice.mjs</code> 的落定帧。
+  所有几何值均由 <code>tools/g5-device-audit.mjs --page</code> 的节点树 dump 读出（单位 = 设计 px，视口 421x927 @DPR1）。
+</p>
+
+</body>
+</html>

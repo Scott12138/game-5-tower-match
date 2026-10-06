@@ -1,0 +1,31 @@
+{
+  "size": {
+    "total": 10153373,
+    "packages": [
+      {
+        "name": "TOTAL",
+        "size": 10153373
+      },
+      {
+        "name": "main",
+        "size": 3900110
+      },
+      {
+        "name": "/subpackages/game/",
+        "size": 4510212
+      },
+      {
+        "name": "/subpackages/home/",
+        "size": 1399194
+      },
+      {
+        "name": "/subpackages/internal/",
+        "size": 165428
+      },
+      {
+        "name": "/subpackages/main/",
+        "size": 178429
+      }
+    ]
+  }
+}

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>第37轮（二）· 主按钮换血 + 设置页重排</title>
+<style>
+  :root {
+    --ink:#12211A; --ink2:#3D5449; --line:#D8E2DA; --bg:#F5F7F5;
+    --bad:#8A4B3A; --good:#1B5E4A; --gold:#9A7B2E; --card:#FFFFFF;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:26px 30px 44px; background:var(--bg); color:var(--ink);
+         font:15px/1.72 -apple-system,"PingFang SC","Helvetica Neue",sans-serif; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:.01em; }
+  h2 { font-size:19px; margin:34px 0 12px; padding-left:11px;
+        border-left:4px solid var(--good); }
+  h3 { font-size:15px; margin:20px 0 8px; color:var(--ink2); }
+  .lede { color:var(--ink2); font-size:14px; margin:0 0 6px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:16px 18px; margin:12px 0 18px; }
+  .kv { display:grid; grid-template-columns:96px 1fr; gap:5px 14px; font-size:14px; }
+  .kv dt { color:var(--ink2); }
+  .kv dd { margin:0; }
+  table { width:100%; border-collapse:collapse; background:var(--card);
+           border:1px solid var(--line); border-radius:10px; overflow:hidden;
+           font-size:13.5px; }
+  th,td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--line);
+           vertical-align:top; }
+  th { background:#EDF2EE; font-weight:600; font-size:13px; }
+  tr:last-child td { border-bottom:0; }
+  td.b { color:var(--bad); }
+  td.a { color:var(--good); }
+  code { background:#EDF2EE; padding:1px 5px; border-radius:4px; font-size:12.5px;
+          font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  /* 强制并排（板面固定 1660 宽，不会溢出）—— 上下各一组会把页面顶到 5000px，
+     而单次截图的高度上限实测 ≈4500px（超了**静默超时**，且自检三件套照样全绿）。 */
+  .row.nowrap { flex-wrap:nowrap; }
+  .row.nowrap figure { flex:1 1 0; min-width:0; }
+  .row.nowrap .shot { width:100%; max-width:none; }
+  figure { margin:0; }
+  figcaption { font-size:12.5px; color:var(--ink2); margin-top:6px; text-align:center; }
+  .shot { display:block; height:auto; border:1px solid var(--line); border-radius:10px; }
+  .phone { max-width:300px; }
+  .pair { max-width:600px; }
+  .wide { max-width:900px; margin:0 auto; }
+  .tag { display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:.04em;
+          padding:2px 9px; border-radius:999px; margin-bottom:7px; }
+  .tag.b { background:#F3E4DF; color:var(--bad); }
+  .tag.a { background:#DEEEE7; color:var(--good); }
+  ul { margin:8px 0; padding-left:20px; }
+  li { margin:4px 0; }
+  .note { background:#FFFCF2; border:1px solid #EADFB8; border-radius:10px;
+           padding:13px 16px; font-size:13.5px; }
+</style></head><body>
+
+<h1>第 37 轮（二）· 主按钮换血 + 设置页重排</h1>
+<p class="lede">同视口取证：<code>421×927 @3</code>（= 真机 1264×2780）。改前 / 改后走
+<code>git stash</code> 切换，<b>没有手改源码造状态</b>；恢复后三个源文件 md5 与改后
+<b>逐字节一致</b>。</p>
+
+<h2>一、主按钮 —— 方案 B 落地</h2>
+
+<div class="card">
+<dl class="kv">
+  <dt>病根</dt><dd>不在素材，在<b>拼法</b>：旧代码把中段源图 <code>228×280</code> 强制拉成
+      <code>320×140</code> ⇒ 横向 ×1.403 / 纵向 ×0.500，<b>各向异性 2.81×</b>，
+      玉纹被压成横向拉丝。</dd>
+  <dt>叠层</dt><dd>旧代码还在按钮上压了一层 <code>Shade</code>：两侧各 80 宽的
+      <code>rgba(2,24,13,0.34)</code> 硬压暗带（用来盖接缝），中央
+      <code>rgba(255,255,255,0.10)</code> 竖向渐变 —— <b>这就是"中间发亮"的直因</b>。</dd>
+  <dt>改法</dt><dd>三段<b>各占其位、零重叠</b>：两帽 <code>aspectH:140</code> 定高等比，
+      中段宽 = <code>320 − 56.94 − 55.23 = 207.83</code>；<code>Shade</code> 整层删除。</dd>
+  <dt>素材</dt><dd>切件由 <code>make_btn_primary_assets.py</code> 从 <code>btn_v2.png</code>
+      <b>先整图缩 70%、再按实测切点 190/706 裁三段</b>。切点取"两侧列高完全相同"处，
+      消掉 1px 接缝台阶（1 源 px ≈ 真机 0.72 物理 px，不可见）。</dd>
+</dl>
+</div>
+
+<div class="row">
+  <figure><span class="tag b">改前</span>
+    <img class="shot pair" src="round37/r37b-btn-before.png" alt="改前主按钮"></figure>
+  <figure><span class="tag a">改后</span>
+    <img class="shot pair" src="round37/r37b-btn-after.png" alt="改后主按钮"></figure>
+</div>
+<figcaption style="text-align:left;margin-top:8px">
+  同一裁切口径（380×190 设计 px）。改前可对照用户实拍：中段明显亮、两端接不上。</figcaption>
+
+<table style="margin-top:16px">
+<tr><th style="width:29%">项</th><th style="width:35%">改前（btn9 拼法）</th><th>改后（方案 B）</th></tr>
+<tr><td>中段源 → 显示</td><td class="b">228×280 → 320×140</td><td class="a">361×327 → 207.8×140</td></tr>
+<tr><td>横向缩放</td><td class="b">×1.403</td><td class="a">×1.345（<b>只在中段</b>）</td></tr>
+<tr><td>纵向缩放</td><td class="b">×0.500</td><td class="a">×0.428（三段<b>同一比例</b>）</td></tr>
+<tr><td>各向异性（横向÷纵向）</td><td class="b"><b>2.81×</b></td><td class="a"><b>1.00×</b>（帽）/ 1.345×（中段）</td></tr>
+<tr><td>两端帽与中段的关系</td><td class="b">帽<b>压在中段之上</b>（重叠 78/75 宽）</td><td class="a">三段<b>各占其位、零重叠</b></td></tr>
+<tr><td>叠加的高光/压暗层</td><td class="b">两侧各 80 宽压暗带 + 中央白 10% + 底部压暗</td><td class="a"><b>整层删除</b>（素材自带明暗）</td></tr>
+<tr><td>素材体积</td><td class="b">155 KB</td><td class="a">308 KB（缩 70% 后）</td></tr>
+</table>
+
+<h2>二、设置页 —— 四个硬伤已修</h2>
+
+<div class="card">
+<dl class="kv">
+  <dt>① 分组线</dt><dd>原来 <code>rule(352)</code> 落在「背景音乐」行（284~388）<b>内部</b>，
+      看起来像这行的下划线 —— <b>就是你红圈圈的那一处</b>。</dd>
+  <dt>② 左边缘</dt><dd>原来两组是<b>三档不齐</b>（开关图标 46 / 开关文字 110 / 链接文字 46）。
+      现在四行统一骨架「图标列 48 → 间隙 22 → 文字」，左右缘严格对齐。</dd>
+  <dt>③ 标题带</dt><dd>关闭按钮与「设置」原来不同心（中线差 18），且距右 30 比行的边距 46
+      还靠外；现在<b>共用中线 80</b>、右缘与内容右缘对齐。</dd>
+  <dt>④ 版本号</dt><dd>原来与「关于本作」行<b>重叠 16px</b>；现在独立成页脚，
+      中心距行 4 为 101 &gt; 行距 96，视觉上"游离"出来。</dd>
+</dl>
+</div>
+
+<h3>整屏对照</h3>
+<div class="row">
+  <figure><span class="tag b">改前</span>
+    <img class="shot phone" src="round37/r37b-sheet-b.png" alt="改前设置页"></figure>
+  <figure><span class="tag a">改后</span>
+    <img class="shot phone" src="round37/r37b-sheet-a.png" alt="改后设置页"></figure>
+</div>
+
+<h3>行区特写（同一裁切口径）</h3>
+<div class="row nowrap">
+  <figure><span class="tag b">改前</span>
+    <img class="shot" src="round37/r37b-sheet-rows-b.png" alt="改前行区"></figure>
+  <figure><span class="tag a">改后</span>
+    <img class="shot" src="round37/r37b-sheet-rows-a.png" alt="改后行区"></figure>
+</div>
+
+<h3>标题带</h3>
+<div class="row nowrap">
+  <figure><span class="tag b">改前</span>
+    <img class="shot" src="round37/r37b-sheet-header-b.png" alt="改前标题带"></figure>
+  <figure><span class="tag a">改后</span>
+    <img class="shot" src="round37/r37b-sheet-header-a.png" alt="改后标题带"></figure>
+</div>
+
+<h3>页脚</h3>
+<div class="row nowrap">
+  <figure><span class="tag b">改前</span>
+    <img class="shot" src="round37/r37b-sheet-foot-b.png" alt="改前页脚"></figure>
+  <figure><span class="tag a">改后</span>
+    <img class="shot" src="round37/r37b-sheet-foot-a.png" alt="改后页脚"></figure>
+</div>
+
+<table style="margin-top:16px">
+<tr><th style="width:26%">项</th><th style="width:37%">改前</th><th>改后</th></tr>
+<tr><td>第二条分隔线位置</td><td class="b"><code>rule(352)</code> — 落在「背景音乐」行<b>内部</b>（该行 284~388）</td><td class="a">落在两组<b>空隙中央</b>（距行边各 24）</td></tr>
+<tr><td>四行左边缘</td><td class="b"><b>三档不齐</b>：图标 46 / 文字 110 / 链接文字 46</td><td class="a"><b>严格同一骨架</b>：图标列 48 → 间隙 22 → 文字</td></tr>
+<tr><td>行高</td><td class="b">104 / 104 / 98 / 98（两档）</td><td class="a"><b>96 × 4</b>（统一）</td></tr>
+<tr><td>图标视觉高</td><td class="b">喇叭 38.2 / 音符 50.3（定宽 42 导致）</td><td class="a"><b>均为 40</b>（改定高）</td></tr>
+<tr><td>关闭按钮 vs 标题中线</td><td class="b">70 vs 88（<b>差 18</b>）</td><td class="a">80 vs 80（<b>同心</b>）</td></tr>
+<tr><td>关闭按钮右边距</td><td class="b">30（比行的边距 46 还靠外）</td><td class="a">48（<b>与内容右缘对齐</b>）</td></tr>
+<tr><td>版本号 vs「关于本作」</td><td class="b">行 518~616 / 版本 600~626 ⇒ <b>重叠 16</b></td><td class="a">行 512~608 / 版本 648~674 ⇒ 中心距 101 > 行距 96</td></tr>
+<tr><td>抽屉竖向留白</td><td class="b">顶部 4 / 底部 74（版心偏上）</td><td class="a">顶部 24 节奏 / 底部 26</td></tr>
+<tr><td>链接行图标</td><td class="b">无（所以左边缘对不齐）</td><td class="a">金色线描（重置↺ / 信息 i）</td></tr>
+</table>
+
+<h2>三、验证</h2>
+<div class="card">
+<dl class="kv">
+  <dt>类型检查</dt><dd><code>tsc-check.sh</code> → <b>0 错误</b></dd>
+  <dt>冒烟</dt><dd><code>g5-smoke.mjs</code> → <b>25 / 25 通过</b>（复跑 2 次均为
+      「未捕获异常 0 · console error 0」；首跑出现过 1 条
+      <code>ERR_CONNECTION_RESET</code> 的本地服务器偶发断连，复跑不复现）</dd>
+  <dt>版式审计</dt><dd>真机比例下 <code>BtnStart 320×140</code> ·
+      <code>Mid 208×140</code> · <code>CapL 57×140</code> · <code>CapR 55×140</code>，
+      <b>无非页面节点越界</b></dd>
+  <dt>素材</dt><dd>旧 <code>btn_left/mid/right</code> 已从工程删除（备份
+      <code>/private/tmp/g5-btn9-bak</code>）；新素材自动生成 <code>.meta</code> 并进包</dd>
+</dl>
+</div>
+
+<h2>四、请你拍板 / 待确认</h2>
+<div class="note">
+<ul>
+  <li><b>音效 / 背景音乐两个开关是联动的</b> —— 两行都调
+      <code>AudioService.setMuted()</code>，所以关掉「背景音乐」会把「音效」一起关掉。
+      这是<b>功能问题、不是排版问题</b>，我没擅自改（要改得给
+      <code>AudioService</code> 加独立的 bgm / sfx 开关）。要不要修？</li>
+  <li><b>「重置进度」目前点了就直接重置</b>，没有二次确认。要不要加一个
+      「确定要重置吗」的确认层？</li>
+  <li>版本号文案 <code>v0.1.0-cocos · 试玩版</code> 与「关于本作」的 toast
+      <code>《叠塔消消》· 试玩版</code> 里的<b>游戏名仍是「叠塔消消」</b>，
+      而美术标题是「麻麻大消除」—— 这个悬了很久，要不要一并统一？</li>
+</ul>
+</div>
+
+</body></html>

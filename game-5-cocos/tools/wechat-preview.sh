@@ -22,9 +22,13 @@
 #      报错完全看不出是"紧跟中文"引起的。**凡是 `$VAR` 后面不是 ASCII 分隔符的，一律写 `${VAR}`。**
 #
 # 用法：
-#   bash tools/wechat-preview.sh                          # 默认：game-4-mahjong / release / 归档到 docs/verify/S13/device
+#   bash tools/wechat-preview.sh                          # 默认：自动认工程根（有 assets/ 就用它）/ release
 #   bash tools/wechat-preview.sh <工程目录|工程名> [debug|release] [归档目录]
 #   SKIP_BUILD=1 bash tools/wechat-preview.sh             # 跳过构建，只重出码（换手机、码过期时用）
+#
+# 在 game-5-cocos 里的常用写法（归档到本项目目录）：
+#   bash tools/wechat-preview.sh "$(pwd)" release \
+#        /Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/device
 #
 # 产出：
 #   <归档目录>/真机预览二维码.png     ← 交给用户扫的这张
@@ -55,7 +59,13 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CLI="/Applications/wechatwebdevtools.app/Contents/MacOS/cli"
 APP="/Applications/wechatwebdevtools.app"
 
-PROJ_ARG="${1:-game-4-mahjong}"
+# ★ 默认工程：本脚本被搬到 game-5-cocos/tools/ 之后，ROOT 就是工程本身；
+#   而最初它住在 workspace 根（那时默认 game-4-mahjong 才是对的）。
+#   判据 = 有 assets/ 就是 Cocos 工程根 ⇒ 默认用 ROOT 自己，否则回退到 game-4-mahjong。
+#   不加这段的话，在 game-5 里不带参数跑会报「❌ 找不到工程：…/game-5-cocos/game-4-mahjong」，
+#   而这个报错很容易被误读成「工程坏了」。
+if [ -d "$ROOT/assets" ]; then DEFAULT_PROJ="$ROOT"; else DEFAULT_PROJ="game-4-mahjong"; fi
+PROJ_ARG="${1:-$DEFAULT_PROJ}"
 MODE="${2:-release}"
 ARCHIVE="${3:-$ROOT/docs/verify/S13/device}"
 

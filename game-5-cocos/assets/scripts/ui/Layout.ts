@@ -47,15 +47,20 @@ export function botY(v: number): number {
 //  底带（距底边的偏移，全部由 1334 设计稿换算而来）
 // ------------------------------------------------------------
 //  设计稿：道具栏 1150~1262（底边留 72）；槽位条 1058~1138；两者间距 12。
+//
+//  【PAD 为什么由 72 改成 157】真机可视高 1651.43 比设计稿的 1334 多 317.4，
+//  但底带是**贴底**的 ⇒ 多出来的高度全体现为"桌面下沿 → 槽位条"这一条空档（原本 166.7）。
+//  乙档压紧把它砍到 81.7（上移 85）⇒ `PAD = 72 + 85 = 157`。
+//  上移后道具栏底边距屏幕底 157 ≥ `SAFE_BOTTOM`(68) ✓，不会被 Home Indicator 压住。
 export const BOT = {
     /** 道具栏底边距屏幕底边的距离 */
-    PAD: 72,
+    PAD: 157,
     /** 道具栏中心（距底边） */
-    TOOL_C: 72 + LAYOUT.TOOL_BAR.h / 2,
+    TOOL_C: 157 + LAYOUT.TOOL_BAR.h / 2,
     /** 槽位条中心（距底边） */
-    SLOT_C: 72 + LAYOUT.TOOL_BAR.h + 12 + LAYOUT.SLOT_BAR.h / 2,
+    SLOT_C: 157 + LAYOUT.TOOL_BAR.h + 12 + LAYOUT.SLOT_BAR.h / 2,
     /** 底带整体占用的高度（距底边）—— 桌面下沿不能低于它 */
-    TOP: 72 + LAYOUT.TOOL_BAR.h + 12 + LAYOUT.SLOT_BAR.h,
+    TOP: 157 + LAYOUT.TOOL_BAR.h + 12 + LAYOUT.SLOT_BAR.h,
 } as const;
 
 // ------------------------------------------------------------

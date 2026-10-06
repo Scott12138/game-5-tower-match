@@ -64,11 +64,79 @@ export function strokeRoundRect(
 }
 
 /**
+ * 圆角矩形在「距形心 dyAbs」高度处，左右各要内缩多少 —— 也就是轮廓相对满宽的内缩量。
+ * 直边段返回 0；进入圆角区后返回 `r − √(r² − k²)`（k = 从直边段末端起算深入圆角区的距离）。
+ *
+ * 【为什么必须要有它 —— 第 39 轮血案】
+ *   旧 `fillVGradient` 把渐变切成横带，**只给首尾两条**传 `r`，中间的传 0。
+ *   而带高只有 `h/steps`（按钮 ~4px），`roundRectPath` 又把超出半高的 `r`
+ *   钳到 `min(w,h)/2 ≈ 2px` ⇒ 26 条带里 **24 条是全宽直角矩形**。
+ *   结果：按钮顶面渲染出来是个**矩形**，只有 3px 描边还画在真正的胶囊路径上，
+ *   ⇒ 四个角上露出方形色块。用户原话："突出来的角很丑""不够圆润"。
+ *   实测铁证：真机 1264×2780 截图里，1052×144 的金按钮**从上到下 144 行宽度恒为 1052**，
+ *   圆角半径为 0（量测脚本 tools/r39-corner.py）。
+ *   ⇒ 正确做法：**每条带都按轮廓函数收窄**，而不是靠圆角矩形去"凑"。
+ */
+function shapeInset(dyAbs: number, halfH: number, r: number): number {
+    const R = Math.max(0, Math.min(r, halfH));
+    const straight = halfH - R;                     // 直边段半高
+    const d = Math.abs(dyAbs);
+    if (R <= 0 || d <= straight) return 0;
+    const k = Math.min(R, d - straight);
+    return R - Math.sqrt(Math.max(0, R * R - k * k));
+}
+
+/**
+ * 用「水平切片带」逼近竖向渐变，**每条带都按轮廓函数收窄** ⇒ 渐变永远落在圆角形内部。
+ *
+ * @param cx        形心 x（所有点都以此为中心左右对称）
+ * @param halfW     形半宽
+ * @param centerY   形心 y（用来算每条带距形心的距离，喂给 `insetAt`）
+ * @param yTop/yBot 要填充的竖直范围（本地 y，**+y 向上**）
+ * @param colorAt   给 0~1 返回该带的颜色
+ * @param insetAt   给「距形心距离」返回横向内缩量，见 `shapeInset`
+ */
+function bandedFill(
+    g: Graphics, cx: number, halfW: number, centerY: number, yTop: number, yBot: number,
+    steps: number, colorAt: (t: number) => Color, insetAt: (dyAbs: number) => number,
+): void {
+    const total = yTop - yBot;
+    if (total <= 0 || halfW <= 0) return;
+    const band = total / steps;
+    // 每条带内部再取 3 个 y 采样：圆角区里轮廓是曲线，
+    // 只取上下两端会退化成"折线"，在胶囊两端能看出斜切面。
+    const SUB = 3;
+    for (let i = 0; i < steps; i++) {
+        g.fillColor = colorAt(i / Math.max(1, steps - 1));
+        const yT = yTop - band * i;
+        // 末条不越界；其余往下多留 0.5px 重叠，消掉带与带之间的抗锯齿缝
+        const yB = i === steps - 1 ? yBot : Math.max(yBot, yT - band - 0.5);
+        const lx: number[] = [];
+        const rx: number[] = [];
+        const ys: number[] = [];
+        for (let k = 0; k <= SUB; k++) {
+            const y = yT + (yB - yT) * (k / SUB);
+            const ins = insetAt(Math.abs(y - centerY));
+            ys.push(y);
+            lx.push(cx - halfW + ins);
+            rx.push(cx + halfW - ins);
+        }
+        g.moveTo(lx[0], ys[0]);
+        for (let k = 1; k <= SUB; k++) g.lineTo(lx[k], ys[k]);
+        for (let k = SUB; k >= 0; k--) g.lineTo(rx[k], ys[k]);
+        g.close();
+        g.fill();
+    }
+}
+
+/**
  * 竖向渐变（用横带逼近）。
  *
  * 【为什么自己画】Cocos 的 `Graphics` 没有渐变填充；而本作的主按钮、
- * 舞台背景、赠礼卡都是渐变。用 32 条横带逼近，在本工程的尺寸下色阶差 < 2/255，
+ * 舞台背景、赠礼卡都是渐变。用 26~32 条横带逼近，在本工程的尺寸下色阶差 < 2/255，
  * 肉眼完全看不出横带。（真要严格的话得写自定义材质，为这点收益不值得。）
+ *
+ * ⚠️ 每条带的宽度**必须**按圆角轮廓收窄，见 `shapeInset` 的注释（第 39 轮方角血案）。
  */
 export function fillVGradient(
     g: Graphics, cx: number, cy: number, w: number, h: number, r: number,
@@ -76,23 +144,51 @@ export function fillVGradient(
 ): void {
     const top = hex2color(topHex);
     const bot = hex2color(bottomHex);
-    const y0 = cy + h / 2;
-    const band = h / steps;
-    for (let i = 0; i < steps; i++) {
-        const t = i / (steps - 1);
-        const c = new Color(
-            Math.round(top.r + (bot.r - top.r) * t),
-            Math.round(top.g + (bot.g - top.g) * t),
-            Math.round(top.b + (bot.b - top.b) * t),
-            Math.round(top.a + (bot.a - top.a) * t),
-        );
-        g.fillColor = c;
-        const yy = y0 - band * i - band;
-        // 圆角只作用在首尾两条：中间是矩形，避免每条都倒角导致边缘发毛
-        const rr = (i === 0 || i === steps - 1) ? r : 0;
-        roundRectPath(g, cx - w / 2, yy, w, h / steps + 0.6, rr);
-        g.fill();
+    const halfH = h / 2;
+    const colorAt = (t: number): Color => new Color(
+        Math.round(top.r + (bot.r - top.r) * t),
+        Math.round(top.g + (bot.g - top.g) * t),
+        Math.round(top.b + (bot.b - top.b) * t),
+        Math.round(top.a + (bot.a - top.a) * t),
+    );
+    // 直角矩形（`r = 0`）走老路：`roundRect` 顶点更少，且没必要采样轮廓
+    if (r <= 0) {
+        const y0 = cy + halfH;
+        const band = h / steps;
+        for (let i = 0; i < steps; i++) {
+            g.fillColor = colorAt(i / Math.max(1, steps - 1));
+            roundRectPath(g, cx - w / 2, y0 - band * i - band, w, band + 0.6, 0);
+            g.fill();
+        }
+        return;
     }
+    bandedFill(g, cx, w / 2, cy, cy + halfH, cy - halfH, steps,
+        colorAt, (d: number): number => shapeInset(d, halfH, r));
+}
+
+/**
+ * 顶缘柔光：**贴着按钮顶弧、随轮廓自动收窄**的半透明白色渐隐带。
+ *
+ * 对应定稿稿 `.btn-gold{ box-shadow: …, inset 0 3px 4px rgba(255,255,255,.7) }`。
+ * CSS 的 inset 阴影会跟着 `border-radius` 走，所以这里也必须跟着**外层轮廓**走 ——
+ * 高光带的左右边界直接取外层圆角形在该高度的边界，而不是自己再画一个圆角矩形。
+ *
+ * ⚠️ 旧实现是「90% 宽 / 34% 高的白色硬边圆角矩形」，换成渐变后又把
+ *   `radius − inset` 当自己的圆角传进去；带子只有 16px 高、圆角被钳到 ~1.6px
+ *   ⇒ **高光条在按钮两端戳出轮廓之外**，看着就像左右各多长出一个浅色方角。
+ *   这与上面的"方角"是**同一个病的两个症状**。
+ */
+export function fillTopSheen(
+    g: Graphics, cx: number, cy: number, w: number, h: number, r: number,
+    bandH: number, alpha: number, steps = 6,
+): void {
+    const halfH = h / 2;
+    const yTop = cy + halfH - 3.5;                  // 顶边内缩 3.5，躲开 3px 描边
+    const yBot = Math.max(cy - halfH, yTop - bandH);
+    const a = Math.round(Math.max(0, Math.min(1, alpha)) * 255);
+    bandedFill(g, cx, w / 2, cy, yTop, yBot, steps,
+        (t: number): Color => new Color(255, 255, 255, Math.round(a * (1 - t))),
+        (d: number): number => shapeInset(d, halfH, r));
 }
 
 /** 径向柔光（近似 CSS radial-gradient）—— 光圈层数少，避免顶点爆量 */
@@ -532,6 +628,8 @@ const BUNDLE_ROUTES: ReadonlyArray<readonly [string, string]> = [
     ['tiles/', 'game'],
     ['game-start/', 'game'],
     ['game-play/', 'game'],
+    // 主玩页桌外底色（第 42 轮）：渐变件 + 织锦平铺件，放 game 分包省主包配额
+    ['bg/', 'game'],
 ];
 
 /** 查一个资源路径属于哪张 Bundle（`''` = 主包 resources） */
@@ -960,9 +1058,11 @@ export function createButton(parent: Node, name: string, opts: ButtonOpts): Node
 export interface Face3DOpts {
     w: number; h: number; radius: number; depth: number;
     top: string; bottom: string; depthColor: string; border: string;
+    /** 是否画顶缘高光（默认 true）。纯色板 / 需要完全平的面可关掉 */
+    highlight?: boolean;
 }
 
-/** 画"厚度层 + 顶面渐变 + 高光带 + 描边"（按钮与面板共用） */
+/** 画"厚度层 + 顶面渐变 + 顶缘柔光 + 描边"（按钮与面板共用） */
 export function draw3dFace(g: Graphics, cx: number, cy: number, o: Face3DOpts): void {
     g.clear();
     // ⚠️ 厚度一律读 `o.depth`。曾在这里直接写 `depth`（裸变量，不是形参也不是全局）——
@@ -976,10 +1076,26 @@ export function draw3dFace(g: Graphics, cx: number, cy: number, o: Face3DOpts): 
     fillRoundRect(g, cx, cy - depth, o.w, o.h, o.radius, o.depthColor, 255);
     // ③ 顶面渐变
     fillVGradient(g, cx, cy, o.w, o.h, o.radius, o.top, o.bottom, 26);
-    // ④ 顶部高光带（定稿稿 `.btn::before{top:8%;height:36%}`）
-    const hb = o.h * 0.34;
-    fillRoundRect(g, cx, cy + o.h * 0.5 - o.h * 0.08 - hb / 2, o.w * 0.9, hb,
-        Math.max(2, o.radius * 0.8), '#FFFFFF', 54);
+    // ④ 顶缘柔光 —— 对应定稿稿 `.btn-gold{ box-shadow: …, inset 0 3px 4px rgba(255,255,255,.7) }`
+    //   即"从顶边往下 3px 实、再 4px 模糊"，是**贴着顶边的一圈柔光**。
+    //
+    //   ⚠️ 旧实现在这里画了一个「高 34%、宽 90% 的白色圆角矩形」（alpha 54），
+    //      那是**硬边色块**而不是柔光：在中/大号按钮上会看到一条**左右带竖直硬边**的
+    //      浅色方带浮在面上，像贴了一张半透明贴纸 —— 用户说的"按钮和别的元素完全突兀"
+    //      主要就是它（结算页「下一关」540×100、赠礼页「开始挑战」480×112 都有）。
+    //      圆角与描边（⑤，最后画）都压不住它，因为它的上下边是直的。
+    //
+    //   ⇒ 正确画法见 `fillTopSheen`：**高光带的左右边界直接取外层轮廓在该高度的边界**
+    //     （而不是自己再画一个圆角矩形 —— 那样在胶囊两端必然戳出轮廓之外）。
+    //     · 带高 `min(h*0.26, 16)`：100 高的按钮得 16、76 高得 16，矮按钮按比例缩；
+    //     · alpha 0.62 → 0 垂直渐隐，等效 CSS 的 `inset 0 3px 4px`。
+    //   ⚠️ 曾经还把中心 y 写成 `+h/2 − inset + hh/2`（加号）—— Cocos 本地坐标 **+y 向上**，
+    //      "从顶边往下 hh" 的中心应在顶边**下方** hh/2。写成加号会把柔光整条推到按钮
+    //      **上沿之外**（Graphics 不会自动裁剪）⇒ 真机上按钮上方多一条淡亮横线。
+    //      现在这个符号问题被 `fillTopSheen` 内部封死了，调用方不用再算。
+    if (o.highlight !== false) {
+        fillTopSheen(g, cx, cy, o.w, o.h, o.radius, Math.min(o.h * 0.26, 16), 0.62);
+    }
     // ⑤ 描边
     if (o.border) {
         strokeRoundRect(g, cx, cy, o.w, o.h, o.radius, o.border, 3, 255);

@@ -54,7 +54,7 @@ function allTexturePaths(): string[] {
         ASSET.SPLASH_DICE, ASSET.SPLASH_COIN,
         ASSET.SPLASH_BAR_TRACK, ASSET.SPLASH_BAR_FILL,
         ASSET.HOME_SETTING, ASSET.HOME_COIN, ASSET.HOME_TITLE,
-        ASSET.HOME_BTN_LEFT, ASSET.HOME_BTN_MID, ASSET.HOME_BTN_RIGHT,
+        ASSET.HOME_BTN_L, ASSET.HOME_BTN_M, ASSET.HOME_BTN_R,
         ASSET.HOME_MUTE_ON, ASSET.HOME_MUTE_OFF, ASSET.HOME_ICON_MUSIC,
         ASSET.TABLE, ASSET.RULE_PAGE,
     ];
@@ -367,7 +367,7 @@ export class SplashPage extends PageBase {
         const t0 = Date.now();
 
         // 音效也一并预热（音效全在主包 audio/，不参与分包）
-        AudioService.preloadAll(['audio/dice_roll', 'audio/tile_pick', 'audio/match_pop', 'audio/tool_use', 'audio/button']);
+        AudioService.preloadAll(['audio/dice_roll', 'audio/tile_pick', 'audio/peng', 'audio/chi', 'audio/tool_use', 'audio/button']);
 
         this._bundleDone = 0;
         this._bundleTotal = BUNDLES.length;

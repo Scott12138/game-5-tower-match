@@ -1,0 +1,2237 @@
+{
+ "drum-japanese1": [
+  "和太鼓でドン",
+  "生録音。重厚感がある",
+  "anime"
+ ],
+ "drum-japanese2": [
+  "和太鼓でドドン",
+  "登場の演出にも使える",
+  "anime"
+ ],
+ "drum-japanese-kaka1": [
+  "和太鼓でカカッ",
+  "太鼓のフチ部分を叩く",
+  "anime"
+ ],
+ "trumpet1": [
+  "ラッパのファンファーレ",
+  "喜びの演出に",
+  "anime"
+ ],
+ "levelup1": [
+  "レベルアップ",
+  "テッテレー",
+  "anime"
+ ],
+ "curse-melody1": [
+  "呪いの旋律",
+  "デデデーン。失敗演出などに",
+  "anime"
+ ],
+ "drum-roll1": [
+  "ドラムロール",
+  "ダラララ。生演奏",
+  "anime"
+ ],
+ "tympani-roll1": [
+  "ティンパニロール",
+  "ドドドドド。生演奏",
+  "anime"
+ ],
+ "roll-finish1": [
+  "ロールの閉め",
+  "シンバル。登場音にも使える",
+  "anime"
+ ],
+ "jean1": [
+  "ジャン！",
+  "何かを紹介する時などに",
+  "anime"
+ ],
+ "jajean1": [
+  "ジャジャーン",
+  "紹介・登場など様々な演出に",
+  "anime"
+ ],
+ "chan-chan1": [
+  "ちゃんちゃん♪1",
+  "木琴で演奏。オチに使える",
+  "anime"
+ ],
+ "chan-chan2": [
+  "ちゃんちゃん♪2",
+  "コントの締めなどに",
+  "anime"
+ ],
+ "chan-chan3": [
+  "ちゃんちゃん♪3",
+  "昭和風。トランペット使用",
+  "anime"
+ ],
+ "doon1": [
+  "ドーン",
+  "和太鼓やビブラスラップを一斉に鳴らす",
+  "anime"
+ ],
+ "mens-ou1": [
+  "男衆「オウ！」",
+  "暑苦しい男たちの叫び",
+  "anime"
+ ],
+ "mens-yeah1": [
+  "男衆「イエーイ！」",
+  "男だらけの大歓声",
+  "anime"
+ ],
+ "mens-yahoo1": [
+  "男衆「イヤッホー！」",
+  "喜びが爆発",
+  "anime"
+ ],
+ "mens-katsu1": [
+  "男衆「喝！」",
+  "カーーツ！",
+  "anime"
+ ],
+ "dondonpafupafu1": [
+  "ドンドンパフパフ",
+  "動画を盛り上げる効果音",
+  "anime"
+ ],
+ "pafu1": [
+  "パフ",
+  "ラッパの音",
+  "anime"
+ ],
+ "pico-pico-hammer1": [
+  "ピコッ",
+  "ハンマーのおもちゃ",
+  "anime"
+ ],
+ "ramen-stall1": [
+  "ラーメン屋台のメロディ",
+  "江戸時代からある旋律",
+  "anime"
+ ],
+ "dj-scratch1": [
+  "DJのスクラッチ1",
+  "ズビズビ。音楽番組などに",
+  "anime"
+ ],
+ "dj-scratch2": [
+  "DJのスクラッチ2",
+  "レコードのバックスピン",
+  "anime"
+ ],
+ "sceneswitch1": [
+  "シーン切り替え1",
+  "場面転換。木琴で演奏",
+  "anime"
+ ],
+ "sceneswitch2": [
+  "シーン切り替え2",
+  "ブオッ",
+  "anime"
+ ],
+ "amount-display1": [
+  "金額表示",
+  "レジの清算音",
+  "anime"
+ ],
+ "typewriter-1": [
+  "タイプライターで文字を打つ1",
+  "タイトル表示音などに",
+  "anime"
+ ],
+ "typewriter-2": [
+  "タイプライターで文字を打つ2",
+  "連続で打つ",
+  "anime"
+ ],
+ "title1": [
+  "タイトル表示",
+  "ビジネスでも使いやすい爽やかな音",
+  "anime"
+ ],
+ "piano-single1": [
+  "ピアノの単音",
+  "深い響きの落ち着いた演出音",
+  "anime"
+ ],
+ "anxiety-piano1": [
+  "不安（ピアノ演奏）",
+  "恐ろしいことが起こる前触れ",
+  "anime"
+ ],
+ "bell1": [
+  "鈴を鳴らす",
+  "シャン。残響入り",
+  "anime"
+ ],
+ "costume-drama1": [
+  "時代劇演出1",
+  "カァ～ッ。ビラスラップ",
+  "anime"
+ ],
+ "costume-drama2": [
+  "時代劇演出2",
+  "カァァッ！キハーダ",
+  "anime"
+ ],
+ "costume-drama3": [
+  "時代劇演出3",
+  "カッ！キハーダ",
+  "anime"
+ ],
+ "koto-glissando1": [
+  "琴の滑奏",
+  "しゃらららん",
+  "anime"
+ ],
+ "kotsudumi1": [
+  "小鼓（こつづみ）",
+  "歌舞伎や能で使われる太鼓",
+  "anime"
+ ],
+ "shakuhachi1": [
+  "尺八",
+  "生演奏。吹くのはかなり難しい",
+  "anime"
+ ],
+ "hyoushigi1": [
+  "拍子木1",
+  "木を打ち鳴らす和楽器",
+  "anime"
+ ],
+ "hyoushigi2": [
+  "拍子木2",
+  "キキッと2回連続",
+  "anime"
+ ],
+ "hyoushigi3": [
+  "拍子木3",
+  "キッキッキッ……キキッ",
+  "anime"
+ ],
+ "emergency-alert1": [
+  "警報が鳴る",
+  "危険なシーンの前に流すと効果的",
+  "anime"
+ ],
+ "news-title1": [
+  "ニュースタイトル表示1",
+  "見出しが出る時の音",
+  "anime"
+ ],
+ "news-title2": [
+  "ニュースタイトル表示2",
+  "緊急速報",
+  "anime"
+ ],
+ "news-title3": [
+  "ニュースタイトル表示3",
+  "主張弱め",
+  "anime"
+ ],
+ "news-title4": [
+  "ニュースタイトル表示4",
+  "ピピッ",
+  "anime"
+ ],
+ "presentation-title1": [
+  "プレゼンタイトル表示1",
+  "明るいイメージ",
+  "anime"
+ ],
+ "presentation-title2": [
+  "プレゼンタイトル表示2",
+  "水のイメージ",
+  "anime"
+ ],
+ "text-impact1": [
+  "文字表示の衝撃音1",
+  "ザッ！という迫力ある音",
+  "anime"
+ ],
+ "text-impact2": [
+  "文字表示の衝撃音2",
+  "映画のPV風",
+  "anime"
+ ],
+ "text-impact3": [
+  "文字表示の衝撃音3",
+  "ズン",
+  "anime"
+ ],
+ "metal-logo1": [
+  "金属タイトル表示1",
+  "ガキーン",
+  "anime"
+ ],
+ "metal-logo2": [
+  "金属タイトル表示2",
+  "衝撃音弱め",
+  "anime"
+ ],
+ "metal-logo3": [
+  "金属タイトル表示3",
+  "動きを出すときに",
+  "anime"
+ ],
+ "logo-animation1": [
+  "文字アニメーション1",
+  "デジタル感強め",
+  "anime"
+ ],
+ "logo-animation2": [
+  "文字アニメーション2",
+  "可愛く",
+  "anime"
+ ],
+ "buun1": [
+  "ブウーン",
+  "重低音。スローモーションの表現にも",
+  "anime"
+ ],
+ "school-chime1": [
+  "学校のチャイム",
+  "キンコンカンコン",
+  "anime"
+ ],
+ "broadcasting-start1": [
+  "放送開始チャイム",
+  "ピンポンパンポン",
+  "anime"
+ ],
+ "broadcasting-end1": [
+  "放送終了チャイム",
+  "終了のお知らせ",
+  "anime"
+ ],
+ "self-regulation1": [
+  "自主規制ピー音",
+  "セリフを隠す",
+  "anime"
+ ],
+ "match-card1": [
+  "対戦カード表示1",
+  "「VS」の表示。電気がバチバチ",
+  "anime"
+ ],
+ "match-card2": [
+  "対戦カード表示2",
+  "金属音と電気",
+  "anime"
+ ],
+ "conch1": [
+  "ほら貝を吹き鳴らす",
+  "戦闘開始の合図",
+  "anime"
+ ],
+ "gong-played1": [
+  "試合開始のゴング",
+  "ボクシングやプロレスの試合",
+  "anime"
+ ],
+ "gong-played2": [
+  "試合終了のゴング",
+  "カンカンカンカンカン",
+  "anime"
+ ],
+ "trumpet2": [
+  "突撃ラッパ",
+  "試合開始の演出などに",
+  "anime"
+ ],
+ "air-horn1": [
+  "エアーホーン",
+  "プァーッ。レース開始時に",
+  "anime"
+ ],
+ "mens-hajimei1": [
+  "男衆「始めいッ！」",
+  "ゲームスタート",
+  "anime"
+ ],
+ "electronic-countdown1": [
+  "カウントダウン電子音",
+  "プッ、プッ、プッ、ピー",
+  "anime"
+ ],
+ "horror-title1": [
+  "ホラータイトル表示音",
+  "恐怖をあおる",
+  "anime"
+ ],
+ "horror-text1": [
+  "ホラー文字表示音",
+  "怖いフォントとセットで",
+  "anime"
+ ],
+ "fear1": [
+  "恐怖",
+  "息詰まる空気",
+  "anime"
+ ],
+ "scream1": [
+  "男性の悲鳴",
+  "肝試し中に大音量で流せ！",
+  "anime"
+ ],
+ "clock-tower-bell1": [
+  "魔の時計塔の鐘",
+  "不安を煽る鐘の音",
+  "anime"
+ ],
+ "piano-midnight1": [
+  "真夜中に鳴り出すピアノ",
+  "ガーンゴーン",
+  "anime"
+ ],
+ "violin-horror1": [
+  "バイオリン恐怖音1",
+  "ヒュイッ、ヒュイッ…",
+  "anime"
+ ],
+ "violin-horror2": [
+  "バイオリン恐怖音2",
+  "迫る危機",
+  "anime"
+ ],
+ "violin-horror3": [
+  "バイオリン恐怖音3",
+  "叫びのような音",
+  "anime"
+ ],
+ "ghost1": [
+  "幽霊が現れる",
+  "ヒュー",
+  "anime"
+ ],
+ "fear-bird1": [
+  "鳥の奇声",
+  "けたたましい声",
+  "anime"
+ ],
+ "dissonance1": [
+  "恐怖の不協和音",
+  "驚かせる演出に",
+  "anime"
+ ],
+ "approaching-fear1": [
+  "迫り来る恐怖",
+  "だんだん大きくなる恐怖音",
+  "anime"
+ ],
+ "hitahita1": [
+  "ひたひたと何かが近づく1",
+  "だんだんこっちに来る",
+  "anime"
+ ],
+ "hitahita2": [
+  "ひたひたと何かが近づく2",
+  "途中から猛ダッシュ",
+  "anime"
+ ],
+ "question1": [
+  "クイズ出題1",
+  "デデン",
+  "anime"
+ ],
+ "question2": [
+  "クイズ出題2",
+  "「次の問題です」",
+  "anime"
+ ],
+ "correct1": [
+  "クイズ正解1",
+  "ピンポンピンポンピンポン",
+  "anime"
+ ],
+ "correct2": [
+  "クイズ正解2",
+  "鉄琴",
+  "anime"
+ ],
+ "correct3": [
+  "クイズ正解3",
+  "ハープ",
+  "anime"
+ ],
+ "correct4": [
+  "クイズ正解4",
+  "シンセサイザー",
+  "anime"
+ ],
+ "correct5": [
+  "クイズ正解5",
+  "高めの音",
+  "anime"
+ ],
+ "incorrect1": [
+  "クイズ不正解1",
+  "ブブー",
+  "anime"
+ ],
+ "incorrect2": [
+  "クイズ不正解2",
+  "残念でした",
+  "anime"
+ ],
+ "quiz-timer1": [
+  "制限時間タイマー",
+  "少しポップな感じ",
+  "anime"
+ ],
+ "quiz-timer-x2-1": [
+  "制限時間タイマー（倍速）",
+  "残り時間わずか",
+  "anime"
+ ],
+ "quiz-button1": [
+  "クイズ早押しボタン1",
+  "すばやく押す",
+  "anime"
+ ],
+ "quiz-button2": [
+  "クイズ早押しボタン2",
+  "そっと押す",
+  "anime"
+ ],
+ "shakin1": [
+  "シャキーン1",
+  "ポーズを決める",
+  "anime"
+ ],
+ "shakin2": [
+  "シャキーン2",
+  "光る音にも使える",
+  "anime"
+ ],
+ "shakin3": [
+  "シャキーン3",
+  "爽快感重視。ゲームにも使える",
+  "anime"
+ ],
+ "cute-pose1": [
+  "可愛く輝く1",
+  "魔法の音にも使える",
+  "anime"
+ ],
+ "cute-pose2": [
+  "可愛く輝く2",
+  "アイドルがポーズを取る",
+  "anime"
+ ],
+ "shine1": [
+  "きらきら輝く1",
+  "美しさの演出に",
+  "anime"
+ ],
+ "shine2": [
+  "きらきら輝く2",
+  "ウインドチャイムの音・長め",
+  "anime"
+ ],
+ "shine3": [
+  "きらきら輝く3",
+  "鉄琴で演奏",
+  "anime"
+ ],
+ "shine4": [
+  "きらきら輝く4",
+  "しゃらーん",
+  "anime"
+ ],
+ "shine5": [
+  "きらきら輝く5",
+  "透明感ある輝き",
+  "anime"
+ ],
+ "shine6": [
+  "きらきら輝く6",
+  "ハープの生演奏",
+  "anime"
+ ],
+ "pa1": [
+  "パッ",
+  "可愛くメッセージ表示",
+  "anime"
+ ],
+ "papa1": [
+  "パパッ",
+  "柔らかい演出音",
+  "anime"
+ ],
+ "peta1": [
+  "ペタッ",
+  "スタンプをつく時などに",
+  "anime"
+ ],
+ "wood-fish1": [
+  "木魚ポク・ポク・ポク",
+  "この後にチーン",
+  "anime"
+ ],
+ "tin1": [
+  "チーン1",
+  "がっかりした時の演出に",
+  "anime"
+ ],
+ "tin2": [
+  "チーン2",
+  "鋭い音",
+  "anime"
+ ],
+ "boyoyon1": [
+  "ボヨヨーン",
+  "びっくり箱。ギャグ音にも使える",
+  "anime"
+ ],
+ "boyon1": [
+  "ボヨン",
+  "何かに弾き返される",
+  "anime"
+ ],
+ "eye-shine1": [
+  "きらーん1",
+  "目が光る音",
+  "anime"
+ ],
+ "eye-shine2": [
+  "きらーん2",
+  "刃物",
+  "anime"
+ ],
+ "kira1": [
+  "キラッ1",
+  "鉄琴で演奏",
+  "anime"
+ ],
+ "kira2": [
+  "キラッ2",
+  "一瞬だけ光る",
+  "anime"
+ ],
+ "flee1": [
+  "ピューンと逃げる",
+  "一瞬で視界から消え去る",
+  "anime"
+ ],
+ "hyun1": [
+  "ヒューンと落下",
+  "物を投げる音にも使える",
+  "anime"
+ ],
+ "tsukkomi-1": [
+  "ビシッとツッコミ1",
+  "漫才演出に",
+  "anime"
+ ],
+ "feed1": [
+  "ビシッとツッコミ3",
+  "ハリセンでどつく",
+  "anime"
+ ],
+ "stupid1": [
+  "間抜け1",
+  "ドジを踏んだシーンに",
+  "anime"
+ ],
+ "stupid2": [
+  "間抜け2",
+  "しょうもない",
+  "anime"
+ ],
+ "stupid3": [
+  "間抜け3",
+  "えっ？",
+  "anime"
+ ],
+ "stupid4": [
+  "間抜け4",
+  "ボケシーン",
+  "anime"
+ ],
+ "stupid5": [
+  "間抜け5",
+  "気の抜ける音",
+  "anime"
+ ],
+ "stupid6": [
+  "間抜け6",
+  "ティンパニでドォーン",
+  "anime"
+ ],
+ "stupid7": [
+  "間抜け7",
+  "ほわんほわんほわん",
+  "anime"
+ ],
+ "temple-bell1": [
+  "お寺の鐘",
+  "ゴーン",
+  "anime"
+ ],
+ "nyu1": [
+  "ニュッ1",
+  "何かを出す",
+  "anime"
+ ],
+ "nyu2": [
+  "ニュッ2",
+  "ジャンプ音にも使える",
+  "anime"
+ ],
+ "nyu3": [
+  "ニュッ3",
+  "可愛らしい感じ",
+  "anime"
+ ],
+ "shock1": [
+  "ショック1",
+  "衝撃の一瞬",
+  "anime"
+ ],
+ "shock2": [
+  "ショック2",
+  "ピアノでガーン",
+  "anime"
+ ],
+ "shock3": [
+  "ショック3",
+  "ピアノでガガーン",
+  "anime"
+ ],
+ "shock4": [
+  "ショック4",
+  "ギャガーン",
+  "anime"
+ ],
+ "shock5": [
+  "ショック5",
+  "ドーン",
+  "anime"
+ ],
+ "shock6": [
+  "ショック6",
+  "お先真っ暗",
+  "anime"
+ ],
+ "despair1": [
+  "絶望",
+  "何もかもが崩れる",
+  "anime"
+ ],
+ "stunned1": [
+  "目が点になる",
+  "カーン、カァカァ",
+  "anime"
+ ],
+ "dizzy1": [
+  "目が回る",
+  "ヒヨコが頭の上を回る",
+  "anime"
+ ],
+ "surprise1": [
+  "驚く",
+  "頭の上に「！」が出る",
+  "anime"
+ ],
+ "flash1": [
+  "ひらめく1",
+  "フレクサトーンで演奏",
+  "anime"
+ ],
+ "flash2": [
+  "ひらめく2",
+  "電球がピカーン",
+  "anime"
+ ],
+ "ban1": [
+  "バーン",
+  "ドラ鳴らし",
+  "anime"
+ ],
+ "touch1": [
+  "ちょこっと触る",
+  "ポインチョ",
+  "anime"
+ ],
+ "puyon1": [
+  "ぷよん",
+  "弾力のある物体",
+  "anime"
+ ],
+ "tickle1": [
+  "くすぐる",
+  "こちょこちょ",
+  "anime"
+ ],
+ "solemnity1": [
+  "荘厳な雰囲気",
+  "ドラをゴーンと弱く鳴らす",
+  "anime"
+ ],
+ "tirin1": [
+  "チリン",
+  "凛とした女性が登場",
+  "anime"
+ ],
+ "drop1": [
+  "落ち込む",
+  "暗いイメージ",
+  "anime"
+ ],
+ "projector1": [
+  "映写機",
+  "昔の映像を流す時に",
+  "anime"
+ ],
+ "remember-the-past1": [
+  "過去を思い出す",
+  "ヒィィン",
+  "anime"
+ ],
+ "trauma1": [
+  "蘇るトラウマ",
+  "暗いシーンに",
+  "anime"
+ ],
+ "gogogogo1": [
+  "ゴゴゴゴ",
+  "怒るシーンなどに",
+  "anime"
+ ],
+ "madness1": [
+  "狂気",
+  "非日常のイメージ",
+  "anime"
+ ],
+ "blink1": [
+  "目をパチパチ",
+  "2回まばたき",
+  "anime"
+ ],
+ "hero1": [
+  "ヒーローの決めポーズ",
+  "かっこよくキメる",
+  "anime"
+ ],
+ "jump-anime1": [
+  "ジャンプ",
+  "身軽なキャラの跳躍",
+  "anime"
+ ],
+ "heart1": [
+  "心臓の鼓動1",
+  "4回連続",
+  "anime"
+ ],
+ "heart2": [
+  "心臓の鼓動2",
+  "ドキッ",
+  "anime"
+ ],
+ "shivering1": [
+  "カタカタ震える",
+  "恐怖する",
+  "anime"
+ ],
+ "machdash1": [
+  "超高速ダッシュ",
+  "ギュ－ン！",
+  "anime"
+ ],
+ "cute-motion1": [
+  "可愛い動作",
+  "何かを取り出す",
+  "anime"
+ ],
+ "cute-walk1": [
+  "可愛い足音",
+  "よちよち歩き",
+  "anime"
+ ],
+ "sit1": [
+  "可愛く座る",
+  "ちょこん",
+  "anime"
+ ],
+ "cute-sad1": [
+  "しょげる",
+  "可愛いキャラがテンションダウン",
+  "anime"
+ ],
+ "recollection1": [
+  "回想",
+  "吹き出しが出てきて思い出すイメージ",
+  "anime"
+ ],
+ "suck1": [
+  "食べ物をパクッ",
+  "食いしん坊",
+  "anime"
+ ],
+ "switch1": [
+  "スイッチを押す",
+  "ポチッとな",
+  "anime"
+ ],
+ "teardrop1": [
+  "涙のしずく",
+  "深い響き",
+  "anime"
+ ],
+ "brake1": [
+  "靴でブレーキ",
+  "キキキーッ",
+  "anime"
+ ],
+ "fall-down1": [
+  "ずっこける",
+  "ドテーン",
+  "anime"
+ ],
+ "ankle-spoil1": [
+  "足首がグキッ",
+  "変な方向に曲がる",
+  "anime"
+ ],
+ "extend1": [
+  "伸びる",
+  "何かが飛び出る",
+  "anime"
+ ],
+ "shrink1": [
+  "縮む",
+  "何かが引っ込む",
+  "anime"
+ ],
+ "eat-meat1": [
+  "肉を食べる",
+  "マンガ肉を思い切り食べる",
+  "anime"
+ ],
+ "bite1": [
+  "噛みつく",
+  "ガブッ",
+  "anime"
+ ],
+ "smoke1": [
+  "煙モクモク",
+  "柔らかい音",
+  "anime"
+ ],
+ "don-1": [
+  "ドーン",
+  "重い演出",
+  "anime"
+ ],
+ "gust1": [
+  "寒いギャグで突風が吹く",
+  "白けるシーンに",
+  "anime"
+ ],
+ "data-analysis1": [
+  "データ解析",
+  "画面にデータが表示される",
+  "anime"
+ ],
+ "slide1": [
+  "ツルっとすべる",
+  "氷の上など",
+  "anime"
+ ],
+ "duck-laugh1": [
+  "アヒルが大笑い",
+  "グワーッグワッグワッ",
+  "anime"
+ ],
+ "santaclaus-bell1": [
+  "クリスマスの鈴",
+  "シャンシャン。サンタクロース",
+  "anime"
+ ],
+ "buzzer-opening1": [
+  "開演ブザー",
+  "映画や演劇などに",
+  "anime"
+ ],
+ "spotlight1": [
+  "スポットライトが当たる",
+  "照明スイッチ。残響音あり",
+  "anime"
+ ],
+ "treasure-chest1": [
+  "宝箱を開ける",
+  "パカッ",
+  "anime"
+ ],
+ "item-get1": [
+  "アイテムを入手1",
+  "お金",
+  "anime"
+ ],
+ "item-get2": [
+  "アイテムを入手2",
+  "お宝ザクザク",
+  "anime"
+ ],
+ "hai-hai1": [
+  "男声「ハイ！ハイ！...」",
+  "男たちが6回叫ぶ",
+  "anime"
+ ],
+ "trumpet-greasedown1": [
+  "トランペットのグリスダウン",
+  "音程を素早く下げる",
+  "anime"
+ ],
+ "trumpet-dub1": [
+  "へたくそトランペット",
+  "力が抜ける",
+  "anime"
+ ],
+ "fate1": [
+  "運命1",
+  "ガガガーン。ヴェートーヴェン",
+  "anime"
+ ],
+ "fate2": [
+  "運命2",
+  "ティラリー。トッカータとフーガニ短調",
+  "anime"
+ ],
+ "church-bell1": [
+  "教会の鐘1",
+  "ゴーン",
+  "anime"
+ ],
+ "church-bell2": [
+  "教会の鐘2",
+  "リンゴーン。結婚式",
+  "anime"
+ ],
+ "prayer1": [
+  "教会の祈り",
+  "重厚なパイプオルガン",
+  "anime"
+ ],
+ "walk-leather-shoes1": [
+  "革靴で歩く",
+  "道路",
+  "various"
+ ],
+ "walk-asphalt1": [
+  "アスファルトの上を歩く1",
+  "スタンダード歩行音",
+  "various"
+ ],
+ "walk-asphalt2": [
+  "アスファルトの上を歩く2",
+  "少し足を速める",
+  "various"
+ ],
+ "walk-soil1": [
+  "土の上を歩く",
+  "ザッザッ",
+  "various"
+ ],
+ "walk-lawn1": [
+  "芝生の上を歩く",
+  "背の低い草",
+  "various"
+ ],
+ "walk-tussock1": [
+  "草むらを歩く",
+  "背の高い草",
+  "various"
+ ],
+ "walk-geta1": [
+  "下駄で歩く",
+  "カランコロン",
+  "various"
+ ],
+ "walk-school1": [
+  "学校の廊下を歩く",
+  "上履き着用",
+  "various"
+ ],
+ "walk-flooring1": [
+  "フローリングの上を歩く1",
+  "裸足の足音",
+  "various"
+ ],
+ "walk-flooring2": [
+  "フローリングの上を歩く2",
+  "靴下の足音",
+  "various"
+ ],
+ "walk-tatami1": [
+  "畳の上を歩く",
+  "靴下の足音",
+  "various"
+ ],
+ "walk-carpet1": [
+  "じゅうたんの上を歩く",
+  "やわらかい足音",
+  "various"
+ ],
+ "walk-sand1": [
+  "砂の上を歩く",
+  "砂漠や海岸のシーンに",
+  "various"
+ ],
+ "walk-gravel1": [
+  "砂利の上を歩く",
+  "ザッザッ",
+  "various"
+ ],
+ "walk-gymnasium1": [
+  "体育館で歩く",
+  "館内に響き渡る",
+  "various"
+ ],
+ "walk-fallen-leaves1": [
+  "落ち葉の上を歩く",
+  "秋のイメージ",
+  "various"
+ ],
+ "walk-snow1": [
+  "雪の上を歩く1",
+  "ズボッズボッ",
+  "various"
+ ],
+ "walk-snow2": [
+  "雪の上を歩く2",
+  "溶けかけシェイク状",
+  "various"
+ ],
+ "walk-slipper1": [
+  "スリッパで歩く",
+  "フローリングの上",
+  "various"
+ ],
+ "walk-poolside1": [
+  "プールサイドを歩く",
+  "プールの授業のシーンなどに",
+  "various"
+ ],
+ "walk-wet1": [
+  "雨で濡れた道路を歩く",
+  "ビチャビチャ",
+  "various"
+ ],
+ "walk-soak-water1": [
+  "水に浸かりながら歩く",
+  "膝上まで浸かった状態",
+  "various"
+ ],
+ "walk-army1": [
+  "軍隊の行進",
+  "ザッザッザッザッ",
+  "various"
+ ],
+ "walk-staircase-home-descend1": [
+  "家の階段を下りる",
+  "フローリング",
+  "various"
+ ],
+ "dash-leather-shoes1": [
+  "革靴で走る",
+  "道路",
+  "various"
+ ],
+ "dash-asphalt1": [
+  "アスファルトの上を走る1",
+  "駆け足",
+  "various"
+ ],
+ "dash-asphalt2": [
+  "アスファルトの上を走る2",
+  "全力疾走",
+  "various"
+ ],
+ "dash-soil1": [
+  "土の上を走る",
+  "硬い土",
+  "various"
+ ],
+ "dash-lawn1": [
+  "芝生の上を走る",
+  "背の低い草",
+  "various"
+ ],
+ "dash-tussock1": [
+  "草むらを走る",
+  "草をかき分けて進む",
+  "various"
+ ],
+ "dash-geta1": [
+  "下駄で走る",
+  "石の上",
+  "various"
+ ],
+ "dash-school1": [
+  "学校の廊下を走る",
+  "上履き着用",
+  "various"
+ ],
+ "dash-tatami1": [
+  "畳の上を走る",
+  "靴下の足音",
+  "various"
+ ],
+ "dash-carpet1": [
+  "じゅうたんの上を走る",
+  "靴下の足音",
+  "various"
+ ],
+ "dash-sand1": [
+  "砂の上を走る",
+  "足が砂に沈む",
+  "various"
+ ],
+ "dash-gravel1": [
+  "砂利の上を走る",
+  "小さな石が飛ぶ",
+  "various"
+ ],
+ "dash-gymnasium1": [
+  "体育館で走る",
+  "上履き着用",
+  "various"
+ ],
+ "dash-fallen-leaves1": [
+  "落ち葉の上を走る",
+  "ザッザッザッ",
+  "various"
+ ],
+ "dash-snow1": [
+  "雪の上を走る1",
+  "あまり速く走れない",
+  "various"
+ ],
+ "dash-snow2": [
+  "雪の上を走る2",
+  "シェイク状。走ると危険",
+  "various"
+ ],
+ "dash-slipper1": [
+  "スリッパで走る",
+  "フローリングの上",
+  "various"
+ ],
+ "dash-wet1": [
+  "雨で濡れた道路を走る",
+  "雨のシーンに",
+  "various"
+ ],
+ "dash-poolside1": [
+  "プールサイドを走る",
+  "濡れた足で",
+  "various"
+ ],
+ "dash-in-room1": [
+  "部屋に駆け込んでくる",
+  "緊迫したシーンに",
+  "various"
+ ],
+ "manypeople-dash1": [
+  "大勢の人が走る",
+  "軍隊の突撃などに",
+  "various"
+ ],
+ "manypeople-stop1": [
+  "大勢の人が走る→立ち止まる",
+  "取り囲む",
+  "various"
+ ],
+ "landing-geta1": [
+  "下駄で着地",
+  "石の上",
+  "various"
+ ],
+ "dash-staircase-home-climb1": [
+  "家の階段を駆け上る",
+  "狭い空間の響き",
+  "various"
+ ],
+ "water-drop1": [
+  "水滴1",
+  "ピッ。一滴の涙",
+  "various"
+ ],
+ "water-drop2": [
+  "水滴2",
+  "ピチャッ",
+  "various"
+ ],
+ "water-drop3": [
+  "水滴3",
+  "ぽちゃん",
+  "various"
+ ],
+ "water-drop-potapota1": [
+  "水滴がポタポタ",
+  "6秒間、水滴がしたたる",
+  "various"
+ ],
+ "water-throw-stone1": [
+  "水面に石投げ1",
+  "小さな石",
+  "various"
+ ],
+ "water-throw-stone2": [
+  "水面に石投げ2",
+  "巨大な石",
+  "various"
+ ],
+ "diving-underwater1": [
+  "ダイビング（水中）",
+  "水の中から聞いた音",
+  "various"
+ ],
+ "float-water-surface1": [
+  "水面に浮かび上がる",
+  "顔を出す",
+  "various"
+ ],
+ "water-flow1": [
+  "激しい水流（水中）",
+  "水中の戦闘シーンにも使える",
+  "various"
+ ],
+ "underwater-breathing1": [
+  "水中で息を吐く1",
+  "ブクッ",
+  "various"
+ ],
+ "underwater-breathing2": [
+  "水中で息を吐く2",
+  "水中のこもった音",
+  "various"
+ ],
+ "underwater-breathing3": [
+  "水中で息を吐く3",
+  "ゴボッ",
+  "various"
+ ],
+ "underwater-drown1": [
+  "水中で溺れる",
+  "息を大量に吐き出す",
+  "various"
+ ],
+ "bataashi1": [
+  "バタ足で泳ぐ",
+  "バシャバシャ",
+  "various"
+ ],
+ "beach-flirt1": [
+  "海岸の波打ち際を走り回る",
+  "海のシーンに",
+  "various"
+ ],
+ "sprinkle-water1": [
+  "水をバシャッとかける1",
+  "海のシーンで",
+  "various"
+ ],
+ "sprinkle-water2": [
+  "水をバシャッとかける2",
+  "海辺で遊ぶ",
+  "various"
+ ],
+ "water-bukubuku1": [
+  "水ぶくぶく1",
+  "フラスコの中の液体が泡立つ",
+  "various"
+ ],
+ "water-bukubuku3": [
+  "水ぶくぶく2",
+  "水中で息を吐き出す",
+  "various"
+ ],
+ "water-shed1": [
+  "水ちょろちょろ",
+  "蛇口少しだけひねる",
+  "various"
+ ],
+ "door-open1": [
+  "ドアを開ける1",
+  "ガチャッ",
+  "various"
+ ],
+ "door-open2": [
+  "ドアを開ける2",
+  "残響少なめ",
+  "various"
+ ],
+ "door-open3": [
+  "ドアを開ける3",
+  "室内",
+  "various"
+ ],
+ "door-close1": [
+  "ドアを閉める1",
+  "木のドア",
+  "various"
+ ],
+ "door-close2": [
+  "ドアを閉める2",
+  "室内",
+  "various"
+ ],
+ "door-close3": [
+  "ドアを閉める3",
+  "室内",
+  "various"
+ ],
+ "key-in1": [
+  "鍵を開ける1",
+  "カチャッ",
+  "various"
+ ],
+ "autodoor-open1": [
+  "自動ドアが開く",
+  "ウィーン",
+  "various"
+ ],
+ "slidingdoor-open1": [
+  "引き戸を開ける1",
+  "お風呂の戸",
+  "various"
+ ],
+ "slidingdoor-open2": [
+  "引き戸を開ける2",
+  "玄関の古めかしい戸",
+  "various"
+ ],
+ "slidingdoor-open3": [
+  "引き戸を開ける3",
+  "土蔵の戸",
+  "various"
+ ],
+ "slidingdoor-close1": [
+  "引き戸を閉める",
+  "お風呂の戸",
+  "various"
+ ],
+ "classroom-door-open1": [
+  "教室の戸を開ける",
+  "スライド式",
+  "various"
+ ],
+ "iron-door-open1": [
+  "鉄の扉を開ける",
+  "サイズ大きめ",
+  "various"
+ ],
+ "iron-door-close1": [
+  "鉄の扉を閉める",
+  "ガシャン",
+  "various"
+ ],
+ "gate-open1": [
+  "門を開ける",
+  "ギギギギ…",
+  "various"
+ ],
+ "door-old-open1": [
+  "古びたドアを開ける",
+  "ギイイイ…",
+  "various"
+ ],
+ "jail-door-close1": [
+  "牢屋の扉を閉める",
+  "鉄の音が響く",
+  "various"
+ ],
+ "donotopen1": [
+  "開かないドア1",
+  "ドアノブをガチャガチャ",
+  "various"
+ ],
+ "donotopen2": [
+  "開かないドア2",
+  "押してみてもダメ",
+  "various"
+ ],
+ "door-dondon1": [
+  "ドアをドンドン叩く",
+  "脱出ゲームなどに",
+  "various"
+ ],
+ "door-kick1": [
+  "ドアを蹴破る",
+  "ドガッ",
+  "various"
+ ],
+ "fusuma-open1": [
+  "ふすまを開ける1",
+  "普通に開ける",
+  "various"
+ ],
+ "fusuma-open2": [
+  "ふすまを開ける2",
+  "勢いよく開ける",
+  "various"
+ ],
+ "fusuma-close1": [
+  "ふすまを閉める",
+  "和風素材",
+  "various"
+ ],
+ "doorknob1": [
+  "ドアノブをひねる1",
+  "鉄製の丸いもの",
+  "various"
+ ],
+ "door-wood-knock1": [
+  "木のドアをノック1",
+  "コンコン",
+  "various"
+ ],
+ "door-wood-knock2": [
+  "木のドアをノック2",
+  "5回連続",
+  "various"
+ ],
+ "door-iron-knock1": [
+  "鉄のドアをノック1",
+  "カンカン",
+  "various"
+ ],
+ "door-iron-knock2": [
+  "鉄のドアをノック2",
+  "5回連続",
+  "various"
+ ],
+ "stone-wall-slide1": [
+  "石の壁がスライドする",
+  "遺跡の仕掛け",
+  "various"
+ ],
+ "doorchime1": [
+  "ドアチャイム1",
+  "玄関のピンポン",
+  "various"
+ ],
+ "doorchime2": [
+  "ドアチャイム2",
+  "矩形波バージョン",
+  "various"
+ ],
+ "clearing1": [
+  "レジスターで精算",
+  "お金が絡む演出にも使える",
+  "various"
+ ],
+ "money1": [
+  "お金がジャラジャラ",
+  "一攫千金",
+  "various"
+ ],
+ "wallet-open1": [
+  "財布を開ける",
+  "お金が入ってること前提",
+  "various"
+ ],
+ "wallet-close1": [
+  "財布を閉じる",
+  "ボタンの音",
+  "various"
+ ],
+ "wallet1": [
+  "財布をジャラッ",
+  "ポケットから取り出す",
+  "various"
+ ],
+ "purse-in1": [
+  "財布からお金を取り出す",
+  "じゃらじゃら",
+  "various"
+ ],
+ "purse-in2": [
+  "財布にお金を入れる",
+  "ゴソゴソ",
+  "various"
+ ],
+ "money-drop1": [
+  "お金を落とす1",
+  "硬貨一枚",
+  "various"
+ ],
+ "money-drop2": [
+  "お金を落とす2",
+  "硬貨が散らばる",
+  "various"
+ ],
+ "bath-out1": [
+  "お風呂から上がる",
+  "ザバーッ",
+  "various"
+ ],
+ "bath-wash1": [
+  "お風呂でごしごし1",
+  "泡立てたスポンジで",
+  "various"
+ ],
+ "bath-wash2": [
+  "お風呂でごしごし2",
+  "動作遅め",
+  "various"
+ ],
+ "bath-thapon1": [
+  "お風呂でチャポン",
+  "湯船で起こる波",
+  "various"
+ ],
+ "bath-shower1": [
+  "お風呂でシャワー",
+  "体に当てる",
+  "various"
+ ],
+ "shampoo-put1": [
+  "シャンプーを出す",
+  "掌の上に",
+  "various"
+ ],
+ "bathtub1": [
+  "風呂桶でカポーン",
+  "お風呂の演出音に",
+  "various"
+ ],
+ "towel-wipe-hand1": [
+  "タオルで手を拭く",
+  "パンパン",
+  "various"
+ ],
+ "towel-wipe-body1": [
+  "タオルで身体を拭く",
+  "水分を拭き取る",
+  "various"
+ ],
+ "bath-addwater1": [
+  "お風呂に水を入れる",
+  "ドボボボ",
+  "various"
+ ],
+ "shower1": [
+  "シャワー1",
+  "水を出すところから",
+  "various"
+ ],
+ "shower2": [
+  "シャワー2",
+  "水の上にシャワー",
+  "various"
+ ],
+ "washing-machine-laundry-put1": [
+  "洗濯機に服を入れる",
+  "ボフッ",
+  "various"
+ ],
+ "washing-machine-laundry-takeout1": [
+  "洗濯機から服を取り出す",
+  "ボタンが当たる音がする",
+  "various"
+ ],
+ "washing-machine-switch1": [
+  "洗濯機スイッチオン",
+  "まずは水が入る",
+  "various"
+ ],
+ "washing-machine-open1": [
+  "洗濯機のふたを開ける",
+  "折り畳み式",
+  "various"
+ ],
+ "washing-machine-close1": [
+  "洗濯機のふたを閉める",
+  "プラスチックが当たる",
+  "various"
+ ],
+ "washing-machine-operation1": [
+  "洗濯機動作中",
+  "うなる重低音",
+  "various"
+ ],
+ "washing-machine-operation-completed1": [
+  "洗濯機動作終了",
+  "ガコンピーッピーッ",
+  "various"
+ ],
+ "laundry-spread1": [
+  "濡れた洗濯物を広げる",
+  "洗濯機から取り出したて",
+  "various"
+ ],
+ "laundry-basa1": [
+  "濡れた洗濯物をバサッ",
+  "水を払う",
+  "various"
+ ],
+ "dvd-case-takeout1": [
+  "ビデオディスクをケースから出す",
+  "カパッ",
+  "various"
+ ],
+ "dvd-case-open1": [
+  "ビデオディスクのケースを開ける",
+  "はまっているディスクを出す",
+  "various"
+ ],
+ "dvd-case-insert1": [
+  "ビデオディスクをケースに入れる",
+  "ディスクをはめる",
+  "various"
+ ],
+ "dvd-case-close1": [
+  "ビデオディスクのケースを閉める",
+  "パチッ",
+  "various"
+ ],
+ "window-open1": [
+  "窓を開ける",
+  "スライド式",
+  "various"
+ ],
+ "window-close1": [
+  "窓を閉める",
+  "スライド式",
+  "various"
+ ],
+ "wind-knock1": [
+  "窓をノック1",
+  "コンコン",
+  "various"
+ ],
+ "wind-knock2": [
+  "窓をノック2",
+  "5回",
+  "various"
+ ],
+ "curtain-open1": [
+  "カーテンを開ける",
+  "シャッ",
+  "various"
+ ],
+ "decision1": [
+  "決定ボタンを押す1",
+  "ピッ。アプリなどに",
+  "button"
+ ],
+ "decision2": [
+  "決定ボタンを押す2",
+  "使いやすさ重視の電子音",
+  "button"
+ ],
+ "decision3": [
+  "決定ボタンを押す3",
+  "柔らかめ",
+  "button"
+ ],
+ "decision4": [
+  "決定ボタンを押す4",
+  "成功音にも使える",
+  "button"
+ ],
+ "decision5": [
+  "決定ボタンを押す5",
+  "深い響き",
+  "button"
+ ],
+ "decision6": [
+  "決定ボタンを押す6",
+  "控えめの電子音",
+  "button"
+ ],
+ "decision7": [
+  "決定ボタンを押す7",
+  "カシャッ",
+  "button"
+ ],
+ "decision8": [
+  "決定ボタンを押す8",
+  "読み込み完了",
+  "button"
+ ],
+ "decision9": [
+  "決定ボタンを押す9",
+  "金属音",
+  "button"
+ ],
+ "decision10": [
+  "決定ボタンを押す10",
+  "ゲームのスキル取得演出",
+  "button"
+ ],
+ "decision11": [
+  "決定ボタンを押す11",
+  "ドズン",
+  "button"
+ ],
+ "decision12": [
+  "決定ボタンを押す12",
+  "可愛い音",
+  "button"
+ ],
+ "decision13": [
+  "決定ボタンを押す13",
+  "ピン",
+  "button"
+ ],
+ "decision14": [
+  "決定ボタンを押す14",
+  "RPGの装備品変更",
+  "button"
+ ],
+ "decision15": [
+  "決定ボタンを押す15",
+  "ドギュン",
+  "button"
+ ],
+ "decision16": [
+  "決定ボタンを押す16",
+  "ガラスのような音",
+  "button"
+ ],
+ "decision17": [
+  "決定ボタンを押す17",
+  "デジタルチック",
+  "button"
+ ],
+ "decision18": [
+  "決定ボタンを押す18",
+  "RPGのゲームスタート音",
+  "button"
+ ],
+ "decision19": [
+  "決定ボタンを押す19",
+  "ジャキッ。装備変更音にも",
+  "button"
+ ],
+ "decision20": [
+  "決定ボタンを押す20",
+  "ドキュイーン",
+  "button"
+ ],
+ "decision21": [
+  "決定ボタンを押す21",
+  "長めのキラキラした音",
+  "button"
+ ],
+ "decision22": [
+  "決定ボタンを押す22",
+  "ピコッ。可愛らしい",
+  "button"
+ ],
+ "decision23": [
+  "決定ボタンを押す23",
+  "控え目な決定音",
+  "button"
+ ],
+ "decision24": [
+  "決定ボタンを押す24",
+  "明るい長めの音",
+  "button"
+ ],
+ "decision25": [
+  "決定ボタンを押す25",
+  "残響深めの高音",
+  "button"
+ ],
+ "decision26": [
+  "決定ボタンを押す26",
+  "ポップなイメージ",
+  "button"
+ ],
+ "decision27": [
+  "決定ボタンを押す27",
+  "かなり長め",
+  "button"
+ ],
+ "decision28": [
+  "決定ボタンを押す28",
+  "鉄琴の生演奏",
+  "button"
+ ],
+ "decision29": [
+  "決定ボタンを押す29",
+  "木琴の生演奏",
+  "button"
+ ],
+ "decision30": [
+  "決定ボタンを押す30",
+  "爽やかな電子音",
+  "button"
+ ],
+ "decision31": [
+  "決定ボタンを押す31",
+  "カチッ",
+  "button"
+ ],
+ "decision32": [
+  "決定ボタンを押す32",
+  "指パッチンに近い",
+  "button"
+ ],
+ "decision33": [
+  "決定ボタンを押す33",
+  "フォーン",
+  "button"
+ ],
+ "decision34": [
+  "決定ボタンを押す34",
+  "ポン。柔らかい音",
+  "button"
+ ],
+ "decision35": [
+  "決定ボタンを押す35",
+  "ポピッ",
+  "button"
+ ],
+ "decision36": [
+  "決定ボタンを押す36",
+  "シュキーン。派手な音",
+  "button"
+ ],
+ "decision37": [
+  "決定ボタンを押す37",
+  "キラリーン",
+  "button"
+ ],
+ "decision38": [
+  "決定ボタンを押す38",
+  "カッ",
+  "button"
+ ],
+ "decision39": [
+  "決定ボタンを押す39",
+  "ペチョッ。可愛い音",
+  "button"
+ ],
+ "decision40": [
+  "決定ボタンを押す40",
+  "ピロン",
+  "button"
+ ],
+ "decision41": [
+  "決定ボタンを押す41",
+  "高めのきらきらした音",
+  "button"
+ ],
+ "decision42": [
+  "決定ボタンを押す42",
+  "プホッ。可愛い音",
+  "button"
+ ],
+ "decision43": [
+  "決定ボタンを押す43",
+  "シュイーン",
+  "button"
+ ],
+ "decision44": [
+  "決定ボタンを押す44",
+  "コカッ",
+  "button"
+ ],
+ "decision45": [
+  "決定ボタンを押す45",
+  "キュピッ。可愛い音",
+  "button"
+ ],
+ "decision46": [
+  "決定ボタンを押す46",
+  "キュルリッ。高い音",
+  "button"
+ ],
+ "decision47": [
+  "決定ボタンを押す47",
+  "木琴使用",
+  "button"
+ ],
+ "decision48": [
+  "決定ボタンを押す48",
+  "キコッ",
+  "button"
+ ],
+ "decision49": [
+  "決定ボタンを押す49",
+  "ピロン。ゲーム風",
+  "button"
+ ],
+ "decision50": [
+  "決定ボタンを押す50",
+  "カコッ",
+  "button"
+ ],
+ "decision51": [
+  "決定ボタンを押す51",
+  "木琴に近い音",
+  "button"
+ ],
+ "decision52": [
+  "決定ボタンを押す52",
+  "ポン",
+  "button"
+ ],
+ "decision53": [
+  "決定ボタンを押す53",
+  "ピロリン",
+  "button"
+ ],
+ "cursor1": [
+  "カーソル移動1",
+  "クセの少ない電子音",
+  "button"
+ ],
+ "cursor2": [
+  "カーソル移動2",
+  "カシャ",
+  "button"
+ ],
+ "cursor3": [
+  "カーソル移動3",
+  "ピッ",
+  "button"
+ ],
+ "cursor4": [
+  "カーソル移動4",
+  "カッ",
+  "button"
+ ],
+ "cursor5": [
+  "カーソル移動5",
+  "ゲーム系",
+  "button"
+ ],
+ "cursor6": [
+  "カーソル移動6",
+  "ツッ",
+  "button"
+ ],
+ "cursor7": [
+  "カーソル移動7",
+  "可愛いイメージ",
+  "button"
+ ],
+ "cursor8": [
+  "カーソル移動8",
+  "カッ",
+  "button"
+ ],
+ "cursor9": [
+  "カーソル移動9",
+  "パッ",
+  "button"
+ ],
+ "cursor10": [
+  "カーソル移動10",
+  "ヒッ",
+  "button"
+ ],
+ "cursor11": [
+  "カーソル移動11",
+  "ピロッ",
+  "button"
+ ],
+ "cursor12": [
+  "カーソル移動12",
+  "コッ",
+  "button"
+ ],
+ "cancel1": [
+  "キャンセル1",
+  "ヒッ",
+  "button"
+ ],
+ "cancel2": [
+  "キャンセル2",
+  "ビッ",
+  "button"
+ ],
+ "cancel3": [
+  "キャンセル3",
+  "ピュッ",
+  "button"
+ ],
+ "cancel4": [
+  "キャンセル4",
+  "ヒュッ",
+  "button"
+ ],
+ "cancel5": [
+  "キャンセル5",
+  "チュン",
+  "button"
+ ],
+ "cancel6": [
+  "キャンセル6",
+  "ポップなイメージ",
+  "button"
+ ],
+ "cancel7": [
+  "キャンセル7",
+  "サイバー感強め",
+  "button"
+ ],
+ "cancel8": [
+  "キャンセル8",
+  "中世RPGにも合う",
+  "button"
+ ],
+ "cancel9": [
+  "キャンセル9",
+  "ザッ",
+  "button"
+ ],
+ "beep1": [
+  "ビープ音1",
+  "選択不可項目を押した時のエラー音",
+  "button"
+ ],
+ "beep2": [
+  "ビープ音2",
+  "ズン",
+  "button"
+ ],
+ "beep3": [
+  "ビープ音3",
+  "低音強め",
+  "button"
+ ],
+ "beep4": [
+  "ビープ音4",
+  "ブブー",
+  "button"
+ ],
+ "beep5": [
+  "ビープ音5",
+  "短め",
+  "button"
+ ],
+ "menu1": [
+  "メニューを開く1",
+  "高い電子音",
+  "button"
+ ],
+ "menu2": [
+  "メニューを開く2",
+  "ブォン。重低音",
+  "button"
+ ],
+ "menu3": [
+  "メニューを開く3",
+  "ブォン。サイバー感強め",
+  "button"
+ ],
+ "menu4": [
+  "メニューを開く4",
+  "ウインドウが開く",
+  "button"
+ ],
+ "menu5": [
+  "メニューを開く5",
+  "電源を入れる",
+  "button"
+ ],
+ "data-display1": [
+  "データ表示1",
+  "グラフ等を出すときに",
+  "button"
+ ],
+ "data-display2": [
+  "データ表示2",
+  "ウインドウが開く",
+  "button"
+ ],
+ "data-display3": [
+  "データ表示3",
+  "ゲームのスコア画面",
+  "button"
+ ],
+ "data-display4": [
+  "データ表示4",
+  "ホログラム表示",
+  "button"
+ ],
+ "warning1": [
+  "警告音1",
+  "ピンピンピン",
+  "button"
+ ],
+ "warning2": [
+  "警告音2",
+  "危機感をあおる",
+  "button"
+ ],
+ "message-display1": [
+  "メッセージ表示音1",
+  "RPGのセリフ表示",
+  "button"
+ ],
+ "message-display2": [
+  "メッセージ表示音2",
+  "ピピピピ",
+  "button"
+ ],
+ "message-display3": [
+  "メッセージ表示音3",
+  "可愛いイメージ",
+  "button"
+ ],
+ "gauge-recovery1": [
+  "ゲージ回復1",
+  "体力回復",
+  "button"
+ ],
+ "gauge-recovery2": [
+  "ゲージ回復2",
+  "エネルギーチャージ",
+  "button"
+ ],
+ "gauge-recovery3": [
+  "ゲージ回復3",
+  "控えめな音",
+  "button"
+ ],
+ "success1": [
+  "成功音",
+  "ゲーム等で何かが成功した時",
+  "button"
+ ],
+ "description-window1": [
+  "説明ウインドウが開く",
+  "説明文表示",
+  "button"
+ ],
+ "electronic-roulette1": [
+  "電子ルーレット",
+  "回転から停止まで",
+  "button"
+ ],
+ "electronic-roulette-wheel1": [
+  "電子ルーレット回転中",
+  "ピピピピ",
+  "button"
+ ],
+ "electronic-roulette-button1": [
+  "電子ルーレット停止ボタンを押す",
+  "バン",
+  "button"
+ ],
+ "electronic-roulette-stop1": [
+  "電子ルーレットが徐々に止まる",
+  "ピッピッピッ…",
+  "button"
+ ],
+ "electronic-roulette-flashing1": [
+  "電子ルーレットの出目が点滅",
+  "停止後に",
+  "button"
+ ]
+}

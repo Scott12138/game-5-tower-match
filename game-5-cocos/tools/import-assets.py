@@ -53,9 +53,13 @@ SINGLE: list[tuple[str, str]] = [
     ("home/settings.png",               "home/setting.png"),
     ("home/coin_icon.png",              "home/coin.png"),
     ("home/title_home.png",             "home/title.png"),
-    ("home/btn9_left.png",              "home/btn_left.png"),
-    ("home/btn9_mid.png",               "home/btn_mid.png"),
-    ("home/btn9_right.png",             "home/btn_right.png"),
+    # ⚠️ 主按钮九宫格三段**不在这里** —— 第 37 轮换成方案 B 之后，它由
+    #    `docs-verify/game-5/home/make_btn_primary_assets.py` 直接从
+    #    `round37/btn_v2.png`（**先整图缩 70%、再按实测切点 190/706 裁三段**）
+    #    产出，落在 `assets/bundles/home/home/btn_primary_{l,m,r}.png`，
+    #    不走"设计稿目录 → resources"这条链 —— 重跑本脚本**不会**动它们。
+    #    旧素材 `home/btn9_*.png → home/btn_*.png` 已随本轮从工程删除
+    #    （它是另一套美术，与方案 B 不同源；旧件备份在 /private/tmp/g5-btn9-bak）。
     ("home/mute_on.png",                "home/mute_on.png"),
     ("home/mute_off.png",               "home/mute_off.png"),
     ("home/icon_music.png",             "home/icon_music.png"),

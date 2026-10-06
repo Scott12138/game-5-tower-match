@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>《叠塔消消》· 第 42 轮验收板（桌外底色 + 吃/碰人声）</title>
+<style>
+/* 与游戏本体同一套配色：墨绿 / 玉 / 金 / 米白。与 BGM 试听板同源。 */
+:root{
+  --ink:#07120C; --ink2:#0C1C14; --jade:#12241A; --jade2:#173021;
+  --gold:#C6A258; --gold-hi:#EBD49A; --gold-dim:#7A6634;
+  --cream:#EFE3C6; --cream-dim:#A99C7E; --jade-lt:#5FA37E;
+  --line:rgba(198,162,88,.28); --bad:#C9705E;
+  --mono:"SF Mono",ui-monospace,"Menlo",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;color-scheme:dark}
+body{background:var(--ink);color:var(--cream);font-size:15px;line-height:1.75;
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;padding:0 0 80px}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(45deg,rgba(95,163,126,.030) 0 1px,transparent 1px 7px),
+             repeating-linear-gradient(-45deg,rgba(198,162,88,.022) 0 1px,transparent 1px 7px),
+             radial-gradient(120% 80% at 50% -10%,#12312180 0%,transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:1060px;margin:0 auto;padding:0 26px}
+
+header{padding:62px 0 28px;border-bottom:1px solid var(--line);position:relative}
+header::after{content:"";position:absolute;left:0;bottom:-1px;width:196px;height:3px;
+  background:linear-gradient(90deg,var(--gold),transparent)}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.34em;color:var(--gold)}
+h1{font-family:"Songti SC","STSong",serif;font-size:clamp(28px,4.8vw,44px);font-weight:700;
+  letter-spacing:.06em;line-height:1.2;margin:15px 0 8px}
+h1 em{font-style:normal;color:var(--gold-hi)}
+.lead{max-width:74ch;color:var(--cream-dim)}
+.lead b{color:var(--cream);font-weight:600}
+.verdict{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px}
+.pill{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;padding:5px 12px;
+  border:1px solid rgba(95,163,126,.5);color:var(--jade-lt)}
+.pill.warn{border-color:rgba(198,162,88,.55);color:var(--gold-hi)}
+.pill.bad{border-color:rgba(201,112,94,.62);color:#E7B9A9}
+
+/* 自查抓错提示 */
+.callout{margin-top:22px;border:1px solid rgba(201,112,94,.42);border-left:3px solid var(--bad);
+  background:linear-gradient(90deg,rgba(201,112,94,.10),transparent 72%);padding:16px 20px}
+.callout h4{font-family:"Songti SC","STSong",serif;font-size:16.5px;letter-spacing:.04em;
+  margin-bottom:7px;color:#E7B9A9}
+.callout p{font-size:13.5px;color:var(--cream-dim)}
+.callout p+p{margin-top:7px}
+.callout p b{color:var(--cream);font-weight:600}
+.callout code{color:#E7B9A9}
+
+section{margin-top:58px}
+.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:22px}
+.sec-head h2{font-family:"Songti SC","STSong",serif;font-size:23px;letter-spacing:.13em;font-weight:700}
+.sec-head span{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--gold-dim)}
+
+/* 数字对账表 */
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+th,td{padding:9px 13px;text-align:left;border-bottom:1px solid rgba(198,162,88,.13)}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--gold-dim);
+  text-transform:uppercase;background:rgba(198,162,88,.06)}
+td.n{font-family:var(--mono);color:var(--cream)}
+td.ok{color:var(--jade-lt);font-family:var(--mono)}
+td.warn{color:var(--gold-hi);font-family:var(--mono)}
+tbody tr:hover{background:rgba(198,162,88,.035)}
+caption{caption-side:bottom;text-align:left;padding-top:10px;font-size:12.5px;color:var(--gold-dim)}
+
+/* 图 */
+figure{margin:22px 0 0;border:1px solid var(--line);background:linear-gradient(168deg,var(--jade2),var(--ink2))}
+figure img{display:block;width:100%;height:auto}
+figcaption{padding:11px 15px;font-size:12.5px;color:var(--cream-dim);border-top:1px solid var(--line)}
+figcaption b{color:var(--cream)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+.row figure{margin:0}
+.strip img{image-rendering:pixelated}
+
+/* 自检清单 */
+.checks{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:6px}
+.chk{display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:baseline;
+  background:var(--ink2);padding:9px 14px;font-size:13px}
+.chk .mk{font-family:var(--mono);color:var(--jade-lt)}
+.chk .mk.w{color:var(--gold-hi)}
+.chk .d{font-family:var(--mono);font-size:11.5px;color:var(--cream-dim);text-align:right}
+.grp{background:rgba(198,162,88,.07);padding:8px 14px;font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.18em;color:var(--gold);border-bottom:1px solid var(--line)}
+
+/* 待办 */
+.todo{display:grid;gap:12px;margin-top:6px}
+.todo article{border:1px solid var(--line);border-left:3px solid var(--gold);
+  background:linear-gradient(90deg,rgba(198,162,88,.07),transparent 70%);padding:15px 19px}
+.todo h4{font-family:"Songti SC",serif;font-size:16.5px;letter-spacing:.04em;margin-bottom:5px}
+.todo p{font-size:13.5px;color:var(--cream-dim)}
+.todo p b{color:var(--cream);font-weight:600}
+.todo p+p{margin-top:6px}
+.todo .q{font-family:var(--mono);font-size:12px;color:var(--gold-hi)}
+
+/* ★ 别用 break-all：它会在任意字符处断，把 game-5 拆成 "game / -5"。
+   用 overflow-wrap:anywhere —— 同样能兜住长路径，但优先在 / 与 - 处换行。 */
+code{font-family:var(--mono);font-size:12px;color:var(--gold-hi);
+  word-break:normal;overflow-wrap:anywhere}
+footer{margin-top:64px;padding-top:24px;border-top:1px solid var(--line);font-size:12.5px;color:var(--gold-dim)}
+footer .src{display:grid;gap:5px;margin-top:12px;font-family:var(--mono);font-size:11.5px}
+
+@media (max-width:820px){
+  .wrap{padding:0 16px}
+  .row{grid-template-columns:1fr}
+  .chk{grid-template-columns:22px 1fr;row-gap:2px}
+  .chk .d{text-align:left;grid-column:2}
+  table{font-size:12.5px}
+  th,td{padding:7px 8px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">GAME-5 · 第 42 轮 · 验收板</div>
+  <h1>桌外底色 <em>B「织锦经纬」×1.20</em> 落地 + 吃/碰人声接线</h1>
+  <p class="lead">
+    按你的拍板做了两件事：<b>① 把主玩页桌外那片死黑换成 B 方案的织锦底（明度再提 20%）；</b>
+    <b>② 把隔壁麻将项目的「吃」「碰」人声念白接进消除时刻。</b>
+    两条都不是"看着差不多"就算完 —— 下面是可复现的量测与真实事件证据。
+    另外<b>本轮自查在我自己的对账件里抓出并修正了一处平铺尺度错（产品侧未受影响，详见第一节）</b>。
+    BGM 三条候选另出一份板（见 <code>audio/bgm-candidates/bgm-试听拍板板.html</code>）。
+  </p>
+  <div class="verdict">
+    <span class="pill">底色自证全绿</span>
+    <span class="pill">四方平铺周期一致 = 16 物理 px</span>
+    <span class="pill">吃/碰 与人声逐次对账一致</span>
+    <span class="pill bad">对账件 1 处尺度错，本轮自查抓出并修正</span>
+    <span class="pill warn">1 项待你拍板（明度口径）</span>
+    <span class="pill warn">末帧 3× 截图超时（环境限制，非产品）</span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head"><h2>一、桌外底色：候选原图 ↔ 定稿 ↔ 真机 对账</h2><span>BG · B ×1.20</span></div>
+  <p class="lead">
+    实现口径 = <b>低频渐变（128×282，23 KB）+ 高频织锦无缝平铺（256×256，36 KB）</b>，合计 <b>59 KB</b>。
+    整页烘焙那条路要 3.2 MB，主包（3.01 MB / 红线 4 MB）上不去，所以两件套是唯一可行解。
+    这两张图都按 <code>target − 13.32</code> 的偏移生成，配合「白墨 + 单边 alpha」，
+    在数学上等价于加法混合（除底部暗带外逐像素相同）。
+  </p>
+  <p class="lead" style="margin-top:14px">
+    下表四列<b>同坐标、同带区</b>比较：<b>候选原图 B（你第 41 轮拍板的那张）</b>→ 它 ×1.20 的定稿
+    → 按引擎口径的正向仿真 → 真机截图。量测口径与出图脚本 <code>tools/r42-bg-build.py</code> 完全一致。
+  </p>
+
+  <div class="callout">
+    <h4>先说一件事：本轮自查把我自己的对账件抓错了一处 —— 产品是对的，错在验证件</h4>
+    <p>
+      「定稿」这一列原先不是我给你的那张候选原图，而是我按公式<b>重建</b>的一张页图。
+      那条重建路径把 256×256 的平铺贴图按 <b>1:1 物理像素</b>铺开，周期就成了 9.48 物理 px，
+      比候选原图的 <b>16 物理 px 细了 1.687×</b>。
+    </p>
+    <p>
+      阴险的地方在于纹样是<b>零均值</b>的 —— 上下带的亮度均值照样对得上（25.20 / 30.23 分毫不差），
+      <b>只看数字永远查不出来</b>。是把三方 4× 放大图并排看，才发现第三格明显更粗，才倒查出来的。
+    </p>
+    <p>
+      核对需求真源后结论明确：<b>引擎按「1 texel = 1 设计 px」平铺</b> ⇒ 256 ÷ 27 × 1.68533 =
+      <b>15.97 物理 px</b>，与候选原图一致；真机实测 <b>16</b> ✓。<b>产品侧一个字都没改</b>
+      （<code>grad_b.png</code> / <code>weave_b.png</code> 改前改后 md5 逐字节相同）。
+    </p>
+    <p>
+      已修：仿真改为按引擎口径采样贴图、视觉参照换成候选原图本身，并加了一条<b>硬判据</b> ——
+      四方的自相关首峰不相等就<b>拒绝出板</b>（<code>tools/r42-board-prep.py</code> 的
+      <code>period_consistency</code> 断言，现测四方均为 16）。
+    </p>
+  </div>
+
+  <table>
+    <caption>
+      「整屏均值」不可比 —— 真机截图里还有桌子、牌面、金框和 HUD，其余三列只是底图。
+      所以只看<b>桌外带区</b>与<b>平铺周期</b>。
+    </caption>
+    <thead><tr>
+      <th>量测项</th><th>候选原图 B ×1.00</th><th>定稿 B ×1.20</th>
+      <th>正向仿真</th><th>真机实现</th><th>判</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>桌外上带均值（行 300–500）</td><td class="n">25.20</td><td class="n">30.24</td>
+          <td class="n">29.71</td><td class="n">29.97</td><td class="ok">差 −0.27（−0.9%）</td></tr>
+      <tr><td>桌外下带均值（行 2545–2770）</td><td class="n">7.90</td><td class="n">9.48</td>
+          <td class="n">14.82</td><td class="n">14.96</td><td class="warn">+5.48（模型固有）</td></tr>
+      <tr><td>纯黑像素占比（max channel = 0）</td><td class="n">0.04%</td><td class="n">0.04%</td>
+          <td class="n">0.00%</td><td class="n">1.72%</td><td class="ok">原 43.4% → 1.72%</td></tr>
+      <tr><td><b>平铺周期</b>（单行自相关首峰）</td><td class="n">16 px</td><td class="n">16 px</td>
+          <td class="n">16 px</td><td class="n">16 px</td><td class="ok">四方一致 · 期望 15.97</td></tr>
+      <tr><td>纹样幅度（上带 p99−p1，亮度口径）</td><td class="n">22.0</td><td class="n">26.0</td>
+          <td class="n">27.3</td><td class="n">24.3</td><td class="ok">定稿 → 真机 −6.5%</td></tr>
+      <tr><td>拼接缝比值（差分基线 1.553）</td><td class="n">—</td><td class="n">—</td>
+          <td class="n">—</td><td class="n">1.27 / 1.01</td><td class="ok">≈1 即看不出缝</td></tr>
+      <tr><td>低频明度 RMSE（16px 盒滤波 · 仿真 vs 定稿）</td><td class="n">—</td><td class="n">—</td>
+          <td class="n">2.74</td><td class="n">—</td><td class="ok">p99 = 9.0 / 255</td></tr>
+      <tr><td>运行时日志</td><td class="n">—</td><td class="n">—</td><td class="n">—</td>
+          <td class="n" colspan="2">贴图 256×256 wrap=REPEAT 节点 750.0×1651.4</td></tr>
+    </tbody>
+  </table>
+
+  <p class="lead" style="margin-top:20px">
+    <b>底部暗带那 5.48 的差，是这套模型的固有代价，不是 bug。</b>
+    定稿在暗带处被钳到 0（要求"比黑还黑"），而 Sprite 只有 normal 混合，
+    最暗只能到「渐变色 + 纹样」的自身值。换来的是<b>上带逐像素精确</b>，
+    以及<b>不需要自定义材质 / blendState</b>（3.8 里那条 API 已 deprecated，
+    踩进去是构建期与真机的双重不确定性）。暗带位置在屏幕最下沿，
+    真机上是 Home Indicator 覆盖区。
+  </p>
+  <p class="lead" style="margin-top:12px">
+    <b>纹样幅度 −6.5% 也解释得通，不是"变淡了"：</b>游戏按 750 设计宽渲染，
+    再放大 1.685× 送到 1263 物理像素的屏上；放大用的是双线性插值，其幅频响应为
+    <code>sinc²(f)</code>（f 以「cycles / 设计 px」计），三段的实测衰减分别是：
+    <b>基频 3.6%</b>（1/9.4815）、<b>二次谐波 13.8%</b>（2/9.4815）、
+    <b>细颗粒 32.0%</b>（86/256）。三者加权合起来落到 p99−p1 上正好是 26.0 → 24.3，
+    方向一致、量级吻合 —— 而<b>周期一点没动（仍是 16）</b>。
+  </p>
+
+  <figure>
+    <img src="./zoom-quad.png" alt="纹样 4 倍放大四联对照">
+    <figcaption><b>同一坐标（行 340–460、列 600–720）、同一 4× 放大倍率的四联对照。</b>
+      从「候选原图 ×1.00」到「定稿 ×1.20」到「引擎口径仿真」到「真机截图」，
+      斜纹的<b>走向（45° ↗）与周期（四方全部 16 物理 px）完全一致</b>，明度差即 ×1.20 那一档。
+      这一张就是上面那个 1.687× 尺度错能露馅的地方 —— 只看带区均值是看不出来的。
+    </figcaption>
+  </figure>
+
+  <div class="row strip">
+    <figure>
+      <img src="./band-top-impl.png" alt="真机·桌外上带 1:1">
+      <figcaption><b>真机实现 · 桌外上带</b>（行 300–500，1:1 原始像素）</figcaption>
+    </figure>
+    <figure>
+      <img src="./band-top-target.png" alt="定稿·桌外上带 1:1">
+      <figcaption><b>定稿 B ×1.20 · 桌外上带</b>（同一行区间，同一宽度）</figcaption>
+    </figure>
+  </div>
+  <div class="row strip">
+    <figure>
+      <img src="./band-bot-impl.png" alt="真机·桌外下带 1:1">
+      <figcaption><b>真机实现 · 桌外下带</b>（行 2020–2220）—— 比定稿略亮，即上表那 +5.47</figcaption>
+    </figure>
+    <figure>
+      <img src="./band-bot-target.png" alt="定稿·桌外下带 1:1">
+      <figcaption><b>定稿 B ×1.20 · 桌外下带</b>（同区间）—— 定稿在这里已钳到近黑</figcaption>
+    </figure>
+  </div>
+
+  <div class="row">
+    <figure>
+      <img src="./page-impl.png" alt="真机整页">
+      <figcaption><b>真机整页</b>（1263×2781 按 420 宽缩略）· 主玩页</figcaption>
+    </figure>
+    <figure>
+      <img src="./page-target.png" alt="定稿整页">
+      <figcaption><b>候选原图 B ×1.20 整页</b>（同尺寸同比例缩略）—— 只有底色，没有 UI 层</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>二、吃 / 碰 人声：33 项真实事件自证</h2><span>AUDIO · CHI &amp; PENG</span></div>
+  <p class="lead">
+    素材直接复用隔壁项目 <code>game-4-mahjong/assets/resources/audio/{eat,peng}.m4a</code>，
+    入库为 <code>chi.m4a</code> / <code>peng.m4a</code>。
+    <b>「没报错」不等于「会响」</b>——<code>AudioService</code> 对加载失败只 warn 不抛错，
+    本项目还踩过一次 <code>m.kind</code> 写成 <code>undefined</code> 导致所有「碰」静默播成「吃」的坑。
+    所以下面 33 项全部走<b>字节级溯源 + 真实探针 + 真实鼠标点击</b>。
+  </p>
+
+  <div class="checks">
+    <div class="grp">A · 素材链路（字节级，Node 侧）</div>
+    <div class="chk"><span class="mk">OK</span><span>吃 入库 md5 == 台账</span><span class="d">ac3fead2c635</span></div>
+    <div class="chk"><span class="mk">OK</span><span>吃 == game-4/eat.m4a（逐字节）</span><span class="d">7.2 KB</span></div>
+    <div class="chk"><span class="mk">OK</span><span>吃 构建产物 == 入库文件（cmp 逐字节）</span><span class="d">native/ec/ec761682….m4a</span></div>
+    <div class="chk"><span class="mk">OK</span><span>吃 时长期望由源文件推出</span><span class="d">0.4412s = 19456 帧 ÷ 44100Hz</span></div>
+    <div class="chk"><span class="mk">OK</span><span>碰 入库 md5 == 台账</span><span class="d">f427097ca644</span></div>
+    <div class="chk"><span class="mk">OK</span><span>碰 == game-4/peng.m4a（逐字节）</span><span class="d">6.4 KB</span></div>
+    <div class="chk"><span class="mk">OK</span><span>碰 构建产物 == 入库文件（cmp 逐字节）</span><span class="d">native/0d/0d6a500c….m4a</span></div>
+    <div class="chk"><span class="mk">OK</span><span>碰 时长期望由源文件推出</span><span class="d">0.3019s = 13312 帧 ÷ 44100Hz</span></div>
+
+    <div class="grp">B · 运行期 clip 身份（浏览器内）</div>
+    <div class="chk"><span class="mk">OK</span><span>audio/chi 的 name</span><span class="d">chi</span></div>
+    <div class="chk"><span class="mk">OK</span><span>audio/chi 的 uuid == 台账（最强身份判据）</span><span class="d">ec761682-2d60-4a4e-b6c6-264543b83ee1</span></div>
+    <div class="chk"><span class="mk">OK</span><span>audio/chi 时长 == 源文件解码总帧</span><span class="d">0.4412s</span></div>
+    <div class="chk"><span class="mk">OK</span><span>audio/peng 的 name</span><span class="d">peng</span></div>
+    <div class="chk"><span class="mk">OK</span><span>audio/peng 的 uuid == 台账</span><span class="d">0d6a500c-2ccb-4141-a3fc-2562d45046ff</span></div>
+    <div class="chk"><span class="mk">OK</span><span>audio/peng 时长 == 源文件解码总帧</span><span class="d">0.3019s</span></div>
+    <div class="chk"><span class="mk">OK</span><span>对照组：吃 / 碰 是两条不同资源</span><span class="d">0.441s ≠ 0.302s</span></div>
+    <div class="chk"><span class="mk">OK</span><span>两条人声都加载成功</span><span class="d">未报失败</span></div>
+    <div class="chk"><span class="mk w">--</span><span>其余 6 条音频无素材（工程现状，非本轮引入）</span><span class="d">tile_pick / slot_warn / tool_use / shuffle / revive / button</span></div>
+
+    <div class="grp">C · 桌外底色（顺带复验）</div>
+    <div class="chk"><span class="mk">OK</span><span>EnvWeave 节点就位</span><span class="d">active=true 贴图 256×256</span></div>
+    <div class="chk"><span class="mk">OK</span><span>Sprite.type == TILED(2)</span><span class="d">对照 EnvGrad=0(SIMPLE)</span></div>
+    <div class="chk"><span class="mk">OK</span><span>平铺层尺寸 == 可视尺寸</span><span class="d">750 × 1651.43</span></div>
+    <div class="chk"><span class="mk">OK</span><span>贴图 wrapMode == REPEAT</span><span class="d">_wrapS=_wrapT=0</span></div>
+    <div class="chk"><span class="mk">OK</span><span>对照组：wrapMode 读数是真的测量</span><span class="d">改 CLAMP→读 2，改回 REPEAT→读 0</span></div>
+    <div class="chk"><span class="mk">OK</span><span>贴图 packable=false</span><span class="d">对照 EnvGrad.packable=true</span></div>
+    <div class="chk"><span class="mk">OK</span><span>运行期日志含「织锦平铺层就绪」+ wrap=REPEAT</span><span class="d">750.0×1651.4</span></div>
+
+    <div class="grp">D · 真实鼠标消除：期望 ↔ 飘字 ↔ 播放</div>
+    <div class="chk"><span class="mk">OK</span><span>探针挂载（AudioSourceComponent.playOneShot + Label.string 上的 Pop）</span><span class="d">2 个探针</span></div>
+    <div class="chk"><span class="mk">OK</span><span>消除确实发出播放调用</span><span class="d">22 次真实点击 → 碰×2 吃×3</span></div>
+    <div class="chk"><span class="mk">OK</span><span>飘字 == 由设计规则独立推出的期望</span><span class="d">逐次一致</span></div>
+    <div class="chk"><span class="mk">OK</span><span>播放的 clip == 由设计规则独立推出的期望</span><span class="d">碰→peng 碰→peng 吃→chi 吃→chi 吃→chi</span></div>
+    <div class="chk"><span class="mk">OK</span><span>覆盖：碰（peng）分支</span><span class="d">2 次</span></div>
+    <div class="chk"><span class="mk">OK</span><span>覆盖：吃（chi）分支</span><span class="d">3 次</span></div>
+    <div class="chk"><span class="mk">OK</span><span>console error / 未捕获异常</span><span class="d">0 条 / 0 条</span></div>
+    <div class="chk"><span class="mk w">WARN</span><span>末帧 3× 截图（重盘面下软件光栅超时，降 1× 亦超时）</span><span class="d">环境限制，非产品问题</span></div>
+  </div>
+
+  <p class="lead" style="margin-top:20px">
+    <b>为什么要"独立推出期望"：</b>飘字和音效都在同一处代码里按 <code>m.type</code> 分派 ——
+    如果拿游戏自己的飘字当期望，那"两处一起写错"就永远查不出来（这正是 <code>m.kind</code> 那回的教训）。
+    所以脚本按<b>设计规则的原文</b>（碰 = 三张完全相同；吃 = 同花色连号 n,n+1,n+2 不跨花色；
+    含最新入槽那张优先；并列时碰优先）<b>另写了一份判定</b>，用它算"这一点击下去该飘什么"，
+    再去和实测的「飘字 + 播放的 clip」对账。
+  </p>
+
+  <details style="margin-top:22px;border:1px solid var(--line);background:var(--ink2)">
+    <summary style="cursor:pointer;padding:11px 15px;font-family:var(--mono);font-size:12px;
+      letter-spacing:.1em;color:var(--gold)">▸ 展开脚本原样输出（原始证据）</summary>
+    <pre style="margin:0;padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:11.5px;
+      line-height:1.7;color:var(--cream-dim);border-top:1px solid var(--line)">  ── A 素材链路（Node 侧字节级）──
+  ── B/C 运行期（真机视口 421x927 @3 · 第 12 关）──
+  ── D 真实鼠标消除：期望 ↔ 飘字 ↔ 播放 ──
+    共真实点击 22 次 · 观察到消除 5 次（碰 2 / 吃 3）· 收尾：本步无牌可点（避免送死）
+
+  第 42 轮 · 吃/碰人声 + 桌外底色的真实事件自证
+  ------------------------------------------------------------------------------------------------
+  [OK]   A1 吃 入库 md5 == 台账  · ac3fead2c635
+  [OK]   A2 吃 == game-4/eat.m4a  · 字节相同 · 7.2 KB
+  [OK]   A3 吃 构建产物 == 入库文件  · native/ec/ec761682-2d60-4a4e-b6c6-264543b83ee1.m4a
+  [OK]   A4 吃 时长期望（源文件推出）  · 0.4412s = 19456 帧 ÷ 44100Hz（afinfo 的 estimated 0.376032s 只算 16583 valid frames —— 两个口径别混）
+  [OK]   A1 碰 入库 md5 == 台账  · f427097ca644
+  [OK]   A2 碰 == game-4/peng.m4a  · 字节相同 · 6.4 KB
+  [OK]   A3 碰 构建产物 == 入库文件  · native/0d/0d6a500c-2ccb-4141-a3fc-2562d45046ff.m4a
+  [OK]   A4 碰 时长期望（源文件推出）  · 0.3019s = 13312 帧 ÷ 44100Hz（afinfo 的 estimated 0.253787s 只算 11192 valid frames —— 两个口径别混）
+  [OK]   B1 运行期 audio/chi 的 name  · chi
+  [OK]   B2 audio/chi 的 uuid == 台账  · ec761682-2d60-4a4e-b6c6-264543b83ee1
+  [OK]   B3 audio/chi 时长 == 源文件解码总帧  · 0.4412s ✓
+  [OK]   B1 运行期 audio/peng 的 name  · peng
+  [OK]   B2 audio/peng 的 uuid == 台账  · 0d6a500c-2ccb-4141-a3fc-2562d45046ff
+  [OK]   B3 audio/peng 时长 == 源文件解码总帧  · 0.3019s ✓
+  [OK]   B4 对照：吃/碰 是两条不同资源  · 时长 0.441s ≠ 0.302s
+  [OK]   B5 两条人声都加载成功  · AudioService 未报 audio/chi / audio/peng 失败
+  [OK]   B6 其余音频空位（工程现状，非本轮引入）  · audio/button / audio/revive / audio/shuffle / audio/slot_warn / audio/tile_pick / audio/tool_use —— 共 6 次，均无对应素材文件
+  [OK]   C1 EnvWeave 节点就位  · active=true 贴图 256×256
+  [OK]   C2 Sprite.type == TILED(2)  · 实测 2 · 对照 EnvGrad=0(SIMPLE)
+  [OK]   C3 平铺层尺寸 == 可视尺寸  · 750×1651.43
+  [OK]   C4 贴图 wrapMode == REPEAT  · _wrapS=_wrapT=0（=REPEAT，不是 GL 的 10497）
+  [OK]   C4b 对照组：wrapMode 读数是真的测量  · 改成 CLAMP_TO_EDGE 读回 2 → 改回 REPEAT 读回 0
+  [OK]   C5 贴图 packable=false  · 不会被动态合图吞掉（对照：EnvGrad.packable=true ⇒ 字段在变）
+  [OK]   C6 运行期日志  · 织锦平铺层就绪 贴图 256×256 wrap=REPEAT 节点 750.0×1651.4
+  [OK]   D1 探针挂载  · AudioSourceComponent.playOneShot + Label.string(Pop)
+  [OK]   D2 消除确实发出播放调用  · 碰×2 吃×3 共 5 次
+  [OK]   D3 飘字 == 规则推出的期望  · 逐次一致（期望由设计规则独立推出）
+  [OK]   D4 播放的 clip == 规则推出的期望  · 碰→peng 碰→peng 吃→chi 吃→chi 吃→chi
+  [OK]   D5 覆盖：碰（peng）分支  · 2 次
+  [OK]   D5 覆盖：吃（chi）分支  · 3 次
+  [OK]   D6 console error  · 0 条 · 未捕获异常 0 条
+  [WARN] 末帧留痕  · 两档都超时：3× CDP 超时：Page.captureScreenshot（90000ms） / 1× CDP 超时：Emulation.setDeviceMetricsOverride（30000ms）
+  ------------------------------------------------------------------------------------------------
+  [v] 全部 32 项通过（WARN 为非产品问题，见原文）</pre>
+  </details>
+</section>
+
+<section>
+  <div class="sec-head"><h2>三、工程自检</h2><span>SELF-CHECK</span></div>
+  <div class="checks">
+    <div class="chk"><span class="mk">OK</span><span>TypeScript 类型检查</span><span class="d">0 错误</span></div>
+    <div class="chk"><span class="mk">OK</span><span>无头真实事件冒烟（g5-smoke）</span><span class="d">25 / 25</span></div>
+    <div class="chk"><span class="mk">OK</span><span>真机尺寸三页审计（home / gameStart / game）</span><span class="d">均「无非页面节点越界」</span></div>
+    <div class="chk"><span class="mk">OK</span><span>微信包构建 + 分包化</span><span class="d">主包 3.01 MB / 红线 4 MB</span></div>
+    <div class="chk"><span class="mk">OK</span><span>预览包上传校验（IDE 日志增量）</span><span class="d">基线 14 → 14，无新增上传错误</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>四、待你拍板 / 遗留</h2><span>OPEN ITEMS</span></div>
+  <div class="todo">
+    <article>
+      <h4>1 · 明度「再提 20%」的口径 —— 需要你确认一句</h4>
+      <p>你写的是「明度档：再提 20%」。我按 <b>线性均值 ×1.20</b> 落的
+        （你拍板的候选原图上带 <b>25.20</b> → 定稿 <b>30.24</b>），
+        实测真机 <b>29.97</b>，与你看到的候选稿一致。</p>
+      <p>但字面上还有另一种读法：<b>把 sRGB 数值直接 ×1.2</b>，那要亮得多
+        （25.20 需先转线性 → ×1.2 → 再回 sRGB，约等于 34.4，比现在再亮一个档）。</p>
+      <p class="q">问：真机扫了码看着够亮吗？够 = 保持现状；不够 = 我按 ×1.2-sRGB 口径再出一版。</p>
+    </article>
+    <article>
+      <h4>2 · 吃 / 碰 用人声念白，与「个人主体 + 休闲益智类目」的合规口径</h4>
+      <p>这两条<b>确系人声念「吃」「碰」</b>（声学特征已验证：稳定基频 230 / 245 Hz、
+        谱平坦度 0.009~0.015；「吃」起音 90 ms 处质心 ≈7000 Hz 是「ch」送气段）。</p>
+      <p>隔壁项目当初就是因为「个人主体 + 休闲益智类目、游戏内零棋牌语义」这条硬约束，
+        把这两段人声<b>整体下线</b>了。我保留了中性替代路径
+        （<code>SFX.matchPop</code>，改一个常量即可切换，不用删文件），但<b>没有擅自切</b>。</p>
+      <p class="q">问：先真人声上（更像麻将），还是先走中性音（更稳）？</p>
+    </article>
+    <article>
+      <h4>3 · 历轮遗留（我都没动）</h4>
+      <p>① 音效 / 背景音乐的静音开关<b>联动</b>（关音乐会把音效一起关，要修得给 <code>AudioService</code> 拆独立开关）；
+        ② 「重置进度」<b>无二次确认</b>；③ 游戏名「叠塔消消」与美术标题「麻麻大消除」<b>不一致</b>；
+        ④ 槽位空格在近黑底上对比度偏低；⑤ 6 条音效尚无素材（见上表）。</p>
+    </article>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>五、真机试玩码</h2><span>DEVICE PREVIEW</span></div>
+  <p class="lead">
+    本轮改的都是游戏内表现（底色 + 消除音），<b>必须真机试玩才算数</b>。
+    二维码在 <code>docs-verify/game-5/device/真机预览二维码.png</code>，
+    用微信「扫一扫」即可。<b>预览码只有最新一张有效</b>，我若再跑一次出码脚本，这张就作废。
+    包体 9 375 624 字节（8.94 MB）。
+  </p>
+</section>
+
+<footer>
+  <div>全部改动<b>停在工作区</b>，没有 commit、没有 push —— 等你确认后再动。</div>
+  <div class="src">
+    <div>底色生产：<code>tools/r42-bg-build.py</code> · 对账出图：<code>tools/r42-board-prep.py</code></div>
+    <div>音频自证：<code>tools/r42-audio-check.mjs</code> · 真机截图：<code>tools/r41-shot-game-hires.mjs</code></div>
+    <div>本板自检：<code>tools/r42-board-shot.mjs</code>（分段截图 + 背景污染 / 横向溢出 / 图变形 断言）</div>
+    <div>BGM 试听板：<code>docs-verify/game-5/audio/bgm-candidates/bgm-试听拍板板.html</code></div>
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

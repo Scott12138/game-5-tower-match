@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>第 39 轮 · 按钮圆角根因 + 槽位 / 道具格 / 进度条</title>
+<style>
+  :root{
+    --ink:#22201B; --ink2:#5A554A; --ink3:#8C8676;
+    --line:#DCD6C8; --bg:#F5F3EE; --card:#FFFFFF;
+    --bad:#B4342A; --good:#1F7A4D; --hi:#8A6A12;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:15px;line-height:1.5;padding:22px 30px 30px}
+  h1{font-size:25px;font-weight:800;letter-spacing:.5px}
+  h1 small{font-size:14px;font-weight:500;color:var(--ink3);margin-left:10px;letter-spacing:0}
+  h2{font-size:19px;font-weight:800;margin:22px 0 10px;padding-left:11px;
+    border-left:5px solid var(--hi)}
+  h2 i{font-style:normal;font-size:13px;font-weight:600;color:var(--ink3);margin-left:9px}
+  p.note{color:var(--ink2);margin:8px 0 12px;font-size:14px}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    background:#EDE9DF;border-radius:4px;padding:1px 5px}
+  pre{background:#2A2722;color:#EDE9DF;border-radius:8px;padding:11px 14px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    line-height:1.55;overflow:auto;margin:10px 0 4px;white-space:pre}
+  .row{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin:12px 0 6px}
+  .row.nowrap{flex-wrap:nowrap}
+  figure{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:8px 8px 6px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  figure figcaption{font-size:12.5px;color:var(--ink2);text-align:center;padding-top:5px}
+  .shot{display:block;width:100%;max-width:900px;border-radius:5px}
+  .mid{width:470px;flex:none}
+  .mid .shot{width:470px;max-width:470px}
+  .wide{width:660px;flex:none}
+  .wide .shot{width:660px;max-width:660px}
+  table{border-collapse:collapse;width:100%;margin:10px 0 4px;background:var(--card);
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:13.5px;
+    table-layout:fixed}
+  th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top;
+    word-break:break-word;overflow-wrap:anywhere}
+  /* 表格里全是不带空格的长 CSS 串（`.slot.empty::after{width:22px;...}`），
+     默认不断词 ⇒ 整页横向溢出（实测 scrollWidth 1842 > 视口 1560）。
+     这里强制允许在任意位置断行。 */
+  td code{word-break:break-all}
+  th{background:#EDE9DF;font-weight:700;white-space:nowrap}
+  th:nth-child(1),td:nth-child(1){width:11%}
+  th:nth-child(2),td:nth-child(2){width:26%}
+  th:nth-child(3),td:nth-child(3){width:34%}
+  th:nth-child(4),td:nth-child(4){width:29%}
+  /* 五、那张表的四列内容长度差得远，定宽会把长代码列压成一列一个字符，
+     改回自动布局，靠 `word-break` 兜住不溢出。 */
+  table.t5{table-layout:auto}
+  table.t5 th,table.t5 td{width:auto}
+  table.t5 th:nth-child(1),table.t5 td:nth-child(1){width:96px}
+  table.t5 code{white-space:normal}
+  tr:last-child td{border-bottom:none}
+  td.k{white-space:nowrap;color:var(--ink2)}
+  td.b{color:var(--bad);white-space:nowrap}
+  td.g{color:var(--good);font-weight:700;white-space:nowrap}
+  td.src{color:var(--ink3);font-size:12.5px}
+  .tag{display:inline-block;font-size:12px;font-weight:700;border-radius:5px;
+    padding:1px 7px;margin-right:7px;color:#fff;background:var(--ink3)}
+  .tag.fix{background:var(--good)}
+  .tag.keep{background:#6B6455}
+  ul{margin:6px 0 6px 20px}
+  li{margin:3px 0}
+  .sw{display:inline-block;width:180px;height:20px;border-radius:5px;
+    vertical-align:middle;border:1px solid rgba(0,0,0,.15)}
+  .foot{margin-top:26px;color:var(--ink3);font-size:12.5px;
+    border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+
+<h1>第 39 轮 · 按钮圆角根因修复<small>附：槽位空格 / 道具格图标 / 进度条填充色（真机 1264x2780 口径）</small></h1>
+
+<p class="note">
+  本轮用户拍板 7 项。前 5 项是内容调整（槽位、道具格、进度条、复活文案、按钮等宽），
+  <b>第 6、7 项是同一个病</b>：赠礼页「开始挑战」、结算页「下一关 / 分享」的<b>四个角不圆润、
+  有方块突出来</b>。量完之后发现这不是"圆角调小了"，而是 <b>按钮顶面从头到尾就没画成圆角</b> ——
+  下面是证据。
+</p>
+
+<h2>一、病灶：按钮顶面渲染出来是个矩形<i>不是圆角不够，是圆角完全没画上</i></h2>
+
+<table>
+  <tr><th>判据（同一套量法，同一段脚本）</th><th>改前</th><th>改后</th></tr>
+  <tr>
+    <td class="k">540x100 金按钮逐行宽度</td>
+    <td class="b">144 行<b>恒为 1052 物理 px</b>，左边界恒为 x=106</td>
+    <td class="g">左缘平滑内缩，唯一值 64 个</td>
+  </tr>
+  <tr>
+    <td class="k">左缘最大内缩 / 半高</td>
+    <td class="b">0.00（=零圆角，直角）</td>
+    <td class="g">0.95 / 0.98 / 1.05（1.00 = 正圆胶囊）</td>
+  </tr>
+  <tr>
+    <td class="k">顶缘柔光</td>
+    <td class="b">533x16 的圆角矩形，圆角被钳到 1.6px ⇒ 两端戳出按钮之外</td>
+    <td class="g">左右边界直接取外层轮廓 ⇒ 永远填在按钮内</td>
+  </tr>
+  <tr>
+    <td class="k">真机上看到的现象</td>
+    <td class="b">四个角露出方形金块，只有 3px 深棕描边画在真正的胶囊路径上</td>
+    <td class="g">完整胶囊，描边、厚度层、高光三者同心</td>
+  </tr>
+</table>
+
+<p class="note">病灶就在 <code>fillVGradient</code>：它把竖向渐变切成 26 条横带，
+<b>只给首尾两条</b>传圆角半径 <code>r</code>，中间的传 0。而带子只有 ~4px 高，
+<code>roundRectPath</code> 又把超出半高的 <code>r</code> 钳到 <code>min(w,h)/2 = 2px</code> ——
+于是 26 条带里 <b>24 条是全宽直角矩形</b>。</p>
+
+<pre>// 改前（UIFactory.fillVGradient）
+const rr = (i === 0 || i === steps - 1) ? r : 0;   // <-- 只有首尾两条有圆角
+roundRectPath(g, cx - w / 2, yy, w, h / steps + 0.6, rr);   // 且 rr 会被钳到 ~2px
+
+// 改后：每条带都按轮廓函数收窄，渐变严格落在圆角形内部
+bandedFill(g, cx, w / 2, cy, cy + halfH, cy - halfH, steps, colorAt,
+           (d) =&gt; shapeInset(d, halfH, r));      // shapeInset = r − √(r²−k²)</pre>
+
+<h2>二、开局页 · 赠礼卡「开始挑战」<i>480x112 · 半径 = 高/2 = 56</i></h2>
+<div class="row nowrap">
+  <figure class="mid"><img class="shot" src="80-img/01-before-gift.png" alt="改前"><figcaption>改前 · 真机截图：黄色方块 + 圆角描边，四角露角</figcaption></figure>
+  <figure class="mid"><img class="shot" src="80-img/02-after-gift.png" alt="改后"><figcaption>改后 · 放大 4x：完整胶囊，顶缘柔光贴着顶弧走</figcaption></figure>
+</div>
+
+<h2>三、结算页 ·「下一关」与「分享」<i>540x100 / 540x76 · 半径 = 50 / 38</i></h2>
+<div class="row nowrap">
+  <figure class="mid"><img class="shot" src="80-img/03-before-btns.png" alt="改前"><figcaption>改前 · 用户红圈处：金块是直角矩形，描边才是胶囊</figcaption></figure>
+  <figure class="mid"><img class="shot" src="80-img/04-after-btns.png" alt="改后"><figcaption>改后 · 两按钮都是完整胶囊，等宽 540</figcaption></figure>
+</div>
+
+<h2>四、主玩页底带 · 槽位空格 + 道具格<i>同一 CSS 窗口 x16 y702 400x230，均 x3</i></h2>
+<div class="row nowrap">
+  <figure class="mid"><img class="shot" src="80-img/05-before-hud.png" alt="改前"><figcaption>改前 · 槽位是奶油白底 + 金线 + 空无一物；图标 60</figcaption></figure>
+  <figure class="mid"><img class="shot" src="80-img/06-after-hud.png" alt="改后"><figcaption>改后 · 深玉底 + 玉绿描边 + 中心短横；图标 74、角标 42</figcaption></figure>
+</div>
+
+<h2>五、主玩页 · 进度条填充色 + 槽位细节<i>已清 3/12 时实拍，放大 6x</i></h2>
+<div class="row nowrap">
+  <figure class="wide"><img class="shot" src="80-img/07-after-progress.png" alt="进度条"><figcaption>改后实拍 · 填充为玉绿横向渐变，文字「已清 3/12」嵌在条内左侧</figcaption></figure>
+</div>
+
+<table class="t5">
+  <tr><th>项</th><th>改前</th><th>改后</th><th>真源（逐值照抄）</th></tr>
+  <tr>
+    <td class="k">进度条填充</td>
+    <td class="b"><span class="sw" style="background:linear-gradient(90deg,#FFE08A,#F6C445)"></span><br><code>COLOR.GOLD_HI  ->  COLOR.GOLD</code></td>
+    <td class="g"><span class="sw" style="background:linear-gradient(90deg,#2E8B6F,#55B79A)"></span><br>实测最亮像素 <code>(82,178,149)</code>；同图金色像素 <b>0</b> 个</td>
+    <td class="src">.progFill 的 <code>linear-gradient(90deg, var(--jade), var(--jade-hi))</code><br>变量：<code>--jade:#2E8B6F</code>、<code>--jade-hi:#55B79A</code></td>
+  </tr>
+  <tr>
+    <td class="k">槽位空格</td>
+    <td class="b">奶油白底 <code>rgba(255,247,230,.10)</code> + 金线，圆角 16，无中心短横</td>
+    <td class="g">深玉底 <code>rgba(4,20,14,.5)</code> + 玉绿描边 <code>rgba(46,139,111,.30)</code>，圆角 10，中心 22x2 玉绿短横</td>
+    <td class="src">.slot 的 <code>border-radius:10px</code> / <code>2px solid rgba(46,139,111,.30)</code><br>.slot.empty::after 的 <code>22px x 2px</code> / <code>rgba(46,139,111,.34)</code></td>
+  </tr>
+  <tr>
+    <td class="k">道具格</td>
+    <td class="b">图标 60 · 圆角 22 · 角标 38（字号 22）</td>
+    <td class="g">图标 <b>74</b> · 圆角 <b>24</b> · 角标 <b>42</b>（字号 25，色 <code>#4A2B18</code>）· 名称 19 号落到格里 37</td>
+    <td class="src">.item img 的 <code>78px x 78px</code>（我方按格高 112 扣掉文字带后取 74）<br>.item .cnt 的 <code>min-width:42px;height:42px;border-radius:21px;font-size:25px</code></td>
+  </tr>
+  <tr>
+    <td class="k">复活徽标<br>按钮等宽</td>
+    <td class="b">真源写「本局复活 直消 4 张」；次按钮曾 460 宽</td>
+    <td class="g">按用户拍板<b>保持</b>「复活 x1」；主/次按钮等宽 540</td>
+    <td class="src">用户本轮明确拍板，不改真源</td>
+  </tr>
+</table>
+
+<h2>六、复验<i>每一条都跑过，不是"看着差不多"</i></h2>
+<ul>
+  <li><span class="tag fix">通过</span><code>tsc-check.sh</code> 0 错误（每改一步复验）</li>
+  <li><span class="tag fix">通过</span><code>g5-smoke.mjs</code> 25 / 25 · 未捕获异常 0 · console error 0</li>
+  <li><span class="tag fix">通过</span>真机审计 <code>gameStart</code> / <code>game</code> / <code>result</code> 三页均「无非页面节点越界」</li>
+  <li><span class="tag fix">通过</span>场景树几何：<code>Slot 68x80</code> · <code>Icon 74x74</code> · <code>Cnt 42x42</code> · 槽间距 84 = 68+16</li>
+  <li><span class="tag fix">通过</span>按钮圆角：左缘内缩 / 半高 = 0.95 / 0.98 / 1.05（目标 1.00）</li>
+  <li><span class="tag fix">通过</span>进度条填充色实测为玉绿，同图金色像素 0 个</li>
+</ul>
+
+<div class="foot">
+  改前素材来源：① 用户本轮真机截图（第 39 轮 15:24）② 第 38 轮交付的 <code>78-img/after-game.png</code>（即本轮改前状态）。<br>
+  改后素材来源：本轮构建产物 <code>build/web-desktop</code>，无头 Chrome 真机视口 421x927 实拍，走 CDP 真实鼠标点击推动状态。<br>
+  判据脚本：<code>tools/r39-corner.mjs</code>（抓图）+ 内联 Python（量测，见记忆落档）。
+</div>
+
+</body>
+</html>

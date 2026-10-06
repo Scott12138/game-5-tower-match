@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>第41轮 · 主玩页桌外底色 · 三款候选样底</title>
+<style>
+  :root {
+    --ink:#12211A; --ink2:#3D5449; --line:#D8E2DA; --bg:#F5F7F5;
+    --bad:#8A4B3A; --good:#1B5E4A; --gold:#9A7B2E; --card:#FFFFFF;
+    --dark:#0B1410;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:26px 30px 44px; background:var(--bg); color:var(--ink);
+         font:15px/1.72 -apple-system,"PingFang SC","Helvetica Neue",sans-serif; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:.01em; }
+  h2 { font-size:19px; margin:34px 0 12px; padding-left:11px;
+        border-left:4px solid var(--good); }
+  h3 { font-size:15px; margin:18px 0 8px; color:var(--ink2); }
+  .lede { color:var(--ink2); font-size:14px; margin:0 0 6px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:16px 18px; margin:12px 0 18px; }
+  .kv { display:grid; grid-template-columns:104px 1fr; gap:6px 14px; font-size:14px; margin:0; }
+  .kv dt { color:var(--ink2); }
+  .kv dd { margin:0; }
+  table { width:100%; border-collapse:collapse; background:var(--card);
+           border:1px solid var(--line); border-radius:10px; overflow:hidden;
+           font-size:13.5px; }
+  th,td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--line);
+           vertical-align:top; font-variant-numeric:tabular-nums; }
+  th { background:#EDF2EE; font-weight:600; font-size:13px; }
+  tr:last-child td { border-bottom:0; }
+  td.num { text-align:right; }
+  code { background:#EDF2EE; padding:1px 5px; border-radius:4px; font-size:12.5px;
+          font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .row.nowrap { flex-wrap:nowrap; }
+  .row.nowrap figure { flex:1 1 0; min-width:0; }
+  figure { margin:0; }
+  figcaption { font-size:12.5px; color:var(--ink2); margin-top:7px; text-align:center;
+                line-height:1.5; }
+  figcaption b { color:var(--ink); }
+  img.shot { display:block; width:100%; height:auto; border:1px solid var(--line);
+              border-radius:10px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .spec { background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:14px 16px; font-size:13.5px; }
+  .spec h3 { margin:0 0 4px; font-size:16px; color:var(--ink); }
+  .spec .sub { color:var(--ink2); font-size:12.5px; margin-bottom:8px; }
+  .spec dl { margin:0; display:grid; grid-template-columns:60px 1fr; gap:4px 10px; }
+  .spec dt { color:var(--ink2); font-size:12.5px; }
+  .spec dd { margin:0; font-size:12.5px; }
+  .tag { display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:.04em;
+          padding:2px 9px; border-radius:999px; margin-bottom:7px; }
+  .tag.b { background:#F3E4DF; color:var(--bad); }
+  .tag.a { background:#DEEEE7; color:var(--good); }
+  .tag.g { background:#F4EEDC; color:var(--gold); }
+  ul { margin:8px 0; padding-left:20px; }
+  li { margin:5px 0; }
+  .note { background:#FFFCF2; border:1px solid #EADFB8; border-radius:10px;
+           padding:13px 16px; font-size:13.5px; }
+  .note.risk { background:#FDF6F4; border-color:#E7CFC7; }
+  .swatch { height:44px; border-radius:8px; border:1px solid rgba(0,0,0,.18); margin:2px 0 10px; }
+  .mono { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12.5px; }
+  .pick { display:grid; grid-template-columns:56px 1fr; gap:8px 14px;
+           background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:16px 18px; font-size:14px; }
+  .pick .k { font-weight:700; }
+</style></head><body>
+
+<h1>第 41 轮 · 主玩页「桌外底色」三款候选样底</h1>
+<p class="lede">取证口径 <code>421×927 @3</code>（真机 1264×2780）· 下表每个手机里的
+<b>桌子 / 牌堆 / HUD / 槽位 / 道具栏都是真机 3× 截图里抠出来的真像素</b>，
+只把底色换掉 —— 位置、尺寸、字号一个都没动。</p>
+
+<h2>一、为什么现在是「死黑」</h2>
+
+<div class="card">
+<dl class="kv">
+  <dt>渐变其实画了</dt>
+  <dd>全屏共 <b>43.4%</b> 的像素最大值<b>恰好等于 0</b>，其余台面外区域也全是 0 ——
+      也就是说桌外是<b>纯 #000000</b>，不是"很深的绿"。</dd>
+  <dt>病根</dt>
+  <dd><code>GamePage.buildEnv()</code> 先建 <code>Env</code> 节点画径向渐变
+      （<code>#0C110D → #070A07 → #030403</code>），紧接着又建 <code>EnvFx</code> 节点
+      <code>eg.fillColor = '#000000'</code> 后 <code>rect(-w, -h/2, 2w, h)</code> <b>满铺</b>。
+      两个节点是<b>兄弟</b>，<code>EnvFx</code> 后加入 ⇒ <b>渲染在 Env 之上</b>，
+      把渐变整片盖住。后面那句 <code>g.clear()</code> 重画渐变也没用，它画的还是 Env。</dd>
+  <dt>要改的就一层</dt>
+  <dd>只换 <code>EnvFx</code> 这一层。<b>桌子、牌堆、HUD、槽位、道具栏零改动。</b></dd>
+  <dt>取景事实</dt>
+  <dd>桌子纵向占物理 <code>788~2047</code>、横向几乎顶满 ⇒ <b>真实可见的底色只有
+      「上带 ≈260 CSS px + 下带 ≈240 CSS px + 两条 &lt;7 CSS px 的侧缝」</b>。
+      所以渐变必须做成<b>纵向大尺度（上亮下暗）</b>，
+      做成"中心亮四周暗"的话亮部会被桌子 100% 挡住。</dd>
+</dl>
+</div>
+
+<h2>二、三款候选 · 同机位对照</h2>
+
+<div class="row nowrap">
+  <figure><figcaption><b>现状</b><br>纯 #000000 满铺</figcaption>
+    <img class="shot" src="round41/page-now.png" alt="现状纯黑"></figure>
+  <figure><figcaption><b>A · 墨玉凝霜</b><br>细颗粒磨砂 + 玉絮 + 玉绿柔光</figcaption>
+    <img class="shot" src="round41/page-A.png" alt="A 墨玉凝霜"></figure>
+  <figure><figcaption><b>B · 织锦经纬</b><br>45° 细斜纹织锦 + 顶部暖光</figcaption>
+    <img class="shot" src="round41/page-B.png" alt="B 织锦经纬"></figure>
+  <figure><figcaption><b>C · 回纹锦地</b><br>暗刻回纹锦地 + 四角金芒</figcaption>
+    <img class="shot" src="round41/page-C.png" alt="C 回纹锦地"></figure>
+</div>
+
+<h2>三、纹理 1:1 放大 —— 判「细腻」</h2>
+<p class="lede">下面是底色本身的 1:1 裁片（物理 190×190 px，桌上缘左侧的空白带），
+在板上放大约 2 倍。<b>手机上"质感"就是靠这一层拿的</b>，页面整图缩到手机尺寸时看不出来。</p>
+
+<div class="row nowrap">
+  <figure><figcaption><b>现状</b> · 无纹理</figcaption>
+    <img class="shot" src="round41/zoom-now.png" alt="现状无纹理"></figure>
+  <figure><figcaption><b>A</b> · 4px + 1.6px 双频玉屑，<br>再叠 46px 低频玉絮</figcaption>
+    <img class="shot" src="round41/zoom-A.png" alt="A 纹理"></figure>
+  <figure><figcaption><b>B</b> · 16px 周期间距的<br>45° 斜纹织物（主脊 + 纬纱）</figcaption>
+    <img class="shot" src="round41/zoom-B.png" alt="B 纹理"></figure>
+  <figure><figcaption><b>C</b> · 156px 周期方形回旋<br>（2.5 圈，线宽 2.4px）</figcaption>
+    <img class="shot" src="round41/zoom-C.png" alt="C 纹理"></figure>
+</div>
+
+<h2>四、亮度对账（桌外空白带均值 / 255）</h2>
+<table>
+  <tr><th>样底</th><th>上带<br><span class="mono">y300-500</span></th>
+      <th>中带<br><span class="mono">y590-770</span></th>
+      <th>下带<br><span class="mono">y2060-2170</span></th>
+      <th>底带<br><span class="mono">y2545-2770</span></th>
+      <th>侧缝<br><span class="mono">x0-70</span></th><th>全屏均值</th></tr>
+  <tr><td><b>现状</b></td><td class="num">0.00</td><td class="num">0.00</td>
+      <td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td>
+      <td class="num">0.00</td></tr>
+  <tr><td><b>A 墨玉凝霜</b></td><td class="num">17.52</td><td class="num">20.88</td>
+      <td class="num">16.47</td><td class="num">7.75</td><td class="num">11.67</td>
+      <td class="num">16.64</td></tr>
+  <tr><td><b>B 织锦经纬</b></td><td class="num">25.20</td><td class="num">21.30</td>
+      <td class="num">16.25</td><td class="num">7.90</td><td class="num">11.20</td>
+      <td class="num">18.94</td></tr>
+  <tr><td><b>C 回纹锦地</b></td><td class="num">20.31</td><td class="num">17.70</td>
+      <td class="num">14.26</td><td class="num">7.91</td><td class="num">10.12</td>
+      <td class="num">16.35</td></tr>
+</table>
+
+<div class="note" style="margin-top:12px">
+<b>为什么不再亮一点。</b>主玩页的 HUD 元件自身填充就很暗 —— 暂停胶囊实测填充
+<code>rgb(2,12,9)</code>（亮度 8），槽位空框是深玉底（第 39 轮已记过它
+"在近黑背景上对比度偏低"）。底色一旦抬到全屏均值 25 以上，这些暗元件就<b>融进背景</b>，
+轮廓只剩一圈描边撑着。<br>
+⇒ 三款都刻意把 <b>底带（道具栏那一段）压到 7.7~7.9</b>，只让<b>上带</b>亮起来 ——
+"质感"从纹样拿，不从提亮拿。<b>后续要调明暗只需动一个系数</b>，纹样不会被牵动。
+</div>
+
+<h2>五、三款规格</h2>
+
+<div class="grid3">
+  <div class="spec">
+    <span class="tag a">A</span>
+    <h3>墨玉凝霜</h3>
+    <div class="sub">无方向 · 像一块打磨过的墨玉背板</div>
+    <div class="swatch" style="background:#101A15"></div>
+    <dl>
+      <dt>层叠</dt><dd>纵向大尺度径向渐变（上亮下暗）→ 4px+1.6px 双频颗粒 → 46px 低频玉絮 → 玉绿柔光</dd>
+      <dt>性格</dt><dd>最靠近现状色调，最不抢戏</dd>
+      <dt>生产件</dt><dd><span class="mono">128×128</span> 颗粒 tile 17 KB<br><span class="mono">158×348</span> 玉絮图 39 KB</dd>
+      <dt>风险</dt><dd>离"换了个底色"最近、离"有质感"最远，整图缩小后几乎只剩色相变化</dd>
+    </dl>
+  </div>
+  <div class="spec">
+    <span class="tag g">B</span>
+    <h3>织锦经纬</h3>
+    <div class="sub">有方向 · 与桌面绿绒布同族</div>
+    <div class="swatch" style="background:#16241C"></div>
+    <dl>
+      <dt>层叠</dt><dd>纵向径向渐变 → 16px 周期 45° 斜纹（主脊 0.74 + 纬纱 0.26，带二次谐波）→ 细噪 → 顶部暖光</dd>
+      <dt>性格</dt><dd>布感最强，三款里最亮</dd>
+      <dt>生产件</dt><dd><span class="mono">128×128</span> 织纹 tile 8 KB</dd>
+      <dt>风险</dt><dd>上带 25.2 是三款最高；斜纹方向与桌面金框四角的斜向云纹略有"打架"</dd>
+    </dl>
+  </div>
+  <div class="spec">
+    <span class="tag a">C</span>
+    <h3>回纹锦地</h3>
+    <div class="sub">有图形 · 呼应桌面金框的四角云纹</div>
+    <div class="swatch" style="background:#0D1712"></div>
+    <dl>
+      <dt>层叠</dt><dd>纵向径向渐变 → 156px 周期方形回旋暗刻（亮 +16/255）→ 石面颗粒 → 四角金芒</dd>
+      <dt>性格</dt><dd>三款里单位亮度最低（16.35）但纹样最明确</dd>
+      <dt>生产件</dt><dd><span class="mono">156×156</span> 回纹 tile <b>0.8 KB</b></dd>
+      <dt>风险</dt><dd>满屏纹样在 HUD 背后略有存在感，觉得吵可以把 ink 系数砍半</dd>
+    </dl>
+  </div>
+</div>
+
+<h2>六、我的建议</h2>
+
+<div class="pick">
+  <div class="k">首选</div>
+  <div><b>C · 回纹锦地。</b>三条理由：<br>
+    ① <b>它是唯一"有叙事"的一款</b> —— 回纹与桌面金框四角是同一族的纹样，
+       桌外暗刻 + 桌面錾刻，整体读起来是"一整套器具"，而不是"一台桌子摆在什么布上"。<br>
+    ② <b>它的质感来自纹样、不来自提亮</b>：全屏均值 16.35 是三款最低，
+       底带 7.91 与 B 持平 —— 也就是说选它不会牺牲 HUD 与槽位的对比度。<br>
+    ③ <b>包体代价几乎为零</b>：156×156 的平铺图只有 0.8 KB。</div>
+  <div class="k">次选</div>
+  <div><b>B · 织锦经纬。</b>布感最强、和桌面绿绒布最像"同一块料"。代价是最亮（上带 25.2），
+    以及斜纹方向与金框四角斜向云纹的小幅互相干扰。</div>
+  <div class="k">保守</div>
+  <div><b>A · 墨玉凝霜。</b>最安全、最不抢戏，但坦白说它是三款里最接近"就是把黑换成很深的绿"的一款 ——
+    纹理要 1:1 才看得见。</div>
+  <div class="k">都可以调</div>
+  <div>三款各留两个旋钮：<b>纹样强度</b>与<b>整体明度</b>。真机上觉得"纹样再淡一点 / 底再压一点"，
+    改一个系数就行，不用重做。<b>也可以叠</b>（例如 C 的纹样 + A 的颗粒）。</div>
+</div>
+
+<h2>七、实现口径（不占包体）</h2>
+<div class="card">
+<dl class="kv">
+  <dt>不能整页烘焙</dt>
+  <dd>这三张整页 PNG 分别是 <b>3.5 / 3.2 / 3.4 MB</b>。主包红线 4 MB、当前 2.99 MB ⇒
+      <b>一张都塞不进</b>，且三张加起来 10 MB。</dd>
+  <dt>正确做法</dt>
+  <dd><b>程序化渐变（Graphics，0 字节）+ 无缝平铺小图（TILED Sprite）</b>。
+      渐变负责大尺度明暗，平铺图只负责纹样。三款分别是
+      <span class="mono">17 KB + 39 KB</span> / <span class="mono">8 KB</span> /
+      <span class="mono">0.8 KB</span> ⇒ 主包增量约 <b>9~56 KB</b>，仍在 3.05 MB 以内。</dd>
+  <dt>待实现时验证</dt>
+  <dd>Cocos 3.8 的 <code>Sprite.Type.TILED</code> 需要贴图 <code>wrapMode = REPEAT</code>；
+      引擎不一定自动设，要显式 <code>texture.setWrapMode()</code> 后再复核一次拼接缝。
+      （这是"实现时先自证再交付"的清单项，不是假设。）</dd>
+</dl>
+</div>
+
+<h2>八、待你拍板</h2>
+<div class="card">
+<ul>
+  <li><b>选哪一款</b>：A / B / C，或者要组合（如 C 纹样 + A 颗粒）。</li>
+  <li><b>明度档</b>：再压 20% / 就用现在这个 / 再提 20%。</li>
+  <li><b>C 的纹样尺度</b>：保持 92.5 设计 px 一格，还是缩到约 60 设计 px 让它更细密。</li>
+  <li><b>A 的低频玉絮</b>：留着（更像"料"，但也更接近 B 的观感）还是去掉（更纯的雾面）。</li>
+</ul>
+<p style="margin:10px 0 0; color:var(--ink2); font-size:13.5px">
+拍板后我再动代码：改 <code>buildEnv()</code>、把平铺图入库、重建产物、
+跑三套自检（<code>tsc</code> / <code>g5-smoke</code> / 真机审计），然后出真机试玩码。</p>
+</div>
+
+</body></html>

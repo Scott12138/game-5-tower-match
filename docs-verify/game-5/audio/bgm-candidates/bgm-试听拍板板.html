@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>《叠塔消消》· 麻将主题 BGM 试听拍板板</title>
+<style>
+/* ============================================================
+   风格：装饰艺术（Art Deco）× 杂志编辑
+   配色取自游戏本体（墨绿 #07120C / 玉 #12241A / 金 #C6A258 / 米白 #EFE3C6），
+   让"试听板"和"游戏"看起来是同一个世界的东西。
+   记忆点：每张卡片的波形上有一条金色扫描线，随播放进度推进。
+   ============================================================ */
+:root{
+  --ink:#07120C; --ink2:#0C1C14; --jade:#12241A; --jade2:#173021;
+  --gold:#C6A258; --gold-hi:#EBD49A; --gold-dim:#7A6634;
+  --cream:#EFE3C6; --cream-dim:#A99C7E;
+  --jade-lt:#5FA37E; --line:rgba(198,162,88,.28);
+  --mono:"SF Mono",ui-monospace,"Menlo",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+/* 让浏览器把原生 <audio> 控件渲染成深色 —— 否则在墨绿底上是一条刺眼的白条 */
+html{scroll-behavior:smooth; color-scheme:dark}
+body{
+  background:var(--ink); color:var(--cream);
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px; line-height:1.75; -webkit-font-smoothing:antialiased;
+  padding:0 0 90px;
+}
+/* 与游戏同源的斜纹底 —— 重复线宽 7px，和游戏里那颗 256px tile 的密度同量级 */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    repeating-linear-gradient(45deg, rgba(95,163,126,.030) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-45deg, rgba(198,162,88,.022) 0 1px, transparent 1px 7px),
+    radial-gradient(120% 80% at 50% -10%, #12312180 0%, transparent 60%);
+}
+/* 颗粒噪点：纯 CSS 做不出来，用一段内联 SVG 的 feTurbulence 当背景 */
+body::after{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.16;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.35'/></svg>");
+}
+.wrap{position:relative; z-index:1; max-width:1080px; margin:0 auto; padding:0 26px}
+
+/* ---------- 页眉 ---------- */
+header{padding:66px 0 30px; border-bottom:1px solid var(--line); position:relative}
+header::after{
+  content:""; position:absolute; left:0; bottom:-1px; width:196px; height:3px;
+  background:linear-gradient(90deg,var(--gold),transparent);
+}
+.kicker{font-family:var(--mono); font-size:11px; letter-spacing:.34em; color:var(--gold); text-transform:uppercase}
+h1{
+  font-family:"Songti SC","STSong","Source Han Serif SC",serif;
+  font-size:clamp(30px,5.4vw,50px); font-weight:700; letter-spacing:.06em;
+  line-height:1.18; margin:16px 0 6px; color:var(--cream);
+}
+h1 em{font-style:normal; color:var(--gold-hi); position:relative}
+h1 em::after{content:""; position:absolute; left:0; right:0; bottom:.06em; height:.22em; background:rgba(198,162,88,.20); z-index:-1}
+.lead{max-width:70ch; color:var(--cream-dim)}
+.lead b{color:var(--cream); font-weight:600}
+.meta-row{display:flex; flex-wrap:wrap; gap:10px 22px; margin-top:18px; font-family:var(--mono); font-size:11.5px; color:var(--gold-dim); letter-spacing:.06em}
+
+/* ---------- 提示条 ---------- */
+.notice{
+  margin:26px 0 0; padding:14px 18px; border-left:3px solid var(--gold);
+  background:linear-gradient(90deg,rgba(198,162,88,.09),transparent 78%);
+  font-size:13.5px; color:var(--cream-dim);
+}
+.notice b{color:var(--cream)}
+.notice code{font-family:var(--mono); font-size:12px; color:var(--gold-hi); word-break:break-all}
+
+/* ---------- 区块标题 ---------- */
+section{margin-top:64px}
+.sec-head{display:flex; align-items:baseline; gap:16px; margin-bottom:26px}
+.sec-head h2{
+  font-family:"Songti SC","STSong",serif; font-size:24px; letter-spacing:.14em; font-weight:700; color:var(--cream);
+}
+.sec-head span{font-family:var(--mono); font-size:11px; letter-spacing:.24em; color:var(--gold-dim)}
+
+/* ---------- 首推卡片 ---------- */
+.card{
+  position:relative; margin-bottom:34px; padding:0;
+  border:1px solid var(--line); background:linear-gradient(168deg,var(--jade2),var(--ink2) 62%);
+  display:grid; grid-template-columns:96px 1fr;
+  transition:border-color .28s ease, transform .28s ease;
+}
+.card:hover{border-color:rgba(198,162,88,.62); transform:translateY(-3px)}
+/* 四角金饰：装饰艺术的做法 —— 只在角上画，不包一圈 */
+.card::before,.card::after{content:""; position:absolute; width:16px; height:16px; border:1px solid var(--gold); pointer-events:none}
+.card::before{left:-1px; top:-1px; border-right:0; border-bottom:0}
+.card::after{right:-1px; bottom:-1px; border-left:0; border-top:0}
+.rail{
+  border-right:1px solid var(--line); padding:26px 0; display:flex; flex-direction:column;
+  align-items:center; gap:14px; background:rgba(0,0,0,.18);
+}
+.rail .rank{
+  font-family:"Songti SC","STSong",serif; font-size:52px; line-height:1;
+  color:var(--gold-hi); text-shadow:0 0 26px rgba(198,162,88,.35);
+}
+.rail .vsep{width:1px; flex:1; background:linear-gradient(180deg,transparent,var(--line),transparent)}
+.rail .tick{font-family:var(--mono); font-size:10.5px; letter-spacing:.2em; color:var(--gold-dim); writing-mode:vertical-rl; text-orientation:mixed}
+.body{padding:26px 30px 28px; min-width:0}
+
+.titlerow{display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 16px}
+.titlerow h3{font-family:"Songti SC","STSong",serif; font-size:26px; letter-spacing:.04em; font-weight:700}
+.titlerow .orig{font-family:var(--mono); font-size:12.5px; color:var(--cream-dim)}
+.byline{margin-top:4px; font-size:12.5px; color:var(--gold-dim); font-family:var(--mono); letter-spacing:.04em}
+
+/* ---------- 播放器（自定义 transport） ---------- */
+.player{display:flex; align-items:center; gap:16px; margin:20px 0 4px}
+.pp{
+  flex:0 0 54px; width:54px; height:54px; border-radius:50%;
+  border:1px solid var(--gold); background:radial-gradient(circle at 34% 30%,#1E3B29,#0B1A12);
+  color:var(--gold-hi); cursor:pointer; display:grid; place-items:center;
+  transition:transform .18s ease, box-shadow .25s ease, background .25s ease;
+}
+.pp:hover{transform:scale(1.06); box-shadow:0 0 0 4px rgba(198,162,88,.13)}
+.pp:active{transform:scale(.96)}
+.pp svg{width:20px; height:20px; fill:currentColor; display:block}
+.pp.playing{border-color:var(--gold-hi); box-shadow:0 0 0 4px rgba(198,162,88,.20)}
+.track{flex:1; min-width:0}
+/* ---------- 波形条 ----------
+   ⚠️ 别用 `height:76px` + `object-fit:fill`：源波形图是 900×150（6:1），
+   塞进 798×74 的盒子 = 10.78:1 ⇒ **纵向被压到 56%**，峰值全被压平，
+   看起来"每条都很平" —— 而波形恰恰是用来比动态的。
+   ⚠️ 也别把比例交给容器的 `aspect-ratio`：它算在**边框盒**上，而 img 填的是
+   **内容盒**，1px 边框就会把图片拉成 6.076:1（实测偏差 1.27%）。
+   ⇒ 就让 img 走 `height:auto`，按自身固有比例排，任何视口下都零变形。 */
+.wave{position:relative; overflow:hidden; background:rgba(0,0,0,.30);
+  border:1px solid rgba(198,162,88,.16); cursor:pointer}
+.wave img{width:100%; height:auto; display:block; opacity:.72; pointer-events:none}
+/* ★ 记忆点：金色扫描线跟着播放进度跑 */
+.scan{position:absolute; top:0; bottom:0; left:0; width:2px; background:var(--gold-hi);
+  box-shadow:0 0 12px 2px rgba(235,212,154,.55); transform:translateX(calc(var(--p,0) * 1px)); will-change:transform}
+.played{position:absolute; inset:0 auto 0 0; width:0; background:linear-gradient(90deg,rgba(198,162,88,.10),rgba(198,162,88,.24)); pointer-events:none}
+.tline{display:flex; justify-content:space-between; margin-top:7px; font-family:var(--mono); font-size:11.5px; color:var(--gold-dim); letter-spacing:.06em}
+.tline .note{color:var(--jade-lt)}
+
+/* ---------- 量测网格 ----------
+   ⚠️ 列数写死 4 列而不是 auto-fit：8 个格子正好铺满 2 行。
+   用 auto-fit 时格数除不尽会**留空洞**，而 .grid 的背景是金线色，
+   空洞就变成一大块金色 —— 看着像样式坏了。（第 43 轮实测踩到） */
+.grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; margin:22px 0 0; background:var(--line); border:1px solid var(--line)}
+.cell{background:var(--ink2); padding:11px 13px}
+.cell .k{font-family:var(--mono); font-size:10px; letter-spacing:.16em; color:var(--gold-dim); text-transform:uppercase}
+.cell .v{font-family:var(--mono); font-size:17px; color:var(--cream); margin-top:3px; letter-spacing:.02em}
+.cell .v small{font-size:11px; color:var(--cream-dim); margin-left:3px}
+.bar{height:3px; margin-top:7px; background:rgba(198,162,88,.14); position:relative}
+.bar i{position:absolute; left:0; top:0; bottom:0; background:var(--gold)}
+
+/* ⚠️ 必须是 `>` 直接子选择器：`.notes div` 会连里面的 .k / .v 一起匹配上，
+   于是 .v 自己也变成「82px + 1fr」的两列网格 —— 它的文字被塞进 82px 那列，
+   表现为"正文一行只装得下几个字"。（第 43 轮实测踩到） */
+.notes{margin-top:20px; display:grid; gap:9px}
+.notes > div{display:grid; grid-template-columns:82px 1fr; gap:12px; font-size:13.5px}
+.notes .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; color:var(--gold-dim); padding-top:3px}
+.notes .v{color:var(--cream-dim); min-width:0}
+.notes .v b{color:var(--cream); font-weight:600}
+.notes .v code{font-family:var(--mono); font-size:12px; color:var(--gold-hi); word-break:break-all}
+.notefoot{margin-top:20px; display:grid; gap:9px}
+.notefoot > div{display:grid; grid-template-columns:82px 1fr; gap:12px; font-size:13.5px}
+.notefoot .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; color:var(--gold-dim); padding-top:3px}
+.notefoot .v{color:var(--cream-dim)}
+.notefoot .v b{color:var(--cream); font-weight:600}
+.tagrow{display:flex; flex-wrap:wrap; gap:7px; margin-top:14px}
+.tag{font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; padding:3px 9px; border:1px solid var(--line); color:var(--cream-dim)}
+.tag.ok{border-color:rgba(95,163,126,.5); color:var(--jade-lt)}
+.tag.warn{border-color:rgba(198,162,88,.5); color:var(--gold-hi)}
+
+/* ---------- 打包体积 ---------- */
+.pack{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:18px; margin-top:6px}
+.pack article{border:1px solid var(--line); background:linear-gradient(170deg,var(--jade2),var(--ink2)); padding:22px 22px 24px; position:relative}
+.pack article.rec{border-color:rgba(198,162,88,.6)}
+.pack article.rec::after{content:"推荐"; position:absolute; right:-1px; top:-1px; background:var(--gold); color:#12180F;
+  font-family:var(--mono); font-size:10px; letter-spacing:.2em; padding:3px 10px}
+.pack h4{font-family:"Songti SC",serif; font-size:18px; letter-spacing:.06em; margin-bottom:8px}
+.pack p{font-size:13.5px; color:var(--cream-dim)}
+.pack p+p{margin-top:9px}
+.pack .num{font-family:var(--mono); color:var(--gold-hi)}
+
+/* ---------- 备选：两列小卡（原先是 6 列宽表，390px 下会横向溢出） ---------- */
+.altgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:6px}
+.alt{border:1px solid var(--line); background:linear-gradient(170deg,var(--jade2),var(--ink2));
+  padding:15px 16px 16px; min-width:0; display:flex; flex-direction:column}
+.alt .h{display:flex; align-items:baseline; gap:10px}
+.alt .n{font-family:var(--mono); font-size:11px; color:var(--gold-dim); flex:0 0 auto}
+.alt h5{font-family:"Songti SC","STSong",serif; font-size:16px; letter-spacing:.03em; font-weight:700; min-width:0}
+.alt .a{font-family:var(--mono); font-size:10.5px; color:var(--gold-dim); margin:3px 0 0 26px}
+/* 同 .wave：`height:46px` + `object-fit:fill` 会把 6:1 压成 10.28:1。
+   `height:auto` 让图片按自身 900×150 的固有比例走，零变形。 */
+.alt img{width:100%; height:auto; display:block; opacity:.7;
+  background:rgba(0,0,0,.30); border:1px solid rgba(198,162,88,.14); margin:10px 0 9px}
+.alt .meta{font-family:var(--mono); font-size:10.5px; color:var(--cream-dim);
+  display:flex; flex-wrap:wrap; gap:3px 14px; margin-bottom:9px}
+.alt .meta i{font-style:normal; color:var(--gold-dim)}
+.alt audio{width:100%; height:30px; margin-top:auto}
+
+footer{margin-top:70px; padding-top:26px; border-top:1px solid var(--line); font-size:12.5px; color:var(--gold-dim)}
+footer a{color:var(--gold); text-decoration:none; border-bottom:1px dotted var(--gold-dim)}
+footer .src{display:grid; gap:6px; margin-top:14px; font-family:var(--mono); font-size:11.5px; word-break:break-word}
+
+@media (max-width:820px){
+  .wrap{padding:0 16px}
+  .card{grid-template-columns:60px 1fr}
+  .rail{padding:20px 0}
+  .rail .rank{font-size:34px}
+  .body{padding:18px 16px 20px}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .notes > div,.notefoot > div{grid-template-columns:1fr; gap:2px}
+  .altgrid{grid-template-columns:1fr}
+  .pack{grid-template-columns:1fr}
+  h1{letter-spacing:.02em}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">game-5 · 第 43 轮 · BGM 候选</div>
+  <h1>麻将主题背景音乐 · <em>试听拍板板</em></h1>
+  <p class="lead">
+    按你的要求「去市面上找、跟打麻将有关、比较好听且符合场景」，
+    从两个可商用曲库里筛了 <b>13 条</b>，挑出 <b>3 条首推</b>（A / B / C，附全曲）
+    与 <b>10 条备选</b>（附 40 秒片段）。
+    <b>我没法替你判断"好听"——</b>无头环境里没有耳朵，我只能把时长、体积、亮度、低频厚度、
+    动态范围、节拍这些<b>客观量测</b>摆出来，配上游源自己的风格标签和波形图，
+    让第一印象来得快一点。最终请以你听完的感觉为准。
+  </p>
+  <div class="meta-row">
+    <span>视口 桌面/移动自适应</span><span>试听件 AAC/M4A</span>
+    <span>首推全曲 3 条 · 备选片段 10 条</span><span>共 13 条 · 全部可商用</span>
+  </div>
+  <div class="notice">
+    <b>如果播放器不出声</b>：本页的音频走相对路径。请用浏览器<strong>直接打开本文件</strong>——
+    <code>docs-verify/game-5/audio/bgm-candidates/bgm-试听拍板板.html</code>
+    （目录里同时躺着 <code>full/</code> 与 <code>excerpt/</code> 两个文件夹，里面的音频可直接双击播放。）
+  </div>
+</header>
+
+<section>
+  <div class="sec-head"><h2>三条首推</h2><span>FULL TRACKS</span></div>
+
+  <!-- ============ A ============ -->
+  <article class="card">
+    <div class="rail">
+      <div class="rank">A</div>
+      <div class="vsep"></div>
+      <div class="tick">首推</div>
+    </div>
+    <div class="body">
+      <div class="titlerow">
+        <h3>武俠 其二 · 古筝与琵琶</h3>
+        <span class="orig">Wuxia2 (Guzheng &amp; Pipa)</span>
+      </div>
+      <div class="byline">PeriTune · peritune.com · CC BY 4.0（署名可选）· 官方另附 loop 打包</div>
+
+      <div class="player">
+        <button class="pp" data-src="./full/pt-wuxia2-guzheng-pipa.m4a" aria-label="播放 / 暂停">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <div class="track">
+          <div class="wave"><img src="./pt-wuxia2-guzheng-pipa.png" alt="波形"><div class="played"></div><div class="scan"></div></div>
+          <div class="tline"><span class="tc">00:00</span><span class="note">全曲 4:16 · 配器就是古筝 + 琵琶</span><span>04:16</span></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="cell"><div class="k">时长</div><div class="v">4:16</div></div>
+        <div class="cell"><div class="k">交付体积 AAC</div><div class="v">4.00<small>MB</small></div></div>
+        <div class="cell"><div class="k">亮度（质心）</div><div class="v">1266<small>Hz</small></div><div class="bar"><i style="width:42%"></i></div></div>
+        <div class="cell"><div class="k">低频厚度 &lt;250Hz</div><div class="v">6.7<small>%</small></div><div class="bar"><i style="width:7%"></i></div></div>
+        <div class="cell"><div class="k">动态范围</div><div class="v">7.2<small>dB</small></div><div class="bar"><i style="width:32%"></i></div></div>
+        <div class="cell"><div class="k">节拍</div><div class="v">103<small>BPM</small></div></div>
+        <div class="cell"><div class="k">起音密度</div><div class="v">2.52<small>/s</small></div></div>
+        <div class="cell"><div class="k">首尾能量差</div><div class="v">+0.3<small>dB</small></div></div>
+      </div>
+
+      <div class="notes">
+        <div><div class="k">游源标签</div><div class="v">Asian · Happy · Chinese · World · Positive · <b>Upbeat</b></div></div>
+        <div><div class="k">为什么首推</div><div class="v">
+          13 条里<b>最"暖"也最"轻"的一条</b>：质心 1266 Hz 偏低、低频只占 6.7%、动态 7.2 dB，
+          读起来是「音量平稳、没有大鼓砸底、中频厚实」—— 这正好是<b>长时间挂着当循环 BGM</b>该有的样子，
+          不会把牌面落槽、吃碰念白的频段抢掉。
+          <b>另外它是唯一一条官方直接提供 loop 打包</b>的候选（<code>PerituneMaterial_Wuxia2_Guzheng_Pipa_loop.zip</code>），
+          后期做无缝循环不用自己找切点。
+        </div></div>
+        <div><div class="k">要留意的</div><div class="v">4:16 偏长；全曲 5.86 MB，直接进主包会顶穿 4 MB 红线（见下方「打包体积」）。</div></div>
+      </div>
+      <div class="tagrow">
+        <span class="tag ok">商用免费</span><span class="tag ok">署名可选</span>
+        <span class="tag">官方 loop 文件</span><span class="tag">古筝 + 琵琶</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- ============ B ============ -->
+  <article class="card">
+    <div class="rail">
+      <div class="rank">B</div>
+      <div class="vsep"></div>
+      <div class="tick">热闹</div>
+    </div>
+    <div class="body">
+      <div class="titlerow">
+        <h3>中式民乐</h3>
+        <span class="orig">Folk Chinese</span>
+      </div>
+      <div class="byline">PeriTune · peritune.com · CC BY 4.0（署名可选）</div>
+
+      <div class="player">
+        <button class="pp" data-src="./full/pt-folk-chinese.m4a" aria-label="播放 / 暂停">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <div class="track">
+          <div class="wave"><img src="./pt-folk-chinese.png" alt="波形"><div class="played"></div><div class="scan"></div></div>
+          <div class="tline"><span class="tc">00:00</span><span class="note">全曲 2:14 · 最"茶馆搓牌"的一条</span><span>02:14</span></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="cell"><div class="k">时长</div><div class="v">2:14</div></div>
+        <div class="cell"><div class="k">交付体积 AAC</div><div class="v">2.09<small>MB</small></div></div>
+        <div class="cell"><div class="k">亮度（质心）</div><div class="v">1887<small>Hz</small></div><div class="bar"><i style="width:63%"></i></div></div>
+        <div class="cell"><div class="k">低频厚度 &lt;250Hz</div><div class="v">9.8<small>%</small></div><div class="bar"><i style="width:10%"></i></div></div>
+        <div class="cell"><div class="k">动态范围</div><div class="v">5.7<small>dB</small></div><div class="bar"><i style="width:25%"></i></div></div>
+        <div class="cell"><div class="k">节拍</div><div class="v">78<small>BPM</small></div></div>
+        <div class="cell"><div class="k">起音密度</div><div class="v">2.09<small>/s</small></div></div>
+        <div class="cell"><div class="k">首尾能量差</div><div class="v">+0.2<small>dB</small></div></div>
+      </div>
+
+      <div class="notes">
+        <div><div class="k">游源标签</div><div class="v">Asian · Celebration · Children · New Year · Chinese · World · <b>Folk · Bright · Holiday</b></div></div>
+        <div><div class="k">为什么进首推</div><div class="v">
+          <b>13 条里动态范围最小（5.7 dB）</b>，波形也是全表最"平"的一条 ——
+          从第 1 秒热闹到最后一秒，没有前奏留白、没有淡入淡出。
+          对循环 BGM 来说这是稀缺品质：<b>随便切一刀都好接</b>。
+          首尾能量差 +0.2 dB（几乎相等），裁循环时不会一头响一头轻。
+          气质上是最接近「一屋子人围着桌子搓牌」的那条。
+        </div></div>
+        <div><div class="k">要留意的</div><div class="v">游源标了 <b>Children / New Year</b>，喜庆感偏"年味"，如果你想要更沉静的茶室感，它可能偏闹。</div></div>
+      </div>
+      <div class="tagrow">
+        <span class="tag ok">商用免费</span><span class="tag ok">署名可选</span>
+        <span class="tag">2 分 14 秒</span><span class="tag">动态最小</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- ============ C ============ -->
+  <article class="card">
+    <div class="rail">
+      <div class="rank">C</div>
+      <div class="vsep"></div>
+      <div class="tick">正牌</div>
+    </div>
+    <div class="body">
+      <div class="titlerow">
+        <h3>嶺上開花</h3>
+        <span class="orig">King’s Tile Draw</span>
+      </div>
+      <div class="byline">T-STATION（Tスタ）· tnosite.com · 站点自有条款：<b>免费商用 · 无需署名</b> · 附 intro / loop / outro 三件套</div>
+
+      <div class="player">
+        <button class="pp" data-src="./full/ts-kings-tile-draw.m4a" aria-label="播放 / 暂停">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <div class="track">
+          <div class="wave"><img src="./ts-kings-tile-draw.png" alt="波形"><div class="played"></div><div class="scan"></div></div>
+          <div class="tline"><span class="tc">00:00</span><span class="note">全曲 2:29 · 曲名就是麻将役种</span><span>02:29</span></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="cell"><div class="k">时长</div><div class="v">2:29</div></div>
+        <div class="cell"><div class="k">交付体积 AAC</div><div class="v">2.28<small>MB</small></div></div>
+        <div class="cell"><div class="k">亮度（质心）</div><div class="v">2493<small>Hz</small></div><div class="bar"><i style="width:83%"></i></div></div>
+        <div class="cell"><div class="k">低频厚度 &lt;250Hz</div><div class="v">19.5<small>%</small></div><div class="bar"><i style="width:20%"></i></div></div>
+        <div class="cell"><div class="k">动态范围</div><div class="v">13.9<small>dB</small></div><div class="bar"><i style="width:61%"></i></div></div>
+        <div class="cell"><div class="k">节拍</div><div class="v">68<small>BPM</small></div></div>
+        <div class="cell"><div class="k">起音密度</div><div class="v">2.69<small>/s</small></div></div>
+        <div class="cell"><div class="k">首尾能量差</div><div class="v">−0.3<small>dB</small></div></div>
+      </div>
+
+      <div class="notes">
+        <div><div class="k">游源标签</div><div class="v">Casino / Gambling / <b>Mahjong</b> 分类 · 曲名 = 麻将役种「嶺上開花」</div></div>
+        <div><div class="k">为什么进首推</div><div class="v">
+          <b>麻将语义最正的一条</b>：它不是"中国风"，它是"麻将"——
+          曲名直接取自役种，游源也把它归在 Mahjong 分类里。
+          质心 2493 Hz + 低频 19.5% 说明<b>中高频和低频都抢戏</b>（锣钹类打击 + 低音鼓），
+          动态 13.9 dB 起伏明显 —— 读起来是「有戏、有推进感」的一条，
+          和 A / B 那种"铺底不出头"的路子正好相反，<b>放进首推就是为了让你有得选</b>。
+          另外它的授权最省事：<b>无需署名</b>，且官方提供 intro / loop / outro 三段拆分。
+        </div></div>
+        <div><div class="k">要留意的</div><div class="v">
+          曲风应是"日式雀荘 / 现代编曲"，不是中式民乐 —— 与游戏里那套玉牌 + 织锦的调子
+          <b>是不是一路，只能靠你耳朵拍板</b>。另外波形前 10 秒是弱起，本身不适合直接循环（用它的 loop 段即可）。
+        </div></div>
+      </div>
+      <div class="tagrow">
+        <span class="tag ok">商用免费</span><span class="tag ok">无需署名</span>
+        <span class="tag">麻将役种命名</span><span class="tag">intro/loop/outro</span>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section>
+  <div class="sec-head"><h2>打包体积：这条得一起拍</h2><span>PACKAGING</span></div>
+  <p class="lead" style="margin-bottom:22px">
+    一首完整 BGM 是 <b>2~4 MB</b>，而主玩页所在的主包现在<b>已经 2.99 MB / 4 MB 红线</b>。
+    所以"选哪首"之外，还得选"怎么装"。三条路各有代价，我列出来等你一起拍：
+  </p>
+  <div class="pack">
+    <article class="rec">
+      <h4>① 裁成 30~45 秒无缝循环</h4>
+      <p>把选中的曲子做成一个可循环的短句，压到 96 kbps 单声道。</p>
+      <p>体积 <span class="num">≈ 400~550 KB</span>，可以直接放进 <span class="num">game</span> 分包。</p>
+      <p>代价：听久了会察觉重复（但休闲消除类游戏这是行业常规做法）。</p>
+    </article>
+    <article>
+      <h4>② 整曲放进 game 分包</h4>
+      <p>分包不占主包那 4 MB 红线，首屏不受影响。</p>
+      <p>代价：玩家<b>第一次进主玩页</b>才把这 2~4 MB 下下来，进关前会多等一下。</p>
+    </article>
+    <article>
+      <h4>③ 整曲放远程 CDN</h4>
+      <p>包体零负担，随时可换曲、可加第二首。</p>
+      <p>代价：要额外搭一处静态托管，且首局要等网络；离线场景需自己做缓存兜底。</p>
+    </article>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>其余 10 条备选</h2><span>SHORTLIST · 40s 片段</span></div>
+  <p class="lead" style="margin-bottom:20px">
+    下面是同一批筛选里<b>没进首推但值得一听</b>的 10 条。为了不把交付目录撑爆，
+    每条只截了<b>中段 40 秒</b>并压到 56 kbps，用来听气质足够，别拿它当成品。
+    若你听完想换成其中某条，我再去取全曲、重新出板。
+  </p>
+  <div class="altgrid">
+
+    <div class="alt"><div class="h"><span class="n">01</span><h5>国士無双</h5></div>
+      <div class="a">Kokushi Musou · T-STATION · 免署名</div>
+      <img src="./ts-kokushi-musou.png" alt="波形">
+      <div class="meta"><span><i>质心</i> 2509Hz</span><span><i>低频</i> 20.4%</span><span><i>动态</i> 13.6dB</span><span><i>时长</i> 2:30</span></div>
+      <audio controls preload="none" src="./excerpt/ts-kokushi-musou.m4a"></audio></div>
+
+    <div class="alt"><div class="h"><span class="n">02</span><h5>Shenyang</h5></div>
+      <div class="a">Kevin MacLeod · CC BY（须署名）</div>
+      <img src="./km-shenyang.png" alt="波形">
+      <div class="meta"><span><i>质心</i> 1466Hz</span><span><i>低频</i> 12.7%</span><span><i>动态</i> 9.3dB</span><span><i>时长</i> 2:31</span></div>
+      <audio controls preload="none" src="./excerpt/km-shenyang.m4a"></audio></div>
+
+    <div class="alt"><div class="h"><span class="n">03</span><h5>武俠 其二 · 管弦</h5></div>
+      <div class="a">Wuxia2 (Orchestra) · PeriTune · 署名可选</div>
+      <img src="./pt-wuxia2.png" alt="波形">
+      <div class="meta"><span><i>质心</i> 2002Hz</span><span><i>低频</i> 12.6%</span><span><i>动态</i> 4.9dB</span><span><i>时长</i> 3:44</span></div>
+      <audio controls preload="none" src="./excerpt/pt-wuxia2.m4a"></audio></div>
+
+    <div class="alt"><div class="h"><span class="n">04</span><h5>雀鬼の巣窟</h5></div>
+      <div class="a">Janki’s Lair · T-STATION · 免署名</div>
+      <img src="./ts-jankis-lair.png" alt="波形">
+      <div class="meta"><span><i>质心</i> 822Hz</span><span><i>低频</i> 37.8%</span><span><i>动态</i> 16.6dB</span><span><i>时长</i> 3:30</span></div>
+      <audio controls preload="none" src="./excerpt/ts-jankis-lair.m4a"></audio></div>
+
+    <div class="alt"><div class="h"><span class="n">05</span><h5>Fall Boogie Street</h5></div>
+      <div class="a">T-STATION · 免署名</div>
+      <img src="./ts-fall-boogie.png" alt="波形">
+      <div class="meta"><span><i>质心</i> 1181Hz</span><span><i>低频</i> 32.1%</span><span><i>动态</i> 13.6dB</span><span><i>时长</i> 1:54</span></div>
+      <audio controls preload="none" src="./excerpt/ts-fall-boogie.m4a"></audio></div>
+
+    <div class="alt"><div class="h"><span class="n">06</span><h5>Hypnotic Poison</h5></div>
+      <div class="a">T-STATION · 免署名</div>
+      <img src="./ts-hypnotic-poison.png" alt="波形">
+      <div class="meta"><span><i>质心</i> 1420Hz</span><span><i>低频</i> 36.7%</span><span><i>动态</i> 13.2dB</span><span><i>时长</i> 3:02</span></div>
+      <audio controls preload="none" src="./excerpt/ts-hypnotic-poison.m4a"></audio></div>
+
+    <div class="alt"><div class="h"><span class="n">07</span><h5>Second Dealing</h5></div>
+      <div class="a">T-STATION · 免署名</div>
+      <img src="./ts-second-dealing.png" alt="波形">
+      <div class="meta"><span><i>质心</i> 1638Hz</span><span><i>低频</i> 31.2%</span><span><i>动态</i> 22.8dB</span><span><i>时长</i> 2:38</span></div>
+      <audio controls preload="none" src="./excerpt/ts-second-dealing.m4a"></audio></div>
+
+    <div class="alt"><div class="h"><span class="n">08</span><h5>Trust Me</h5></div>
+      <div class="a">T-STATION · 免署名</div>
+      <img src="./ts-trust-me.png" alt="波形">
+      <div class="meta"><span><i>质心</i> 2377Hz</span><span><i>低频</i> 19.1%</span><span><i>动态</i> 22.5dB</span><span><i>时长</i> 5:04</span></div>
+      <audio controls preload="none" src="./excerpt/ts-trust-me.m4a"></audio></div>
+
+    <div class="alt"><div class="h"><span class="n">09</span><h5>racks highway</h5></div>
+      <div class="a">T-STATION · 免署名</div>
+      <img src="./ts-racks-highway.png" alt="波形">
+      <div class="meta"><span><i>质心</i> 2330Hz</span><span><i>低频</i> 19.2%</span><span><i>动态</i> 14.8dB</span><span><i>时长</i> 2:48</span></div>
+      <audio controls preload="none" src="./excerpt/ts-racks-highway.m4a"></audio></div>
+
+    <div class="alt"><div class="h"><span class="n">10</span><h5>All-in or Fold</h5></div>
+      <div class="a">T-STATION · 免署名</div>
+      <img src="./ts-all-in-or-fold.png" alt="波形">
+      <div class="meta"><span><i>质心</i> 2457Hz</span><span><i>低频</i> 22.6%</span><span><i>动态</i> 8.5dB</span><span><i>时长</i> 2:43</span></div>
+      <audio controls preload="none" src="./excerpt/ts-all-in-or-fold.m4a"></audio></div>
+
+  </div>
+</section>
+
+<footer>
+  <div><b>怎么拍板：</b>回一句「BGM 选 A（或 B / C / 备选第 N 条）」+「打包走①/②/③」就行。没选中之前我不会动工程里的任何音频接线。</div>
+  <div class="src">
+    <div>波形与量测：<b>tools/r43-bgm-analyze.py</b>（afconvert 解码 → numpy 帧分析；质心 = 频谱质心中位数，低频/中频/高频 = 三频段能量占比，动态 = 帧 RMS 的 P95−P10，BPM = 起音包络自相关，首尾能量差 = 首 0.25 s 与末 0.25 s 的 RMS 比）</div>
+    <div>试听件：<b>tools/r43-bgm-slice.py</b>（首推全曲转 AAC 128 kbps；备选截中段 40 s 转 AAC 56 kbps 单声道）</div>
+    <div>曲库来源：<a href="https://tnosite.com/en/casino-music-5">tnosite.com/en/casino-music-5</a> ｜ <a href="https://peritune.com/">peritune.com</a> ｜ <a href="https://incompetech.com/">incompetech.com</a></div>
+    <div>授权口径：T-STATION 站点条款「免费商用、无需署名、禁止二次分发音乐本体、禁止登记 Content ID」；PeriTune 2026-02 前旧曲为 CC BY 4.0 且站方额外允许署名可选；Kevin MacLeod 为 CC BY 4.0，<b>必须署名</b>。</div>
+  </div>
+</footer>
+
+</div>
+
+<script>
+/* 自定义 transport：按钮 ↔ 波形扫描线 ↔ 计时。
+   同一时间只允许一条在播（否则试听会叠在一起）。 */
+(function () {
+  var all = [];
+  document.querySelectorAll('.pp').forEach(function (btn) {
+    var holder = btn.closest('.player');
+    var wave   = holder.querySelector('.wave');
+    var img    = holder.querySelector('.wave img');
+    var scan   = holder.querySelector('.scan');
+    var played = holder.querySelector('.played');
+    var cur    = holder.querySelector('.tc');
+    var a = new Audio(btn.dataset.src);
+    a.preload = 'none';
+
+    var ICON_PLAY  = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    var ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
+
+    function fmt(t) {
+      if (!isFinite(t)) t = 0;
+      var m = Math.floor(t / 60), s = Math.floor(t % 60);
+      return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+    // 扫描线按**像素**换算（CSS 变量 --p 单位是 px），这样波形被拉伸也不会错位
+    function draw() {
+      var w = wave.clientWidth || 1;
+      var p = a.duration ? (a.currentTime / a.duration) : 0;
+      scan.style.setProperty('--p', (p * w).toFixed(1));
+      played.style.width = (p * 100).toFixed(2) + '%';
+      cur.textContent = fmt(a.currentTime);
+    }
+    function seek(e) {
+      if (!a.duration) return;
+      var r = wave.getBoundingClientRect();
+      a.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * a.duration;
+      draw();
+    }
+
+    btn.addEventListener('click', function () {
+      if (a.paused) { all.forEach(function (o) { if (o !== api) o.stop(); }); a.play(); }
+      else a.pause();
+    });
+    wave.addEventListener('click', seek);
+    a.addEventListener('play',  function () { btn.classList.add('playing');  btn.innerHTML = ICON_PAUSE; api.playing = true; });
+    a.addEventListener('pause', function () { btn.classList.remove('playing'); btn.innerHTML = ICON_PLAY; });
+    a.addEventListener('ended', function () { btn.classList.remove('playing'); btn.innerHTML = ICON_PLAY; draw(); });
+    a.addEventListener('timeupdate', draw);
+    a.addEventListener('loadedmetadata', draw);
+    window.addEventListener('resize', draw);
+
+    var api = {
+      playing: false,
+      el: a,
+      stop: function () { a.pause(); a.currentTime = 0; draw(); },
+      _draw: draw,
+      _img: img,
+    };
+    all.push(api);
+    // 供无头验收脚本读：本页把每个播放器登记在 window.__bgm
+    (window.__bgm = window.__bgm || []).push(api);
+  });
+
+  // 交错入场
+  document.querySelectorAll('section, .card, .altgrid').forEach(function (el, i) {
+    el.style.opacity = 0; el.style.transform = 'translateY(14px)';
+    el.style.transition = 'opacity .5s ease ' + (i * 0.07) + 's, transform .5s ease ' + (i * 0.07) + 's';
+    requestAnimationFrame(function () { el.style.opacity = 1; el.style.transform = 'none'; });
+  });
+})();
+</script>
+</body>
+</html>

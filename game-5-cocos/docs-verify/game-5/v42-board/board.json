@@ -1,0 +1,98 @@
+{
+  "impl": {
+    "topband": 29.97,
+    "botband": 14.96,
+    "screen": 44.31,
+    "dead_black": 1.72
+  },
+  "target": {
+    "topband": 30.23,
+    "botband": 9.49,
+    "screen": 22.73,
+    "dead_black": 0.05
+  },
+  "sim": {
+    "topband": 29.71,
+    "botband": 14.82,
+    "screen": 23.77,
+    "dead_black": 0.0
+  },
+  "period_impl": [
+    [
+      16,
+      0.95
+    ],
+    [
+      32,
+      0.92
+    ],
+    [
+      48,
+      0.89
+    ],
+    [
+      64,
+      0.85
+    ],
+    [
+      80,
+      0.81
+    ]
+  ],
+  "period_target": [
+    [
+      9,
+      0.89
+    ],
+    [
+      19,
+      0.9
+    ],
+    [
+      28,
+      0.85
+    ],
+    [
+      38,
+      0.86
+    ],
+    [
+      47,
+      0.82
+    ]
+  ],
+  "period_sim": [
+    [
+      9,
+      0.94
+    ],
+    [
+      19,
+      0.96
+    ],
+    [
+      28,
+      0.91
+    ],
+    [
+      38,
+      0.93
+    ],
+    [
+      47,
+      0.89
+    ]
+  ],
+  "seam_impl": {
+    "base": 1.553,
+    "x431_432": 1.27,
+    "x862_863": 1.01
+  },
+  "expect_period_px": 15.97,
+  "expect_period_design": 9.4815,
+  "files": {
+    "impl": "/tmp/g5-r42-shot/game-3x.png",
+    "target": "/tmp/g5-r42-bg/target-page.png",
+    "sim": "/tmp/g5-r42-bg/sim-page.png"
+  }
+}

@@ -39,6 +39,13 @@ const W = Number(argOf('--w', 421));
 const H = Number(argOf('--h', 927));
 const OUT = resolve(argOf('--out', '/tmp/g5-audit'));
 const PAGE = argOf('--page', 'home');          // splash | home | gameStart | game
+/**
+ * dump 深度。
+ * ⚠️ 默认 3 是给"页面 → 带 → 控件"三层用的；但**挂在桌面/卡片这类容器下的元素
+ *   在第 4 层**（例如开局页的骰盘 TrayHalo / 骰子 DieA 挂在 TableWrap 里），
+ *   用默认深度会**看不见它们**，很容易误判成"节点没建出来"。要查这类元素传 `--depth 5`。
+ */
+const DEPTH = Number(argOf('--depth', 3));
 const LEVEL = Number(argOf('--level', 1));
 const DIST = resolve(import.meta.dirname, '..', 'build', 'web-desktop');
 const SAVE_KEY = 'game5.save.v1';
@@ -105,16 +112,23 @@ try {
         await waitLog('[PageManager] → home', 15000);
         await sleep(1600);
         await shot('home');
-        if (PAGE === 'gameStart' || PAGE === 'game') {
+        if (PAGE === 'gameStart' || PAGE === 'game' || PAGE === 'result') {
             await tap('BtnStart');
             await waitLog('[PageManager] → gameStart', 10000);
             await sleep(4600);
             await shot('game-start');
-            if (PAGE === 'game') {
+            if (PAGE === 'game' || PAGE === 'result') {
                 await tap('BtnGo');
                 await waitLog('[PageManager] → game', 12000);
                 await sleep(2500);
                 await shot('game');
+                if (PAGE === 'result') {
+                    // 结算弹层只在胜负那一刻存在 → 走调试口把它"摆"出来，量版式用
+                    const ok = await cdp.ev('!!(window.__game5 && window.__game5.demoResult(true))');
+                    if (!ok) throw new Error('结算弹层调试口不可用（__game5.demoResult）');
+                    await sleep(1400);
+                    await shot('result');
+                }
             }
         }
     }
@@ -128,7 +142,7 @@ try {
         const scene = cc.director.getScene();
         const out = [];
         (function walk(n, depth, pageRoot) {
-            if (depth > 3) return;
+            if (depth > ${DEPTH}) return;
             const isPage = n.name.indexOf('Page_') === 0;
             const root = isPage ? n.name : pageRoot;
             if (!root) { n.children.forEach(c => walk(c, depth, null)); return; }

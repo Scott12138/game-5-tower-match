@@ -1,0 +1,146 @@
+{
+  "candidate": {
+    "topband": 25.2,
+    "botband": 7.9,
+    "screen": 18.94,
+    "dead_black": 0.04,
+    "amp_p99p1": 22.0,
+    "amp_std": 5.01
+  },
+  "target": {
+    "topband": 30.24,
+    "botband": 9.48,
+    "screen": 22.73,
+    "dead_black": 0.04,
+    "amp_p99p1": 26.0,
+    "amp_std": 6.01
+  },
+  "sim": {
+    "topband": 29.71,
+    "botband": 14.82,
+    "screen": 23.77,
+    "dead_black": 0.0,
+    "amp_p99p1": 27.3,
+    "amp_std": 6.46
+  },
+  "impl": {
+    "topband": 29.97,
+    "botband": 14.96,
+    "screen": 44.31,
+    "dead_black": 1.72,
+    "amp_p99p1": 24.3,
+    "amp_std": 5.72
+  },
+  "period_candidate": [
+    [
+      16,
+      0.87
+    ],
+    [
+      32,
+      0.84
+    ],
+    [
+      48,
+      0.8
+    ],
+    [
+      64,
+      0.75
+    ],
+    [
+      80,
+      0.71
+    ]
+  ],
+  "period_target": [
+    [
+      16,
+      0.87
+    ],
+    [
+      32,
+      0.84
+    ],
+    [
+      48,
+      0.8
+    ],
+    [
+      64,
+      0.75
+    ],
+    [
+      80,
+      0.7
+    ]
+  ],
+  "period_sim": [
+    [
+      16,
+      0.96
+    ],
+    [
+      32,
+      0.92
+    ],
+    [
+      48,
+      0.89
+    ],
+    [
+      64,
+      0.84
+    ],
+    [
+      80,
+      0.8
+    ]
+  ],
+  "period_impl": [
+    [
+      16,
+      0.95
+    ],
+    [
+      32,
+      0.92
+    ],
+    [
+      48,
+      0.89
+    ],
+    [
+      64,
+      0.85
+    ],
+    [
+      80,
+      0.81
+    ]
+  ],
+  "seam_impl": {
+    "base": 1.553,
+    "x431_432": 1.27,
+    "x862_863": 1.01
+  },
+  "expect_period_px": 15.97,
+  "expect_period_design": 9.4815,
+  "files": {
+    "candidate": "/tmp/g5-r42-bg2/candidate-B-page.png",
+    "impl": "/tmp/g5-r42-shot/game-3x.png",
+    "target": "/tmp/g5-r42-bg2/target-page.png",
+    "sim": "/tmp/g5-r42-bg2/sim-page.png"
+  },
+  "period_consistency": {
+    "first_peak": {
+      "candidate": 16,
+      "target": 16,
+      "sim": 16,
+      "impl": 16
+    },
+    "all_equal": true,
+    "expect": 15.97
+  },
+  "zoom_quad": "zoom-quad.png"
+}

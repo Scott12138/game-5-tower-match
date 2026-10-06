@@ -17,7 +17,7 @@
 
 import { Graphics, Node, UIOpacity, UITransform, _decorator, tween, v3 } from 'cc';
 
-import { ASSET, COLOR, DEVICE, FIT, HOME_FN, PAGE } from '../CFG';
+import { ASSET, BTN_PRIMARY, COLOR, DEVICE, FIT, GAME, HOME_FN, PAGE } from '../CFG';
 import { PageBase } from './PageBase';
 import { MotionFx } from './MotionFx';
 import { AudioService } from './AudioService';
@@ -54,6 +54,20 @@ const TITLE_AR = 840 / 237;
 /** 标题显示高（由宽度 + 源图比例推出）≈ 141.1 */
 const TITLE_H = TITLE_W / TITLE_AR;
 
+// ------------------------------------------------------------
+//  左右功能列尺寸（第 37 轮：用户反馈"功能键太小"）
+// ------------------------------------------------------------
+//  旧值 96（= 定稿稿值）。放大到 **120（+25%）** —— 上限是被「撞不撞吉祥物」卡出来的，
+//  不是手感：详见 `buildFunctionColumn()` 上方的推导（最小间隙 41.6 设计 px）。
+/** 功能键图标显示宽（正方形素材，aspectW） */
+const FN_ICON = 120;
+/** 图标与文案之间的竖向留白 */
+const FN_GAP = 12;
+/** 功能键文案字号（22 → 26；"七日签到" 4 字 = 104 宽 ≤ 标签框 120） */
+const FN_FS = 26;
+/** 功能键节点总高 = 图标 + 留白 + 文案 */
+const FN_ITEM_H = FN_ICON + FN_GAP + FN_FS;
+
 /** 设计稿 (left, top) → 引擎坐标（中心锚点） */
 function ex(left: number, w: number): number { return left - DW / 2 + w / 2; }
 /**
@@ -64,6 +78,92 @@ function ex(left: number, w: number): number { return left - DW / 2 + w / 2; }
  *   `fitY()` 把内容区间 [110, 1199] 摊到「胶囊下沿 … Home Indicator 上方」之间。
  */
 function ey(top: number, h: number): number { return fitY(top + YSHIFT + h / 2, FIT.HOME); }
+
+// ------------------------------------------------------------
+//  设置抽屉栅格（第 37 轮整页重排）
+// ------------------------------------------------------------
+//  ★★ 原版的四个硬伤（用户圈出红圈的那一处是 ①）：
+//   ① **第二条分隔线穿在「背景音乐」行内部** —— `rule(352)`，而该行占据 284~388。
+//      视觉上像"背景音乐的下划线"，这是最刺眼的一条。
+//   ② **两组左边缘三档不齐**：开关组图标左缘 46 / 开关组文字左缘 110 /
+//      链接组文字左缘 46 —— 谁也没对齐谁。
+//   ③ **关闭按钮与标题不同心**（中线 70 vs 88，差 18）。
+//   ④ **版本号与「关于本作」行重叠 16px**（行 518~616、版本 600~626），
+//      且抽屉底部空 74 而顶部只空 4 —— 版心整体偏上。
+//
+//  ★ 重排后：**全部落在 24 的竖向节奏上**、横向统一「内容边距 48」、四行同一个骨架。
+//
+//       4    抓手（8 高）
+//      36    标题带（88 高；标题与关闭按钮**共用中线 80**）
+//     148    分隔线①（距标题带底 24）
+//     174    行1 音效        ┐
+//     270    行2 背景音乐    ┘ 开关组（行高统一 96）
+//     390    分隔线②（距行2底 24）
+//     416    行3 重置进度    ┐
+//     512    行4 关于本作    ┘ 链接组
+//     648    版本号（26 高；距行4底 **40**）
+//     700    抽屉底（留白 26，与顶部 24 呼应）
+//
+//  ★ 版本号为什么要留 **40** 而不是 24：行高 96 意味着"相邻两行的文字中心距 = 96"。
+//    若版本号也按 24 排，它的中心距行4 只有 ~89 —— **比行间距还小**，
+//    于是它会被读成"第五行 / 关于本作的注脚"而不是页脚（第一版就是这么翻的，
+//    截图上一眼就能看出来）。拉到 40 之后中心距 **101 > 96**，视觉上才"游离"出来。
+//    这里**故意破一次 24 节奏**：分组边界上的留白本来就该与组内节奏不同。
+
+/** 抽屉高度（**外框尺寸不变**，只重排内部 —— 改动面最小、最好回退） */
+const SHEET_H = 700;
+/** 内容左右边距 → 行宽 = DW − 2×PAD = 654；四行共用同一个左缘与右缘 */
+const SHEET_PAD = 48;
+const SHEET_ROW_W = DW - SHEET_PAD * 2;
+/** 行高（四行统一；原版是 104 / 104 / 98 / 98，两档不齐） */
+const SHEET_ROW_H = 96;
+/** 行首图标**显示高** —— 定高不定宽：素材宽高比 1.10 / 0.835 不同，定宽会让图标一高一矮 */
+const SHEET_ICON_H = 40;
+/** 图标列宽（图标在此列内左对齐） */
+const SHEET_ICON_W = 44;
+/** 图标列右缘 → 文字左缘 的间隙 */
+const SHEET_ICON_GAP = 22;
+/** 行首文字左缘（行内坐标，锚点 0 = 行左缘） */
+const SHEET_TEXT_X = -SHEET_ROW_W / 2 + SHEET_ICON_W + SHEET_ICON_GAP;
+/** 竖向栅格（距抽屉顶边，单位设计 px） */
+const SHEET_T = {
+    grip: 4,
+    header: 36,
+    headerH: 88,
+    rule1: 148,
+    row1: 174,
+    row2: 270,
+    rule2: 390,
+    row3: 416,
+    row4: 512,
+    ver: 648,
+    verH: 26,
+} as const;
+
+/**
+ * 抽屉内坐标换算：设计 `top`（**距抽屉顶边**）→ 抽屉内 y。
+ *
+ * ⚠️ 抽屉节点的锚点是 **(0.5, 0) = 底边中点**，所以子元素的 y 都是
+ *    "**从抽屉底边往上量**"。方向反了会把内容画到屏幕外 —— 而屏幕外的东西
+ *    **不报错、也不被裁掉**，只是看不见（最难排查的一类）。统一走这里，别手写 y。
+ */
+function sy(top: number, h: number): number { return SHEET_H - top - h / 2; }
+
+/**
+ * 用折线逼近圆弧（`seg` 段）。
+ *
+ * ★ 为什么不用 `Graphics.arc()`：它的 `counterclockwise` 参数在引擎坐标
+ *   （y 轴向上）下的方向很容易搞反，画出来是"缺口在反方向的圆"——
+ *   这种错在小图标上**很难一眼看出来**，所以就别用它。逐点连线完全可控。
+ */
+function polyArc(g: Graphics, cx: number, cy: number, r: number,
+                 a0: number, a1: number, seg = 56): void {
+    for (let i = 0; i <= seg; i++) {
+        const a = a0 + (a1 - a0) * (i / seg);
+        const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
+        if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+    }
+}
 
 @ccclass('HomePage')
 export class HomePage extends PageBase {
@@ -280,23 +380,53 @@ export class HomePage extends PageBase {
         this.settleIn(wrap, 0.34);
     }
 
-    // ---- 主按钮（九宫格）----
+    // ---- 主按钮（九宫格 · 方案 B）----
+    //
+    //  ★★ 第 37 轮：用户拍板「主按钮采用方案 B」，并圈出了旧实现的"中间发亮 + 四周违和"。
+    //
+    //  【真因不在素材，在拼法】
+    //    旧代码 `createSprite(btn,'Mid',{path: HOME_BTN_MID, w: W, h: H})` 把中段源图
+    //    **228×280 强制拉成 320×140** ⇒ 横向 ×1.403 / 纵向 ×0.500，**各向异性 2.81×**，
+    //    玉纹被压成横向拉丝（"中间发亮"的观感来源之一）；而两端 78/75 宽的帽是
+    //    **盖在中段之上**的（`CapL/CapR` 与铺满全宽的 `Mid` 大面积重叠），帽的圆弧金框
+    //    与中段的直线金线落不到一起 ⇒ "四周违和"。
+    //    设计稿 v2 原文写的却是「两端圆角固定、中段水平拉伸」—— 本次就是把它做对。
+    //
+    //  【另一条"中间发亮"的直因】旧代码在按钮上又叠了一层 `Shade`：
+    //      两侧各 80 宽的 `rgba(2,24,13,0.34)` 压暗带  ← 用来盖接缝（掩盖症状）
+    //      中央 `rgba(255,255,255,0.10)` 竖向渐变     ← 就是那个"亮"
+    //      底部 `rgba(0,20,10,0.16)` 压暗
+    //    现在素材自带完整玉纹与端部圆角，**整层删除**（见下方 ③）。
+    //
+    //  【正确拼法】三段各占其位、**互不重叠**：
+    //    ① 中段宽度 = `W − CAP_L − CAP_R`（两帽之间的**净空**），高 `H`
+    //       ⇒ 纵向严格 1:1、横向 1.345×；
+    //    ② 两帽 `aspectH: H` 定高等比 ⇒ 纵向与中段同比、横向不变形。
+    //    ⇒ 全按钮再无任何方向的各向异性缩放（旧值是 2.81×）。
+    //
+    //  【常量来源 / 切点为什么是 190 与 706】见 `CFG.BTN_PRIMARY` 与
+    //    `docs-verify/game-5/home/make_btn_primary_assets.py` 的头注释。
     private buildMainButton(): void {
-        const W = 320, H = 140;
+        const { W, H, CAP_L, CAP_R } = BTN_PRIMARY;
+        /** 两帽之间的净空 —— 中段的宽度 */
+        const MID_W = W - CAP_L - CAP_R;
         const btn = createNode('BtnStart', this.body, { w: W, h: H, x: ex(215, W), y: ey(845, H) });
         btn.addComponent(UIOpacity);
 
-        // 中间那块先铺满（两端帽随后盖上去）
-        createSprite(btn, 'Mid', { path: ASSET.HOME_BTN_MID, w: W, h: H });
-        createSprite(btn, 'CapL', { path: ASSET.HOME_BTN_LEFT, aspectH: H, anchor: [0, 0.5], x: -W / 2 });
-        createSprite(btn, 'CapR', { path: ASSET.HOME_BTN_RIGHT, aspectH: H, anchor: [1, 0.5], x: W / 2 });
+        // ① 中段：只做水平拉伸，纵向严格 1:1；摆在两帽之间，**不与帽重叠**。
+        //    （左右帽宽度不等 ⇒ 中段中心相对按钮中心偏 0.86 设计 px，这是对的：
+        //      真正的约束是"两端贴死"，不是"中段居中"。）
+        createSprite(btn, 'Mid', {
+            path: ASSET.HOME_BTN_M, w: MID_W, h: H,
+            x: -W / 2 + CAP_L + MID_W / 2,
+        });
+        // ② 两帽：定高等比，贴住左右边缘
+        createSprite(btn, 'CapL', { path: ASSET.HOME_BTN_L, aspectH: H, anchor: [0, 0.5], x: -W / 2 });
+        createSprite(btn, 'CapR', { path: ASSET.HOME_BTN_R, aspectH: H, anchor: [1, 0.5], x: W / 2 });
 
-        // 阴影 / 高光（照抄 .shade 的两条渐变：两侧压暗 + 顶部白 10% → 底部压暗 16%）
-        const { g } = createGraphicsNode('Shade', btn, { w: W, h: H });
-        fillRoundRect(g, -W / 2 + 40, 0, 80, H, 0, 'rgba(2,24,13,0.34)', 255);
-        fillRoundRect(g, W / 2 - 40, 0, 80, H, 0, 'rgba(2,24,13,0.34)', 255);
-        fillVGradient(g, 0, H * 0.5 - 20, W, H * 0.2, 0, 'rgba(255,255,255,0.10)', 'rgba(255,255,255,0)', 8);
-        fillVGradient(g, 0, -H * 0.22, W, H * 0.44, 0, 'rgba(0,20,10,0)', 'rgba(0,20,10,0.16)', 8);
+        // ③ 【已删除】旧的 `Shade` 层（两侧压暗带 + 中央白 10% 渐变 + 底部压暗）。
+        //    它是"中间发亮"的直因，也是"四周违和"的帮凶（用压暗带盖接缝）。
+        //    新拼法没有接缝可盖、素材自带明暗，整层去掉 —— 这是本次三项修改之一。
 
         // 文案
         const lv = SaveService.instance.level;
@@ -324,22 +454,39 @@ export class HomePage extends PageBase {
     }
 
     // ---- 左右功能列 ----
+    //
+    //  ★ 第 37 轮：用户反馈"两边的功能键太小"，图标 96 → **120（+25%）**、文案 22 → 26。
+    //
+    //  【放大到多少是被"撞不撞吉祥物"卡出来的，不是手感】
+    //    · 吉祥物美术字显示 410 宽、素材不透明区占宽 99.7% ⇒ x 占 **170.6 ~ 579.4**；
+    //    · 但它的**最宽点在手臂**（占素材高 57%），而功能键所在的 y 区间（830.6~946.6）
+    //      吉祥物实际只有 **346.7** 宽（201.6 ~ 548.4）—— 比整体最宽窄 62px；
+    //    · 左列右缘 = 40 + 120 = 160、右列左缘 = 710 − 120 = 590
+    //      ⇒ 与吉祥物最小间隙 **41.6 设计 px**（按最坏情况 408.7 算也有 10.6，仍是正的）。
+    //    · 文案 26 号："七日签到" 4 字 = 104 宽 ≤ 标签框 120，不溢出。
+    //
+    //  【为什么列位与节距一个没动】（top 仍 563 / 741）
+    //    项高 130 → 158 后，两项之间留白 20 设计 px = 图标的 17%，属正常网格节奏；
+    //    不动列位 = **改动面最小、最好回退**，也不会牵连主按钮 / 进度条的纵向口径。
     private buildFunctionColumn(): void {
-        // 设计稿 f1(40,563) f2(40,741) f3(614,563) f4(614,741)
+        // 左列贴左边距，右列贴右边距（镜像）—— 改图标宽度时两侧同时生效、始终对称。
+        const L = 40;
+        const R = DW - 40 - FN_ICON;
         const pos = [
-            { left: 40, top: 563 },
-            { left: 40, top: 741 },
-            { left: 614, top: 563 },
-            { left: 614, top: 741 },
+            { left: L, top: 563 },
+            { left: L, top: 741 },
+            { left: R, top: 563 },
+            { left: R, top: 741 },
         ];
         HOME_FN.forEach((fn, i) => {
             const p = pos[i];
             const item = createNode(`Fn_${fn.id}`, this.body, {
-                w: 96, h: 96 + 12 + 22, x: ex(p.left, 96), y: ey(p.top, 96 + 34),
+                w: FN_ICON, h: FN_ITEM_H, x: ex(p.left, FN_ICON), y: ey(p.top, FN_ICON),
             });
-            createSprite(item, 'Icon', { path: fn.icon, aspectW: 96 });
+            createSprite(item, 'Icon', { path: fn.icon, aspectW: FN_ICON });
             createLabel(item, fn.label, {
-                fontSize: 22, color: COLOR.CREAM, w: 120, h: 22, y: -(96 / 2) - 12 - 11,
+                fontSize: FN_FS, color: COLOR.CREAM, w: 120, h: FN_FS,
+                y: -(FN_ICON / 2) - FN_GAP - FN_FS / 2,
             });
             this.tapable(item, () => {
                 Haptics.light();
@@ -376,106 +523,125 @@ export class HomePage extends PageBase {
     //  设置面板（底部抽屉）
     // ========================================================
     /**
-     * 设置抽屉。
+     * 设置抽屉（**第 37 轮整页重排** —— 用户："提升整体排版的美观度与规整性，
+     * 使布局层次清晰、间距合理、视觉协调"）。
      *
-     * ⚠️ 抽屉节点的锚点是 **(0.5, 0) = 底边中点**，所以所有子元素的 y
-     * 都是"**从抽屉底边往上量**"。这个方向反了会把全部内容画到屏幕外 ——
-     * 而屏幕外的东西**不会报错、也不会被裁掉**，只是看不见（排查起来最费时间的一类）。
-     * 统一走下面的 `sy()` 换算，别手写 y。
+     * 病因 / 栅格 / 坐标表见文件顶部「设置抽屉栅格」注释块，这里只讲实现要点：
+     *   · 四行同一个骨架「图标列 44 → 间隙 22 → 文字 … 右端控件」，
+     *     左右缘全部对齐（原版是三档不齐）；
+     *   · 标题与关闭按钮**共用中线 80**（原版差 18）；
+     *   · 两条分隔线只落在**组与组的空隙中央**（原版那条穿在行内部）。
      */
     private buildSheet(): void {
-        const H = 700;
-        /** 设计稿 top（距抽屉顶边）→ 抽屉内 y（从底边往上量） */
-        const sy = (topFromSheetTop: number, h: number): number => H - topFromSheetTop - h / 2;
-
         const scrim = createScrim(this.body, 150, () => this.closeSheet());
         scrim.active = false;
 
         const sheet = createNode('Sheet', this.body, {
-            w: DW, h: H, anchor: [0.5, 0], y: -this.visible().height / 2,
+            w: DW, h: SHEET_H, anchor: [0.5, 0], y: -this.visible().height / 2,
         });
 
-        const { g } = createGraphicsNode('Bg', sheet, { w: DW, h: H, anchor: [0.5, 0] });
+        const { g } = createGraphicsNode('Bg', sheet, { w: DW, h: SHEET_H, anchor: [0.5, 0] });
         g.fillColor = hex2color('rgba(8,18,13,0.98)');
-        g.roundRect(-DW / 2, 0, DW, H, 44);
+        g.roundRect(-DW / 2, 0, DW, SHEET_H, 44);
         g.fill();
         g.lineWidth = 2; g.strokeColor = hex2color('rgba(246,196,69,0.34)');
-        g.roundRect(-DW / 2, 0, DW, H, 44); g.stroke();
+        g.roundRect(-DW / 2, 0, DW, SHEET_H, 44); g.stroke();
 
         // 抓手
-        fillRoundRect(g, 0, sy(4, 8), 76, 8, 4, 'rgba(246,196,69,0.28)', 255);
+        fillRoundRect(g, 0, sy(SHEET_T.grip, 8), 76, 8, 4, 'rgba(246,196,69,0.28)', 255);
 
-        // 关闭按钮（右上）
-        const close = createNode('Close', sheet, { w: 88, h: 88, x: DW / 2 - 30 - 44, y: sy(26, 88) });
-        const { g: cg } = createGraphicsNode('X', close, { w: 88, h: 88 });
-        cg.lineWidth = 2; cg.strokeColor = hex2color('rgba(246,196,69,0.6)');
-        cg.moveTo(-17, -17); cg.lineTo(17, 17); cg.stroke();
-        cg.moveTo(17, -17); cg.lineTo(-17, 17); cg.stroke();
-        cg.lineWidth = 2; cg.strokeColor = hex2color('rgba(246,196,69,0.28)');
-        cg.circle(0, 0, 40); cg.stroke();
-        this.tapable(close, () => this.closeSheet());
-
+        // ---- 标题带：标题与关闭按钮**共用中线** ----
         createLabel(sheet, '设置', {
             fontSize: 44, color: COLOR.CREAM, bold: true, serif: true,
-            w: DW, h: 56, y: sy(60, 56),
+            w: DW, h: SHEET_T.headerH, y: sy(SHEET_T.header, SHEET_T.headerH),
         });
 
-        // 分隔线
-        const rule = (top: number, alpha: number): void => {
-            const { g: dg } = createGraphicsNode('Rule', sheet, { w: DW - 92, h: 2, y: sy(top, 2) });
-            dg.fillColor = hex2color('rgba(246,196,69,' + alpha + ')');
-            dg.rect(-(DW - 92) / 2, -1, DW - 92, 2); dg.fill();
-        };
-        rule(132, 0.24);
+        // 关闭按钮：**右缘与内容右缘对齐**（原版距右 30，比行的边距 46 还靠外 16）
+        const CLOSE_S = 88;
+        const HEADER_CY = SHEET_T.header + SHEET_T.headerH / 2;         // 80
+        const close = createNode('Close', sheet, {
+            w: CLOSE_S, h: CLOSE_S,
+            x: DW / 2 - SHEET_PAD - CLOSE_S / 2,
+            y: sy(HEADER_CY - CLOSE_S / 2, CLOSE_S),
+        });
+        const { g: cg } = createGraphicsNode('X', close, { w: CLOSE_S, h: CLOSE_S });
+        // 圆环 40 → 30：88 的框里放 80 的环是"顶满"的（原版视觉上压住标题）；
+        // 30 的环 + 26 的 ✕ 更克制，也更像一个图标而不是一个大按钮。
+        cg.lineWidth = 2; cg.strokeColor = hex2color('rgba(246,196,69,0.30)');
+        polyArc(cg, 0, 0, 30, 0, Math.PI * 2, 64); cg.stroke();
+        cg.lineWidth = 2.6; cg.strokeColor = hex2color('rgba(246,196,69,0.72)');
+        cg.moveTo(-13, -13); cg.lineTo(13, 13); cg.stroke();
+        cg.moveTo(13, -13); cg.lineTo(-13, 13); cg.stroke();
+        this.tapable(close, () => this.closeSheet());
 
-        // 行：音效 / 背景音乐
+        // ---- 分隔线：**只出现在组与组之间**，且落在空隙正中 ----
+        const rule = (top: number, alpha: number): void => {
+            const { g: dg } = createGraphicsNode('Rule', sheet, {
+                w: SHEET_ROW_W, h: 2, y: sy(top, 2),
+            });
+            dg.fillColor = hex2color('rgba(246,196,69,' + alpha + ')');
+            dg.rect(-SHEET_ROW_W / 2, -1, SHEET_ROW_W, 2); dg.fill();
+        };
+        rule(SHEET_T.rule1, 0.22);
+        rule(SHEET_T.rule2, 0.16);
+
+        // ---- 开关组 ----
         const mute = AudioService.muted;
-        this.sheetRow(sheet, sy(180, 104), ASSET.HOME_MUTE_ON, '音效', !mute, (on) => {
+        this.sheetRow(sheet, SHEET_T.row1, ASSET.HOME_MUTE_ON, '音效', !mute, (on) => {
             AudioService.setMuted(!on);
             toast(this.body, on ? '音效已开启' : '音效已关闭');
             return on;
         });
-        this.sheetRow(sheet, sy(284, 104), ASSET.HOME_ICON_MUSIC, '背景音乐', !mute, (on) => {
+        this.sheetRow(sheet, SHEET_T.row2, ASSET.HOME_ICON_MUSIC, '背景音乐', !mute, (on) => {
             AudioService.setMuted(!on);
             toast(this.body, on ? '音乐已开启' : '音乐已关闭');
             return on;
         });
 
-        rule(352, 0.18);
-
-        this.sheetLink(sheet, sy(420, 98), '重置进度', () => {
+        // ---- 链接组 ----
+        this.sheetLink(sheet, SHEET_T.row3, 'reset', '重置进度', () => {
             SaveService.instance.resetAll();
             toast(this.body, '进度已重置，重开生效');
         });
-        this.sheetLink(sheet, sy(518, 98), '关于本作', () => {
-            toast(this.body, '《叠塔消消》· 试玩版 v0.1');
+        this.sheetLink(sheet, SHEET_T.row4, 'info', '关于本作', () => {
+            toast(this.body, `《${GAME.NAME}》· 试玩版 v0.1`);
         });
 
-        createLabel(sheet, 'v0.1.0-cocos · 试玩版', {
-            fontSize: 20, color: 'rgba(220,235,223,0.42)', w: DW, h: 26, y: sy(600, 26),
+        // ---- 版本号：独立一行、与「关于本作」脱开（原版两者重叠 16px）----
+        createLabel(sheet, `${GAME.VERSION} · 试玩版`, {
+            fontSize: 20, color: 'rgba(220,235,223,0.42)',
+            w: DW, h: SHEET_T.verH, y: sy(SHEET_T.ver, SHEET_T.verH),
         });
 
         this._sheet = sheet;
         sheet.active = false;
         (sheet as unknown as { _scrim: Node })._scrim = scrim;
         // 收起态：整体沉到屏幕外
-        sheet.setPosition(0, -this.visible().height / 2 - H, 0);
+        sheet.setPosition(0, -this.visible().height / 2 - SHEET_H, 0);
     }
 
-    private sheetRow(parent: Node, rowY: number, icon: string, label: string, on: boolean,
+    /**
+     * 开关行：「图标列 44 → 间隙 22 → 文字 … 右端开关」——四行共用的骨架。
+     *
+     * ★ 图标改**定高**（`aspectH`）而不是定宽：两个素材宽高比 1.10（喇叭）/ 0.835（音符）
+     *   不同，定宽 42 会让喇叭显示 42×38.2、音符显示 42×50.3 —— **一高一矮**，
+     *   这是原版"看着不齐"的隐藏来源之一。定高 40 之后两者视觉高度严格一致。
+     */
+    private sheetRow(parent: Node, top: number, icon: string, label: string, on: boolean,
                      onChange: (on: boolean) => boolean): void {
-        const row = createNode(`Row_${label}`, parent, { w: DW - 92, h: 104, y: rowY });
-        // 图标 + 文案**左对齐**在行内
+        const row = createNode(`Row_${label}`, parent, {
+            w: SHEET_ROW_W, h: SHEET_ROW_H, y: sy(top, SHEET_ROW_H),
+        });
         createSprite(row, 'Icon', {
-            path: icon, aspectW: 42, anchor: [0, 0.5], x: -(DW - 92) / 2,
+            path: icon, aspectH: SHEET_ICON_H, anchor: [0, 0.5], x: -SHEET_ROW_W / 2,
         });
         createLabel(row, label, {
-            fontSize: 28, color: 'rgba(255,247,230,0.93)', w: 400, h: 104,
-            anchor: [0, 0.5], alignLeft: true, x: -(DW - 92) / 2 + 42 + 22,
+            fontSize: 28, color: 'rgba(255,247,230,0.93)', w: 400, h: SHEET_ROW_H,
+            anchor: [0, 0.5], alignLeft: true, x: SHEET_TEXT_X,
         });
 
-        // 开关 96×56
-        const sw = createNode('Sw', row, { w: 96, h: 56, x: (DW - 92) / 2 - 48 });
+        // 开关 96×56（右缘 = 内容右缘）
+        const sw = createNode('Sw', row, { w: 96, h: 56, x: SHEET_ROW_W / 2 - 48 });
         const g = sw.addComponent(Graphics);
         let state = on;
         const paint = (): void => {
@@ -494,17 +660,68 @@ export class HomePage extends PageBase {
         });
     }
 
-    private sheetLink(parent: Node, rowY: number, label: string, onClick: () => void): void {
-        const row = createNode(`Link_${label}`, parent, { w: DW - 92, h: 98, y: rowY });
+    /** 链接行：**与开关行同一骨架**（图标列 → 文字 … 右端 ›） */
+    private sheetLink(parent: Node, top: number, glyph: 'reset' | 'info', label: string,
+                      onClick: () => void): void {
+        const row = createNode(`Link_${label}`, parent, {
+            w: SHEET_ROW_W, h: SHEET_ROW_H, y: sy(top, SHEET_ROW_H),
+        });
+        this.rowGlyph(row, glyph, -SHEET_ROW_W / 2);
         createLabel(row, label, {
-            fontSize: 28, color: 'rgba(255,247,230,0.86)', w: 400, h: 98,
-            anchor: [0, 0.5], alignLeft: true, x: -(DW - 92) / 2,
+            fontSize: 28, color: 'rgba(255,247,230,0.86)', w: 400, h: SHEET_ROW_H,
+            anchor: [0, 0.5], alignLeft: true, x: SHEET_TEXT_X,
         });
         createLabel(row, '›', {
-            fontSize: 34, color: 'rgba(246,196,69,0.8)', w: 40, h: 98,
-            anchor: [1, 0.5], x: (DW - 92) / 2,
+            fontSize: 34, color: 'rgba(246,196,69,0.8)', w: 40, h: SHEET_ROW_H,
+            anchor: [1, 0.5], x: SHEET_ROW_W / 2,
         });
         this.tapable(row, () => { Haptics.light(); onClick(); });
+    }
+
+    /**
+     * 链接行的行首图标 —— 金色**线描**（与开关行的写实图标同色系，但更"轻"）。
+     *
+     * ★ 为什么给链接行也加图标：原版两组的左边缘是**三档不齐**的
+     *   （开关图标 46 / 开关文字 110 / 链接文字 46）。加图标之后四行统一成
+     *   「图标列 → 间隙 → 文字」同一骨架，左缘严格对齐 —— 这是"规整"最关键的一条。
+     *
+     * ★ 为什么用线描、而不是再出两张写实素材：
+     *   · 素材库里没有"重置 / 信息"语义的现成图标，新出两张 PNG 还要占包体；
+     *   · 线描天然比写实"轻" ⇒ 正好形成层级：**可操作的开关行实心、跳转的链接行线描**。
+     *
+     * ⚠️ 描边与填充**必须分成两个节点** —— Cocos 的 `fill()/stroke()` 作用于
+     *    "当前整条路径"且不会自动重置，混在一个 Graphics 里会把圆环也填成实心。
+     */
+    private rowGlyph(parent: Node, kind: 'reset' | 'info', x: number): void {
+        const gold = hex2color('#F6C445', 215);
+        const opt = { w: SHEET_ICON_W, h: SHEET_ICON_W, anchor: [0, 0.5] as [number, number], x };
+        const { g: gl } = createGraphicsNode(`Glyph_${kind}_Stroke`, parent, opt);
+        const { g: gs } = createGraphicsNode(`Glyph_${kind}_Fill`, parent, opt);
+        gl.lineWidth = 3.6; gl.strokeColor = gold;
+        gs.fillColor = gold;
+
+        // 半径 16.5 ⇒ 可见直径 16.5×2 + 线宽 3.6 = 36.6 —— 与上方写实图标的 40 显示高
+        // 基本齐平（第一版用了 13.5，视觉上小一圈，看着像"缩水的图标"）。
+        const R = 16.5;
+        if (kind === 'reset') {
+            // 3/4 圆环（缺口在右侧偏上），末端沿切向伸出一个实心三角 = "回转"
+            polyArc(gl, 0, 0, R, Math.PI * 0.30, Math.PI * 2, 64);
+            gl.stroke();
+            const a = Math.PI * 0.30;
+            const px = R * Math.cos(a), py = R * Math.sin(a);
+            const tx = -Math.sin(a), ty = Math.cos(a);      // 逆时针切向
+            const nx = Math.cos(a), ny = Math.sin(a);       // 外法向
+            gs.moveTo(px + tx * 9, py + ty * 9);
+            gs.lineTo(px + nx * 6.5, py + ny * 6.5);
+            gs.lineTo(px - nx * 6.5, py - ny * 6.5);
+            gs.close(); gs.fill();
+        } else {
+            // 圆环 + 小写 i（点 + 竖），**一次 stroke 画完两个子路径**
+            polyArc(gl, 0, 0, R, 0, Math.PI * 2, 64);
+            gl.moveTo(0, 2); gl.lineTo(0, -10.5);
+            gl.stroke();
+            gs.circle(0, 8.5, 2.8); gs.fill();
+        }
     }
 
     private openSheet(): void {
@@ -533,7 +750,7 @@ export class HomePage extends PageBase {
         const opS = scrim.getComponent(UIOpacity) ?? scrim.addComponent(UIOpacity);
         MotionFx.fadeTo(op, 0, 0.2, { tag: 'sheet' });
         MotionFx.fadeTo(opS, 0, 0.2);
-        tween(sheet).to(0.24, { position: v3(0, -this.visible().height / 2 - 700, 0) }, { easing: 'quadIn' }).start();
+        tween(sheet).to(0.24, { position: v3(0, -this.visible().height / 2 - SHEET_H, 0) }, { easing: 'quadIn' }).start();
         // 收口走定时器（不用 tween 回调）
         this.timers.add(300, () => {
             if (sheet.isValid) sheet.active = false;
@@ -595,6 +812,6 @@ export class HomePage extends PageBase {
         // 金币可能有变化（结算页回来），刷新一次
         if (this._walletLabel?.isValid) this._walletLabel.string = this.coinText();
         // 抽屉收起
-        if (this._sheet) this._sheet.setPosition(0, -this.visible().height / 2 - 700, 0);
+        if (this._sheet) this._sheet.setPosition(0, -this.visible().height / 2 - SHEET_H, 0);
     }
 }

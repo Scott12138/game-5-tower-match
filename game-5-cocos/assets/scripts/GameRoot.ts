@@ -11,6 +11,7 @@
  *  启动顺序：
  *      ① 建 UIRoot 容器（铺满 Canvas）
  *      ② 音频服务（**必须在任何播放之前** —— 声道池与首次加载都要时间）
+ *         └ 紧接着起 BGM（第 44 轮首次接入，含"浏览器手势兜底"，见 startBgm）
  *      ③ 页面状态机 PageManager
  *      ④ 注册所有页面（集中在此 ⇒ 页面之间不需要互相 import）
  *      ⑤ 预热存档（把状态打进启动日志，命令行排障唯一线索）
@@ -21,9 +22,9 @@
 // ⚠️ 不要从 'cc' import `log`/`warn`：release 构建 debugMode=ERROR，
 //    引擎只在 mode<=INFO 时绑定 ccLog、只在 mode!==ERROR 时绑定 ccWarn，
 //    ⇒ 打包产物里它们是空函数。日志一律用 console.log / console.warn。
-import { Component, Layers, Node, UITransform, Widget, _decorator, profiler, view } from 'cc';
+import { Component, Input, Layers, Node, UITransform, Widget, _decorator, input, profiler, view } from 'cc';
 
-import { DEBUG, GAME, PAGE } from './CFG';
+import { BGM, DEBUG, GAME, PAGE } from './CFG';
 import { PageManager } from './core/PageManager';
 import { SaveService } from './core/SaveService';
 import { AudioService } from './ui/AudioService';
@@ -50,6 +51,9 @@ export class GameRoot extends Component {
         AudioService.init(uiRoot);
         this.step('[2/6] AudioService.init');
 
+        this.startBgm();
+        this.step('[2.5/6] startBgm');
+
         PageManager.create(uiRoot);
         this.step('[3/6] PageManager.create');
 
@@ -72,7 +76,45 @@ export class GameRoot extends Component {
     }
 
     protected onDestroy(): void {
+        this.disarmBgm();
         view.off('canvas-resize', this.syncUIRootSize, this);
+    }
+
+    // --------------------------------------------------------
+    //  ② BGM（第 44 轮首次接入）
+    // --------------------------------------------------------
+    //
+    //  【为什么是"立即起一次 + 首次手势兜底"两路】
+    //  微信小游戏允许进游戏即播；**浏览器会拦截无手势的自动播放**
+    //  （`AudioSource.play()` 被拒后不会自己恢复，音乐就永远不响了）。
+    //  两路都挂之后：
+    //    · 真机/小游戏 → 第一路当场出声，兜底白挂一枪；
+    //    · 浏览器      → 第一路静默失败，玩家第一次点屏幕时兜底补起。
+    //  两路都调 `playBgm`，而它自带幂等守卫（同一首已在播则直接 return），
+    //  所以重复触发无副作用 —— 不会"重头开始放两遍"。
+
+    /** 首次用户手势的兜底监听（null = 还没挂或已摘） */
+    private _armBgm: (() => void) | null = null;
+
+    /** 起 BGM：立即尝试一次 + 挂一次性手势兜底（理由见上） */
+    private startBgm(): void {
+        AudioService.playBgm(BGM.MAIN);
+
+        const arm = (): void => {
+            this.disarmBgm();
+            AudioService.playBgm(BGM.MAIN);
+        };
+        this._armBgm = arm;
+        input.on(Input.EventType.TOUCH_START, arm, this);
+        input.on(Input.EventType.MOUSE_DOWN, arm, this);
+    }
+
+    /** 摘掉手势兜底监听（**必须带 this 作为 target**，否则 off 摘不掉） */
+    private disarmBgm(): void {
+        if (!this._armBgm) return;
+        input.off(Input.EventType.TOUCH_START, this._armBgm, this);
+        input.off(Input.EventType.MOUSE_DOWN, this._armBgm, this);
+        this._armBgm = null;
     }
 
     // --------------------------------------------------------
