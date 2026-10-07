@@ -22,11 +22,12 @@
  * ============================================================
  */
 
-import { Node, UIOpacity, Vec3, easing, tween, v3 } from 'cc';
+import { Graphics, Layers, Node, UIOpacity, UITransform, Vec3, easing, tween, v3 } from 'cc';
 // `TweenEasing` 是字符串字面量联合（不是 `string`）：给 `easing` 字段标注成 `string`
 // 之后再传进 `t.to()` 会报 TS2322。用 `import type` 只引类型，不产生运行期依赖。
 import type { TweenEasing } from 'cc';
 import { MOTION } from '../CFG';
+import { hex2color } from './Palette';
 
 // ============================================================
 //  一、语义缓动名（业务代码里不许出现 'quadOut' 字面量）
@@ -40,6 +41,8 @@ export const EASE = {
     IDLE: MOTION.EASE_IDLE,
     REJECT: MOTION.EASE_REJECT,
     DROP: MOTION.EASE_DROP,
+    /** ★ 第 58 轮：撞击的**冲刺**（同一族里唯一的 quadIn，语义必须显式） */
+    DASH: MOTION.EASE_DASH,
 } as const;
 
 /** 缓动名 → 函数。**只用于弧线整体采样**（见 arc 的注释） */
@@ -79,6 +82,14 @@ export const TAG = {
     NUDGE: 'nudge',
     /** 抖动 / 拒绝 */
     SHAKE: 'shake',
+    /**
+     * 撞击时**牌堆整体上踢**（改容器 position）。
+     * ⚠️ 必须与 `STACK` 分开：`STACK` 是"牌堆**内**某张牌的位置"，
+     *    本通道是"整个牌堆容器的位置"。共用一条通道会让上踢把
+     *    "洗牌铺开"那条补间打断（反之亦然），而两者看起来都像"牌在动"，
+     *    极难联想到是通道撞了 —— 见文件头第 ② 条。
+     */
+    KICK: 'kick',
     /** 过场（赠礼卡、结算卡的进出） */
     OVER: 'over',
 } as const;
@@ -376,6 +387,112 @@ export class MotionFx {
             setTimeout(() => step(n - 1), 16);
         };
         setTimeout(() => step(frames - 1), 0);
+    }
+
+    // --------------------------------------------------------
+    //  撞击特效（第 58 轮新增 · 逐值照抄隔壁项目 game-4）
+    // --------------------------------------------------------
+    //
+    //  【为什么这两件放在 MotionFx 而不是 GamePage 里】
+    //    它们只依赖"父节点 + 局部坐标 + 颜色"，与牌局数据零关系 ——
+    //    正是工具箱该收的东西。放 GamePage 里会让那个已经 190 KB 的文件再长一截。
+    //
+    //  【与 game-4 的唯一差别：没有对象池】
+    //    那边的 `spawnPulse` / `spawnDebris` 从 `FxPool` 租节点、到期 `autoRecycle`。
+    //    本作没有池，直接建节点、到期销毁。理由：一次撞击最多产生
+    //    1 个环 + 3×5 片碎屑，池的收益抵不过它带来的复杂度
+    //    （要一并移植租借/回收/预热的整套约定，还得防"回收时残留补间写坏复位值"）。
+    //    ⚠️ 因此这里用的 `setTimeout` 是**裸的**（不走 TimerBag）——
+    //       但每条都带 `node.isValid` 守卫，且父节点随页面销毁 ⇒ 不会打到死节点上。
+
+    /**
+     * 撞击的**冲击圆环**：一圈由小到大、同时淡出的描边环 —— 三张牌撞在一起的能量释放。
+     *
+     * @param parent 特效父节点（本作传**槽位条**：那里既是正确的坐标系，
+     *               又天然盖在牌之上、且在弹层之下）
+     */
+    public static spawnPulse(
+        parent: Node | null | undefined, x: number, y: number, color: string,
+        opt: { r0?: number; r1?: number; line?: number; life?: number } = {},
+    ): void {
+        if (!parent?.isValid) return;
+        const r0 = opt.r0 ?? MOTION.CLASH_RING_R0;
+        const r1 = opt.r1 ?? MOTION.CLASH_RING_R1;
+        const life = opt.life ?? MOTION.CLASH_RING_LIFE;
+
+        const node = new Node('ClashPulse');
+        // ⚠️ 代码创建的节点默认在 DEFAULT 层，2D UI 必须归属 UI_2D 层
+        //    （不设的话部分平台会**不渲染**，而且不报错 —— 见 `UIFactory.createNode`）
+        node.layer = Layers.Enum.UI_2D;
+        parent.addChild(node);
+        node.addComponent(UITransform);
+        const gg = node.addComponent(Graphics);
+        gg.lineWidth = opt.line ?? MOTION.CLASH_RING_LINE;
+        gg.strokeColor = hex2color(color);
+        // ★ 必须走 `circle()` 而不是 `ellipse(0,0,r,r)`：两者在后端结果一致，
+        //   但 circle 是各后端的原生路径（WebGL 走 arc），ellipse 需要额外变换。
+        gg.circle(0, 0, r0);
+        gg.stroke();
+
+        node.setPosition(x, y, 0);
+        // 从"细环"放大成"大环"：起始 scale 就是这个比值，最终收在 r1
+        const k0 = r0 / r1;
+        node.setScale(k0, k0, 1);
+        const op = node.addComponent(UIOpacity);
+        op.opacity = 255;
+
+        this.to(node, { scale: v3(1, 1, 1) }, { duration: life, easing: EASE.ENTER, tag: TAG.FX });
+        this.fadeTo(op, 0, life, { easing: EASE.MOVE, tag: TAG.FADE });
+        // 寿命兜底：环的存活比默认 `T_ENTER` 长，**必须**按它自己的 life 销毁，
+        // 否则环还没扩散完就被清掉（表现是"环没长大就没了"）。
+        setTimeout(() => { if (node.isValid) node.destroy(); }, (life + 0.06) * 1000);
+    }
+
+    /**
+     * 撞击的**碎屑**：从撞击点向四周喷 `n` 片小方点，边飞边缩边淡出。
+     *
+     * 【为什么从**每张牌**的位置各喷一次，而不是只从中心喷一个点】
+     *   只在中心喷的话，"三张牌被打散"这件事就没有空间上的分布感（game-4 原注）。
+     *   ⇒ 调用方对每张待消的牌各调一次本函数。
+     *
+     * 【为什么是方点】
+     *   game-4 的语汇：圆点 = 能量从中心炸开（碰），方点 = 被嚼碎的渣（吃）。
+     *   本作吃碰共用撞击，与 game-4 现状一致 —— 两边都是方点。
+     */
+    public static spawnShards(
+        parent: Node | null | undefined, x: number, y: number, color: string,
+        opt: { n?: number; size?: number; life?: number; dist?: number } = {},
+    ): void {
+        if (!parent?.isValid) return;
+        const n = opt.n ?? MOTION.CLASH_SHARD_N;
+        const size = opt.size ?? MOTION.CLASH_SHARD_SIZE;
+        const life = opt.life ?? MOTION.CLASH_SHARD_LIFE;
+        const dist = opt.dist ?? MOTION.CLASH_SHARD_DIST;
+
+        for (let i = 0; i < n; i++) {
+            // 角度均分 + 抖动：完全均分看着像"排好的"，加一点随机才像"炸开的"
+            const ang = (Math.PI * 2 * i) / n + Math.random() * 0.6;
+            const d = dist * (0.6 + Math.random() * 0.5);
+
+            const node = new Node(`Shard${i}`);
+            node.layer = Layers.Enum.UI_2D;      // 同上：2D UI 必须归 UI_2D 层
+            parent.addChild(node);
+            node.addComponent(UITransform).setContentSize(size, size);
+            const g = node.addComponent(Graphics);
+            g.fillColor = hex2color(color);
+            g.rect(-size / 2, -size / 2, size, size);
+            g.fill();
+            node.setPosition(x, y, 0);
+            const op = node.addComponent(UIOpacity);
+            op.opacity = 255;
+
+            this.to(node, {
+                position: v3(x + Math.cos(ang) * d, y + Math.sin(ang) * d, 0),
+                scale: v3(0.3, 0.3, 1),
+            }, { duration: life, easing: EASE.MOVE, tag: TAG.FX });
+            this.fadeTo(op, 0, life, { easing: EASE.MOVE, tag: TAG.FADE });
+            setTimeout(() => { if (node.isValid) node.destroy(); }, (life + 0.06) * 1000);
+        }
     }
 }
 

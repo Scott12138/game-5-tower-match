@@ -4,11 +4,11 @@
 
 | 项 | 值 |
 |---|---|
-| 生成时间 | 2026-10-07 22:53:46 |
+| 生成时间 | 2026-10-08 00:27:25 |
 | AppID | `wxfaa19afc583badd9` |
-| 包体 | 12421176 字节（11.85 MB，红线 4MB） |
+| 包体 | 12425070 字节（11.85 MB，红线 4MB） |
 | 构建模式 | release |
-| 解码内容 | `https://mp.weixin.qq.com/a/~~sqRH_WKxHnM~7DG5h3WfbM0sdFld529a9g~~` |
+| 解码内容 | `https://mp.weixin.qq.com/a/~~qP_GmXufFng~onJ2lRSXwu4wWL0XGrYhvQ~~` |
 
 ## ★ 扫码须知
 微信预览码**有且只有最新一张有效**：再跑一次 `tools/wechat-preview.sh`，

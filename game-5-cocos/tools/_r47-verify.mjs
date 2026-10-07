@@ -30,6 +30,9 @@
  *  【用法】
  *    G5_ONLY=temp G5_LEVEL=10 node tools/_r47-verify.mjs /tmp/g5-r47   # ②
  *    G5_ONLY=win  G5_LEVEL=1  node tools/_r47-verify.mjs /tmp/g5-r47   # ①
+ *  ⚠️ 两段**必须分两次跑**，不要用默认的 `both`（默认 `G5_LEVEL=10` 配 `both`
+ *     会让 ① 段跑在大关上，必然爆槽 ⇒ 6 条"像产品坏了"的假红）。
+ *     组合不合法时脚本会**以退出码 2 退场并说明正确命令**（2 = 调用错误，1 = 测试失败）。
  * ============================================================
  */
 
@@ -45,6 +48,35 @@ const LEVEL = Number(process.env.G5_LEVEL || 10);
 /** 只跑其中一段：`temp`（② 暂存架）/ `win`（① 判胜）/ `both`。两段各自独立起页更干净。 */
 const MODE = process.env.G5_ONLY || 'both';
 const W = 421, H = 927, SCALE = 3;
+
+/**
+ * ★★ 2026-10-07 第 59 轮补的**用法护栏**（踩过一次才加的）。
+ *
+ * 【为什么必须有】本脚本两段**必须分两次跑**（见文件头用法），因为它们的局面要求相反：
+ *   ① 判胜段：要在**小关**（12 张）上造"板空 + 槽里还有残牌"；
+ *   ② 暂存架段：要在**大关**（93 张）上才有足够多可点的牌。
+ *   而默认组合 `G5_ONLY=both` + `G5_LEVEL=10` 恰好是**最坏搭配** ——
+ *   ① 段会被强行放到第 10 关，第 15 手就爆槽。
+ *   实测直接 `node tools/_r47-verify.mjs` ⇒ **6 条红**，文案是
+ *   "牌堆没清空 / 暂存架不空 / 弹层是败态 / 负控不成立"，
+ *   读起来**完全像是产品坏了**，真相却是"我们把①段放错了关"。
+ *   （与 `waitLog` 那次同类：都属于**用错工具型假红** —— 断言没错，调用错。）
+ *
+ * ⇒ 组合不合法时**直接退场**，并说清该用哪条命令。
+ *   ★ **退出码 2 = "你调用错了"，与"测试失败(1)"严格分开** ——
+ *     这样就算有人把输出贴进报告，也不会被当成产品回归。
+ */
+if (MODE === 'both' || (MODE === 'win' && LEVEL > 3)) {
+    console.error('✗ 调用姿势不对 —— 本脚本两段必须分两次跑（各自起页更干净）：');
+    console.error('    ② 暂存架：G5_ONLY=temp G5_LEVEL=10 node tools/_r47-verify.mjs <out>');
+    console.error('    ① 判胜  ：G5_ONLY=win  G5_LEVEL=1  node tools/_r47-verify.mjs <out>');
+    console.error(`  当前：G5_ONLY=${MODE} G5_LEVEL=${LEVEL}`);
+    console.error(MODE === 'win'
+        ? '  （① 段必须跑小关：第 10 关 93 张会在第 15 手就把槽位爆满）'
+        : '  （`both` 会强制 ① 段跑在大关上 ⇒ 必然爆槽，看不到"板空还有残牌"那个局面）');
+    console.error('  退出码 2 = 调用错误（**不是**测试失败；测试失败是 1）');
+    process.exit(2);
+}
 
 let fail = 0, pass = 0;
 const judge = (ok, txt) => {

@@ -60,7 +60,42 @@ PX = 1263.0 / 750.0                    # 1 设计 px = 1.68533 物理 px
 # ---- 明度档：用户拍板「再提 20%」 ----------------------------------------
 GAIN = 1.20
 
+# ===========================================================================
+# ★★ 第 58 轮（2026-10-07）· 用户拍板把「明度档」的**口径**从 sRGB 改成**线性**
+# ---------------------------------------------------------------------------
+#   旧口径 = 在 sRGB 编码值上直接乘 1.2（第 42~57 轮用的就是这条）：
+#     编码值全局 +20%，但**物理亮度**并不均匀 —— 暗部约 ×1.36、亮部约 ×1.51
+#     ⇒ 高光段更容易冲到 255 爆白，全局对比被压缩。
+#   新口径 = 转到**线性光空间**乘 1.2，再编码回 sRGB：
+#     物理亮度**均匀** +20%；换算到编码值，暗部约 +11.6%（30→33.5）、
+#     亮部约 +8.5%（200→216.9）。
+#   ⚠️ 因此**新口径整体比旧的暗**（尤其高光段）—— 这是"不爆白"的代价。
+#      若观感偏暗想回退：只把 `apply_gain()` 的函数体换回
+#      `np.clip(v * GAIN, 0, 255)` 一行即可，其余全不用动。
+#   ⚠️ 用什么传输函数很关键：这里用**标准 sRGB 分段函数**，不用近似的 2.2 次幂
+#      （两者在暗部差得不小，且对账时要能复算）。
+# ===========================================================================
+def _srgb_to_lin(v):
+    """sRGB 编码值(0~255) → 线性光(0~1)。标准分段传输函数，不是近似 2.2 次幂。"""
+    s = np.asarray(v, np.float32) / 255.0
+    return np.where(s <= 0.04045, s / 12.92, ((s + 0.055) / 1.055) ** 2.4)
+
+
+def _lin_to_srgb(l):
+    """线性光(0~1) → sRGB 编码值(0~255)"""
+    l = np.clip(np.asarray(l, np.float32), 0.0, 1.0)
+    s = np.where(l <= 0.0031308, l * 12.92, 1.055 * np.power(l, 1.0 / 2.4) - 0.055)
+    return s * 255.0
+
+
+def apply_gain(v):
+    """★ 明度档 +20%（**线性口径**）—— 全程唯一的「提亮」入口，别再散落 `* GAIN`。"""
+    return np.clip(_lin_to_srgb(_srgb_to_lin(v) * GAIN), 0, 255)
+
+
 # ---- 纹样幅度（设计口径：候选稿 B 的 amp=9.6 / 9.6 / 9.6，颗粒 1.5）------
+#   ⚠️ 幅度**仍按 GAIN 放大**（纹样的可见对比度随明度档同步），这与上面的
+#      "明度提亮"是两件事：前者改的是纹样起伏的绝对量，后者改的是底色亮度。
 AMP_WAVE = 9.6 * GAIN                  # 斜纹半幅
 AMP_GRAIN = 1.5 * GAIN                 # 细颗粒半幅
 D = AMP_WAVE + AMP_GRAIN               # 峰值总幅度（底色图 = 目标 - D）
@@ -289,22 +324,32 @@ b_cand = np.clip(b_page, 0, 255)
 to_img(b_cand).save(f'{OUT}/recon-B-page.png')
 
 # ★ 明度档 +20%（这一支只喂养资产生产：grad-b.png / denom；不参与视觉对账）
-b20 = np.clip(b_cand * GAIN, 0, 255)
+#   第 58 轮：口径 = **线性**（`apply_gain()`），旧口径是 sRGB 直接乘。
+b20 = apply_gain(b_cand)
 to_img(b20).save(f'{OUT}/recon-B-page-x120.png')
 
 # ============================================================
 #  一·补、视觉参照 = **候选原图 × 1.20**（用户拍板的那张，不是重建稿）
 # ============================================================
-_cand = np.asarray(Image.open(CAND).convert('RGB'), np.float32)
-if _cand.shape[:2] != (H, W):
-    raise SystemExit(f'候选原图 {CAND} 尺寸 {_cand.shape[:2]} ≠ {(H, W)} —— 口径不符，拒绝出板')
-tgt20 = np.clip(_cand * GAIN, 0, 255)
-to_img(tgt20).save(f'{OUT}/target-page.png')
-to_img(_cand).save(f'{OUT}/candidate-B-page.png')      # ×1.00 原图副本，供 4× 放大对照
-report['candidate_ref'] = {'path': CAND, 'name': '候选原图 B（×1.00，用户拍板）',
-                           '周期物理px': autopeaks(_cand, 650), **lum_stats(_cand)}
-report['target'] = {'name': '候选原图 B ×1.20（视觉参照）',
-                    '周期物理px': autopeaks(tgt20, 650), **lum_stats(tgt20)}
+if os.path.exists(CAND):
+    _cand = np.asarray(Image.open(CAND).convert('RGB'), np.float32)
+    if _cand.shape[:2] != (H, W):
+        raise SystemExit(f'候选原图 {CAND} 尺寸 {_cand.shape[:2]} ≠ {(H, W)} —— 口径不符，拒绝出板')
+    tgt20 = apply_gain(_cand)
+    to_img(tgt20).save(f'{OUT}/target-page.png')
+    to_img(_cand).save(f'{OUT}/candidate-B-page.png')      # ×1.00 原图副本，供 4× 放大对照
+    report['candidate_ref'] = {'path': CAND, 'name': '候选原图 B（×1.00，用户拍板）',
+                               '周期物理px': autopeaks(_cand, 650), **lum_stats(_cand)}
+    report['target'] = {'name': '候选原图 B ×1.20（视觉参照 · 线性口径）',
+                        '周期物理px': autopeaks(tgt20, 650), **lum_stats(tgt20)}
+else:
+    # ⚠️ 第 58 轮：候选原图住在 /tmp（会被系统清理）。它**只喂上面这段「视觉参照」**
+    #    （人工对账用），**完全不参与资产生产** —— 资产来自上面的重建稿 `b_cand`。
+    #    ⇒ 缺失时**跳过而非退出**，否则 /tmp 一被清就没法重出资产了。
+    print(f'[!] 候选原图 {CAND} 不在（/tmp 已被系统清理）⇒ 跳过「视觉参照」段。')
+    print('    ⚠️ 该段只用于人工对账，不参与资产生产（资产来自 recon-B-page 重建稿）⇒ 可安全跳过。')
+    report['candidate_ref'] = {'path': CAND, 'status': 'missing（/tmp 已清理 ⇒ 跳过参照段）',
+                               'note': '参照段缺失不影响 grad-b.png / weave-b.png 的产出'}
 report['recon_scope'] = 'recon-B-page*.png 仅为资产反解路径，纹样尺度非引擎尺度，禁止用作视觉参照'
 
 # ============================================================
@@ -377,37 +422,43 @@ report['seam_control_bad'] = seam(bad)
 a_engine = tile_sample(tile_a01, XX, YY)[:, :, None]
 sim = grad_up * (1.0 - a_engine) + 255.0 * a_engine
 
-# 逐带对账一律对「候选原图 ×1.20」（tgt20），不对重建稿
-def band(a, y0, y1):
-    return round(float(a[y0:y1, 100:1160].mean()), 2)
+# 逐带对账一律对「候选原图 ×1.20」（tgt20），不对重建稿。
+# ⚠️ 第 58 轮：参照图缺失（住在 /tmp、会被清）时**整段跳过** —— 它只做人工对账，
+#    不影响 grad-b.png / weave-b.png 的产出。**不要拿重建稿当替身**：
+#    两条纹样公式的尺度本来就不一样，替身会产出一组"看着很准"的假对账数字。
+if os.path.exists(CAND):
+    def band(a, y0, y1):
+        return round(float(a[y0:y1, 100:1160].mean()), 2)
 
+    # 低频明度对账：把两边都做 16px 盒滤波，只比"用户要的明度档"，
+    # 避开"两条纹样公式本来就不一样"带来的高频差异。
+    lo_sim, lo_tgt = blockmean(sim, 16), blockmean(tgt20, 16)
+    lo_d = lo_sim - lo_tgt
+    report['sim'] = {
+        'model': 'grad_up ∘ tile_sample(1 texel = 1 设计 px, REPEAT+LINEAR)',
+        '低频RMSE(16px盒滤波)': round(float(np.sqrt((lo_d ** 2).mean())), 3),
+        '低频p99abs': round(float(np.percentile(np.abs(lo_d), 99)), 2),
+        '候选原图 topband': band(tgt20, 300, 500),
+        '仿真 topband': band(sim, 300, 500),
+        '候选原图 botband': band(tgt20, 2545, 2770),
+        '仿真 botband': band(sim, 2545, 2770),
+        '候选原图 全屏mean': round(float(tgt20.mean()), 2),
+        '仿真 全屏mean': round(float(sim.mean()), 2),
+        '候选原图 topband 纹样峰谷差': round(float(np.percentile(tgt20[300:500, 100:1160].mean(axis=2), 99)
+                                              - np.percentile(tgt20[300:500, 100:1160].mean(axis=2), 1)), 1),
+        '仿真 topband 纹样峰谷差': round(float(np.percentile(sim[300:500, 100:1160].mean(axis=2), 99)
+                                            - np.percentile(sim[300:500, 100:1160].mean(axis=2), 1)), 1),
+        '周期 物理px(自相关)': autopeaks(sim, 650),
+        '期望周期 物理px': round(TEX / M * PX, 2),
+    }
+    # 差值可视化（放大 6 倍，+128 偏置）—— 高频差异本就是两条不同纹样公式带来的，只看结构
+    diff = sim - tgt20
+    Image.fromarray(np.clip(diff * 6.0 + 128, 0, 255).astype(np.uint8), 'RGB').save(f'{OUT}/diff-x6.png')
+else:
+    report['sim'] = {'status': 'skipped（候选原图缺失 ⇒ 无参照可比）',
+                     '仿真 topband': None, 'note': '仿真图 sim-page.png 仍会输出，但不做差额对账'}
 
-# 低频明度对账：把两边都做 16px 盒滤波，只比"用户要的明度档"，
-# 避开"两条纹样公式本来就不一样"带来的高频差异。
-lo_sim, lo_tgt = blockmean(sim, 16), blockmean(tgt20, 16)
-lo_d = lo_sim - lo_tgt
-report['sim'] = {
-    'model': 'grad_up ∘ tile_sample(1 texel = 1 设计 px, REPEAT+LINEAR)',
-    '低频RMSE(16px盒滤波)': round(float(np.sqrt((lo_d ** 2).mean())), 3),
-    '低频p99abs': round(float(np.percentile(np.abs(lo_d), 99)), 2),
-    '候选原图 topband': band(tgt20, 300, 500),
-    '仿真 topband': band(sim, 300, 500),
-    '候选原图 botband': band(tgt20, 2545, 2770),
-    '仿真 botband': band(sim, 2545, 2770),
-    '候选原图 全屏mean': round(float(tgt20.mean()), 2),
-    '仿真 全屏mean': round(float(sim.mean()), 2),
-    '候选原图 topband 纹样峰谷差': round(float(np.percentile(tgt20[300:500, 100:1160].mean(axis=2), 99)
-                                          - np.percentile(tgt20[300:500, 100:1160].mean(axis=2), 1)), 1),
-    '仿真 topband 纹样峰谷差': round(float(np.percentile(sim[300:500, 100:1160].mean(axis=2), 99)
-                                        - np.percentile(sim[300:500, 100:1160].mean(axis=2), 1)), 1),
-    '周期 物理px(自相关)': autopeaks(sim, 650),
-    '期望周期 物理px': round(TEX / M * PX, 2),
-}
 to_img(sim).save(f'{OUT}/sim-page.png')
-
-# 差值可视化（放大 6 倍，+128 偏置）—— 高频差异本就是两条不同纹样公式带来的，只看结构
-diff = sim - tgt20
-Image.fromarray(np.clip(diff * 6.0 + 128, 0, 255).astype(np.uint8), 'RGB').save(f'{OUT}/diff-x6.png')
 
 report['params'] = {
     'GAIN': GAIN, 'AMP_WAVE': round(AMP_WAVE, 3), 'AMP_GRAIN': round(AMP_GRAIN, 3),
@@ -423,5 +474,10 @@ with open(f'{OUT}/report.json', 'w', encoding='utf-8') as f:
 for k in ('weave-b.png', 'grad-b.png', 'recon-B-page.png', 'sim-page.png',
           'target-page.png', 'candidate-B-page.png', 'diff-x6.png'):
     p = f'{OUT}/{k}'
+    # ⚠️ 第 58 轮：参照图缺失时 target- / candidate- / diff-x6 三个产物**不会生成**
+    #    ⇒ 这里必须跳过而不是 `getsize` 崩掉（资产其实早就产完了）。
+    if not os.path.exists(p):
+        print(f'  {k:24s} {"—（参照图缺失，未产出）":>20s}')
+        continue
     print(f'  {k:24s} {os.path.getsize(p):>9,d} B')
 print(json.dumps(report, ensure_ascii=False, indent=2))

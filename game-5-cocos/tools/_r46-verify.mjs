@@ -28,7 +28,7 @@
  * ============================================================
  */
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { designToCss, navigateTo, openBrowser, seedAtLevel, sleep, startServer, tapNode } from './g5-cdp.mjs';
@@ -38,6 +38,21 @@ mkdirSync(OUT, { recursive: true });
 
 const LEVEL = Number(process.env.G5_LEVEL || 9);
 const W = 421, H = 927, SCALE = 3;
+
+/**
+ * ★★ 2026-10-07 第 59 轮修订：难度档位**从源码读**，不再在断言里写死数字。
+ *
+ * 【为什么】这条断言原来写的是 `dcfg.effBlock === 6` —— 而 `CFG.DIFF.BLOCK`
+ *   是**随用户拍板移动的旋钮**（第 52 轮 6→7、第 58 轮 7→8）。
+ *   写死一个数 ⇒ 每次调档这条都**假红**，而且失败文案是"难度参数没生效"，
+ *   把归因完全带偏（真相只是"断言没跟上"）。
+ *   ⇒ 现在断言的是「**源码里写的档位 = 运行期实际用的档位**」，
+ *     这才是需求⑥的原意（难度参数**接在运行期上**），档位再动也不会失效。
+ *   ⚠️ 若将来给某关加 `DIFF.PER_LEVEL` 覆盖，这条要改成"命中 BLOCK 或该关覆盖值"。
+ */
+const DIFF_BLOCK_SRC = Number(
+    (readFileSync(resolve(import.meta.dirname, '..', 'assets', 'scripts', 'CFG.ts'), 'utf8')
+        .match(/export const DIFF = \{[\s\S]*?\n {4}BLOCK:\s*(\d+)/) ?? [])[1]);
 
 let fail = 0;
 let pass = 0;
@@ -114,6 +129,26 @@ async function ensureSlot(n) {
 }
 
 /**
+ * 等**广告面板自己走完**（mock 秒数 + 淡出 + 销毁）—— 返回是否等到。
+ *
+ * 【为什么不能 `sleep(固定毫秒)`】mock 广告要播 `CFG.AD.MOCK_SECONDS`(＝5)秒，
+ *   而"播完"这件事是**面板自己**结算的（面板上只有「跳过」，广告**不需要玩家点**）。
+ *   写死一个短 sleep ⇒ 在广告还在播的时候就去断言"道具已就绪"，得到**假红**，
+ *   而且报出来的失败原因（"点广告没反应"）会把归因引到完全错误的方向。
+ *   ⚠️ 同一族坑在 `g5-smoke.mjs` 里也踩过一次（那次更糟：遮罩吞掉了后面的点击）。
+ *   上限给 9s：mock 5s + 淡出 0.22s + 销毁 0.24s 之外还留了宽裕量。
+ */
+async function waitAdGone(timeoutMs = 9000) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeoutMs) {
+        const alive = await cdp.ev('!!window.__g5t.find("AdPanel")');
+        if (!alive) return true;
+        await sleep(150);
+    }
+    return false;
+}
+
+/**
  * 把一串具名节点的 `UITransform` 换算到 **CSS 像素**再报左右缘。
  * ⚠️ `listNamed()` 的 x/y 是 CSS px，但 `w/h` 是**设计 px**（`ui.width`）——
  *    直接混用会把格宽算成实际值的 1.78 倍，于是"永远越屏"（假红）。
@@ -156,7 +191,15 @@ const fdiff = await cdp.ev('globalThis.__game5.faceDiff()');
 console.log(`      DIFF = ${j(dcfg)}`);
 console.log(`      牌面差异 = ${j(fdiff)}`);
 judge(dcfg.enabled === true, '难度置换开关 `DIFF.ENABLED` = true');
-judge(dcfg.effBlock === 6, `本关有效块大小 = 6（CFG.DIFF.BLOCK 默认值），实测 ${dcfg.effBlock}`);
+// ★ 对照组：先证明"源码档位真的被解析出来了"。
+//   没有这一条的话，正则一旦匹配不上（源码改了写法），DIFF_BLOCK_SRC = NaN，
+//   主线那条会"两边都不对"地失败 —— 表现是红的，但**红的原因**指向产品而不是脚本。
+//   这里先把"解析这一步是好的"钉住，红的时候就能一眼分清是哪一层坏了。
+judge(Number.isInteger(DIFF_BLOCK_SRC) && DIFF_BLOCK_SRC >= 3 && DIFF_BLOCK_SRC <= 16,
+    `对照组：能从源码解析出档位且落在合法区间 [3,16]（实测 ${DIFF_BLOCK_SRC}）`);
+judge(dcfg.effBlock === DIFF_BLOCK_SRC && DIFF_BLOCK_SRC > 0,
+    `运行期生效块大小 ${dcfg.effBlock} = 源码 CFG.DIFF.BLOCK ${DIFF_BLOCK_SRC}` +
+    '（配置真的接到了运行期，不是"编译进去一个数"）');
 judge(fdiff && fdiff.changed > 0 && fdiff.same === false,
     `牌面确实被置换打散（${fdiff?.changed}/${fdiff?.total} 张与关卡表不同）`);
 
@@ -340,9 +383,16 @@ if (geom8 && geom9) {
 }
 
 // ------------------------------------------------------------
-//  ④ 广告 / 分享换来的道具：**立刻生效**、且**不扣库存**
+//  ④ 广告换来的道具：**立刻生效**、且**不扣库存**
+//  ★★ 2026-10-07 第 59 轮修订：本节原来点的是面板上的「分享给好友」——
+//     那颗按钮**已在第 53 轮按合规口径删除**（`_r53-core-check.mjs` 的 B21/B22
+//     正是断言它不存在）。于是本节从第 53 轮起就一直红着，红的原因是**脚本没跟上**，
+//     不是产品坏了。现在改成走**现存**的那条路：
+//       ① 面板上**不该有**「分享给好友」（合规断言，顺手把这条钉住）
+//       ② 广告**不需要玩家点任何东西**，播完自己结算 ⇒ 等它消失，不要 sleep 猜
+//     被验的原意("广告换来的那一次不扣库存、且立刻生效")一个字没变。
 // ------------------------------------------------------------
-head('需求④ · 库存空了才看广告；换来的那一次**不扣库存**、且立刻生效');
+head('需求④ · 库存空了才看广告；广告换来的那一次**不扣库存**、且立刻生效');
 {
     const hadErase = await zeroInv('erase');
     console.log(`      把 erase 库存置零（原有 ${hadErase} 个）→ 模拟"骰子赠礼已用光"`);
@@ -352,17 +402,25 @@ head('需求④ · 库存空了才看广告；换来的那一次**不扣库存**
     await sleep(520);
     const adOpen = await cdp.ev('!!window.__g5t.find("AdPanel")');
     console.log(`      库存 erase=${iBefore.erase} · 点「消除」→ 广告卡出现 = ${adOpen}`);
-    judge(adOpen === true, '库存为空时点道具键 → 弹出「看广告 / 分享」卡');
+    judge(adOpen === true, '库存为空时点道具键 → 弹出「看广告」卡');
     if (adOpen) {
         await shot('r46-02-ad-panel.png');
-        await tapNode(cdp, 'Btn_分享给好友');
-        await sleep(800);
+        const panelTexts = await cdp.ev(`(() => { const p = window.__g5t.find('AdPanel');
+            const out = []; (function w(n){ const l = n.getComponent('cc.Label');
+                if (l) out.push(String(l.string)); n.children.forEach(w); })(p); return out; })()`);
+        console.log(`      面板文案：${j(panelTexts)}`);
+        judge(!panelTexts.some((t) => t.includes('分享给好友')),
+            '★ 合规：面板上**没有**「分享给好友」这颗诱导分享按钮（第 53 轮已删）');
+        // 等广告**真的播完**（mock 5s）—— 不许 sleep 猜秒数，理由见 `waitAdGone` 注释
+        const adGone = await waitAdGone();
+        console.log(`      等广告自行结算（上限 9s）：面板已消失 = ${adGone}`);
+        judge(adGone, '广告面板自行结算并消失（mock 走完 end，不是被点「跳过」）');
         const armedAd = await cdp.ev('globalThis.__game5.armed()');
         const fromStockAd = await cdp.ev('globalThis.__game5.eraseFromStock()');
         const sp = await slotPicks();
-        console.log(`      分享后：armed=${armedAd} fromStock=${fromStockAd}（期望 true / false）· 槽内可选 ${sp.length} 张`);
-        judge(armedAd === true, '分享之后**立刻**推进「消除」就绪态（无需再点一次道具键）');
-        judge(fromStockAd === false, '记账为「广告/分享得来」⇒ 消掉那张时**不得扣库存**');
+        console.log(`      播完后：armed=${armedAd} fromStock=${fromStockAd}（期望 true / false）· 槽内可选 ${sp.length} 张`);
+        judge(armedAd === true, '广告看完后**立刻**推进「消除」就绪态（无需再点一次道具键）');
+        judge(fromStockAd === false, '记账为「广告得来」⇒ 消掉那张时**不得扣库存**');
         if (sp.length) {
             const sD = await st();
             const hs = await hitStack(sp[0].x, sp[0].y);
@@ -373,11 +431,11 @@ head('需求④ · 库存空了才看广告；换来的那一次**不扣库存**
             console.log(`      槽内牌命中栈：${hitNames(hs)}`);
             console.log(`      slots ${sD.slots} → ${sE.slots} · cleared ${sD.cleared} → ${sE.cleared} · erase 库存 ${iBefore.erase} → ${iAfter.erase}`);
             judge(sE.slots === sD.slots - 1 || sE.cleared === sD.cleared + 1,
-                `分享换来的「消除」确实生效（槽位 ${sD.slots} → ${sE.slots} · 已清 ${sD.cleared} → ${sE.cleared}）`);
+                `广告换来的「消除」确实生效（槽位 ${sD.slots} → ${sE.slots} · 已清 ${sD.cleared} → ${sE.cleared}）`);
             judge(iAfter.erase === 0 && iBefore.erase === 0,
-                '广告/分享那次**没有凭空扣库存**（erase 恒为 0，未出现负数）—— 第 46 轮修的那个 bug');
+                '广告那次**没有凭空扣库存**（erase 恒为 0，未出现负数）—— 第 46 轮修的那个 bug');
         } else {
-            judge(false, '分享后槽内拿不到可选的牌 —— 无法验证"立刻生效"');
+            judge(false, '广告播完后槽内拿不到可选的牌 —— 无法验证"立刻生效"');
         }
     }
 }

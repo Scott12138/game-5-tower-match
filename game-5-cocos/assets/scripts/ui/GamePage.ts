@@ -28,8 +28,8 @@
 
 import { Input, Node, Sprite, Texture2D, UIOpacity, UITransform, _decorator, input, tween, v3 } from 'cc';
 
-import { AD, ASSET, COLOR, DEBUG, DIFF, FONT, LAYOUT, NUDGE, PAGE, PLAY, SFX, SKIN, TOOL, TOOL_ICON,
-    TOOL_META, TOOL_ORDER, diffBlockOf, timeLimitOf, type AdScene, type ToolKey } from '../CFG';
+import { AD, ASSET, COLOR, DEBUG, DIFF, FONT, LAYOUT, MOTION, NUDGE, PAGE, PLAY, SFX, SKIN, TOOL,
+    TOOL_ICON, TOOL_META, TOOL_ORDER, diffBlockOf, timeLimitOf, type AdScene, type ToolKey } from '../CFG';
 import { PageBase } from './PageBase';
 import { Layout } from './Layout';
 import { EASE, MotionFx, TAG } from './MotionFx';
@@ -64,6 +64,34 @@ const DW = 750;
 const SLOT_BOX = { w: 62, h: 74 };
 /** 判定用的输入锁（ms）—— 连点保护 */
 const INPUT_LOCK = PLAY.INPUT_LOCK_MS;
+
+// ============================================================
+//  「碰 / 吃」撞击动效的**时间轴刻度（ms）** —— 全部由 `MOTION` 常量累加得出
+// ============================================================
+//
+//  ★ 第 59 轮新增。它决定了"什么时候可以把剩下的牌重排、把进度加上去"。
+//  ⚠️ **必须由各段累加得出，不许手填一个数**：将来谁改了 `POP_OUT` 却忘了改这里，
+//    表现是"三张牌炸到一半就被重排打断"，而**不会有任何报错**
+//    （旧实现正是这么坏的：动效 280ms、重排 300ms，两者都远短于现在这套时间轴）。
+//
+//  ⚠️ 撞击帧那一段**多留 1 帧（16ms）**：冲刺补间是在引擎的 update 里推进的，
+//    而撞击帧的回调是 `setTimeout`。两者取同一个毫秒数时，回调会**先于**冲刺的
+//    最后一帧落地 —— 于是撞击帧里那条同样改 `scale` 的挤压补间会把冲刺补间
+//    `stop()` 在离终点 1 帧的位置（表现不明显，但那 1~2px 的错位会让"叠成一张厚牌"
+//    看起来没完全叠拢）。留一帧是这台机器上最省的确定性做法。
+
+/** 撞击帧 = 蓄力 + 冲刺（+1 帧余量，见上） */
+const CLASH_HIT_MS = Math.round((MOTION.CLASH_ANTICIPATE + MOTION.CLASH_DASH) * 1000) + 16;
+/** 停一拍 —— 让"撞"和"散"成为两件可以分别记住的事 */
+const CLASH_HOLD_MS = Math.round(MOTION.POP_HOLD * 1000);
+/** 释放段（先胀到峰值、再收缩到 0 并淡出） */
+const CLASH_OUT_MS = Math.round(MOTION.POP_OUT * 1000);
+/**
+ * 动效总时长 —— **数据收尾（重排 / 进度 / 判胜负）必须等它走完**。
+ * ⚠️ 这条式子同时是"释放段真的跑完了"的唯一凭证：`resolveMatch` 里那个
+ *    `this.timer(CLASH_TOTAL_MS, …)` 就写在它上面。
+ */
+const CLASH_TOTAL_MS = CLASH_HIT_MS + CLASH_HOLD_MS + CLASH_OUT_MS;
 
 /**
  * 估算单行文字宽度（设计 px）。
@@ -233,6 +261,26 @@ const RESULT = {
     BTN_GOLD_MB: 20,
     BTN_GHOST_H: 76,
     BTN_GHOST_FONT: 28,
+    /**
+     * ★ 第 58 轮：末排「**返回首页**」按钮。
+     *
+     * 【为什么必须补这一颗 —— 这是个"出不去"的死角】
+     *   加它之前，结算弹层的出口只有：胜态「下一关 / 再玩一次」、负态「看广告复活 / 重新挑战」。
+     *   **两态都没有"回首页"** ⇒ 玩家打完一局若不想继续，只能点「下一关」被推着往前走；
+     *   负态更糟：不想看广告就只能「重新挑战」，**没有任何退路**
+     *   （遮罩是吃触摸的，点空白关不掉）。所以它不是"锦上添花的第三颗"，
+     *   而是补上了一个**功能性的缺口**。
+     *
+     * 【为什么独立成第三排，而不是与次按钮并排】
+     *   ① 并排要把 540 宽劈成两半（每颗 260），字号 28 的「重新挑战」占 107 宽还塞得下，
+     *      但那样"返回首页"就与"分享 / 重新挑战"**同级**了 —— 语义上它更轻
+     *      （是**离开**，不是继续玩），独立成排、排在最后最弱的位置才读得对；
+     *   ② 并排要改 `resultButton` 的宽度口径（现在一律 `CARD_W − 80`），
+     *      而那个宽度是第 45 轮专门统一过的（旧版上 540/下 460 呈梯形，用户点名报过）。
+     */
+    BTN_HOME_H: 76,
+    /** 次按钮 → 返回首页 的间距 */
+    BTN_HOME_MT: 20,
     /**
      * 金币雨单枚显示尺寸（设计 px）。
      *
@@ -1445,14 +1493,14 @@ export class GamePage extends PageBase {
         const gone = m.indices.slice();
         // ⚠️ 用 `m.type`（'peng'|'chi'）—— 曾把这里写成 `m.kind`，
         //    `undefined === 'peng'` 恒为假，于是**所有"碰"都被显示成"吃"**且不报错。
-        this.popToast(m.type);
-        // 碰 / 吃 **各自一条人声念白**（第 42 轮从隔壁麻将项目复用）。
-        // ⚠️ 传的是 `m.type`（'peng' | 'chi'），曾把这里写成 `m.kind` ⇒ undefined，
-        //    所有"碰"都会被静默播成"吃"—— 这类错别字不报错，只能靠耳朵听出来。
-        AudioService.playSfx(m.type === 'peng' ? SFX.peng : SFX.chi, 1.0);
-        Haptics.medium();
+        // ★ 第 59 轮：飘字 / 人声念白 / 触感**一律搬到了撞击帧**（见 `onClash`），
+        //   不再在这里播。理由见 `onClash` 第 ① 条 —— 留在 t=0 会出现
+        //   "人声先喊、牌 200ms 后才撞上"的错位，而 game-4 的节奏是"咚——唰"。
+        //    （`m.type` 仍是唯一真源，`onClash` 收的是同一个值。）
 
         // ★ 第 46 轮：成组消除 = "这一轮卡住"到此结束 → 秒表归零 + 立刻收掉引导环。
+        //    ⚠️ 它改的是**状态**（提示计时），不是视觉 ⇒ 必须留在 t=0，
+        //       不能跟着飘字一起挪到 200ms 后（否则引导环会多亮 200ms）。
         this.nudgeReset();
 
         // ★ 摘出**不会被消掉的**槽内节点，交给 300ms 后的重排 ——
@@ -1466,29 +1514,266 @@ export class GamePage extends PageBase {
         // ★ 第 46 轮：槽被清空时就绪态自动失效（否则键面一直亮着"等你选牌"，但没牌可选）
         if (this._armedErase && this._slots.length === 0) this.setArmedErase(false);
 
-        // 视觉：爆开 → 移除 → 槽位重排
-        for (const si of gone) {
-            const n = this._slotNodes[si];
-            if (n?.isValid) {
-                tween(n)
-                    .to(0.26, { scale: v3(1.45, 1.45, 1), angle: 14 }, { easing: 'backOut' })
-                    .start();
-                const op = n.getComponent(UIOpacity) ?? n.addComponent(UIOpacity);
-                MotionFx.fadeTo(op, 0, 0.26);
-                const dead = n;
-                this.timer(280, () => { if (dead.isValid) dead.destroy(); });
+        // ★ 第 59 轮新增：**消除动效期间锁输入**。
+        //
+        // 【为什么必须加】动效时长从"旧实现的 300ms"变成 `CLASH_TOTAL_MS`(≈516ms)，
+        //   而这 516ms 里 `_locked` 一直是 false（点牌那把锁在飞行动效收尾时就交了）。
+        //   窗口期内玩家再点一张，`placeSlotTile()` 会按 `_slots.length` 选格 ——
+        //   但此刻**存活的那几张牌还坐在它们的旧格子里**（要等 516ms 才重排），
+        //   于是新牌可能被放进"某个存活牌正占着的格子"，两张牌叠在一起约 200ms
+        //   才被重排解开。属于"看着像渲染 bug"的那类瑕疵。
+        //   game-4 用 `_busy = true` 覆盖整段动效，本作照此加锁。
+        //
+        // ⚠️ 必须走 `_lockSeq` 的**归属校验**：`_locked` 是一个共用布尔，
+        //    而"上次点牌"那条看门狗（`INPUT_LOCK × 4`）也可能来清它。
+        //    不自增序号的话，看门狗会把动效这把锁提前放掉（在 INPUT_LOCK 较小时就会发生）。
+        // ⚠️ 解锁只写在 `CLASH_TOTAL_MS` 那个定时器里（见下）——
+        //    失败路径也走同一个定时器，不存在"锁了没人放"的分支。
+        this._locked = true;
+        const clashSeq = ++this._lockSeq;
+
+        // ============================================================
+        //  视觉：蓄力 → 冲刺 → 撞击 → 停一拍 → 释放
+        //  ★ 第 59 轮：逐值照抄隔壁项目 game-4 的 `playClashClear()`，
+        //    「碰 / 吃」共用同一套（与 game-4 的现状一致 —— 它那边已经
+        //    把"吃"的咀嚼动效停用了，两种牌型走同一条撞击链）。
+        // ============================================================
+        //
+        // ★ 第 0 步（**必须最先做，且必须在 `_slotNodes` 被清空之前**）：
+        //   把这三张牌从**槽格 `Slot{i}`** 摘到**槽位条 `SlotBar`** 上。
+        //
+        //   · 为什么必须摘：`relayoutSlots()` 里有一句「清掉所有格子里
+        //     **不在队列中**的 SlotTile」—— 而收尾用的是全新的 `_slotNodes`（全 null），
+        //     待消的这三张**不可能**在队列里 ⇒ 它们一定会被当场销毁。
+        //     旧实现之所以把销毁卡在 280ms、重排卡在 300ms，就是在绕开这件事，
+        //     代价是"牌还没炸完就被抹掉"。
+        //   · 为什么摘到**槽位条**而不是别处：那里有正确的坐标系 ——
+        //     所有槽格的中心都在条内的 y=0 上、横向间距就是 `slotCellW()`，
+        //     于是"三张牌朝中心靠拢"这条几何可以**直接用槽位自己的单位**表达。
+        //     它同时也天然盖在槽格之上、弹层（`_topLayer`）之下。
+        //   · `setParent(parent, keepWorldTransform)` 的第二参在 Creator 3.x 的
+        //     TS 定义里是**必填**的，必须显式写 `true`；漏了它牌会瞬间跳位
+        //     （局部坐标被当成世界坐标用）。
+        const bar = this._slotBar;
+        const doomed: Node[] = [];
+        if (bar?.isValid) {
+            for (const si of gone) {
+                const n = this._slotNodes[si];
+                if (!n?.isValid) continue;
+                n.setParent(bar, true);
+                doomed.push(n);
             }
         }
+
+        if (doomed.length > 0) {
+            this.playClash(doomed, m.type);
+        } else {
+            // 兜底（理论上不可达）：槽位条缺失或三张牌都没节点 ⇒ 退回最朴素的淡出，
+            // 数据链路绝不能因为"视觉缺一环"而卡住（否则整局再也点不动）。
+            for (const si of gone) {
+                const n = this._slotNodes[si];
+                if (!n?.isValid) continue;
+                const op = n.getComponent(UIOpacity) ?? n.addComponent(UIOpacity);
+                MotionFx.fadeTo(op, 0, 0.2);
+                const dead = n;
+                this.timer(240, () => { if (dead.isValid) dead.destroy(); });
+            }
+        }
+
         // ⚠️ 必须是 `fill(null)` 而不是 `[]`：`refreshSlotDanger()` 靠 `=== null` 判"空格"，
         //    空数组读出来的是 `undefined`，会让**所有格子都被当成"有牌"**（短横不画）。
         this._slotNodes = new Array<Node | null>(this._slotMax).fill(null);
-        this.timer(300, () => {
+        this.timer(CLASH_TOTAL_MS, () => {
+            // ① 先放锁：动效跑完了，玩家该能继续点牌（哪怕下面几步抛异常也不能把锁留下）
+            if (this._locked && this._lockSeq === clashSeq) this._locked = false;
+            // ② 三张"已消"的牌此刻已缩到 0 并淡透 —— 从槽位条上**真正删掉**它们。
+            //    ⚠️ 必须自己删：它们已被摘出槽格，而 `relayoutSlots()` 只管
+            //       **格子里**的孩子（那句"清掉不在队列中的 SlotTile"够不到它们）。
+            //       漏掉这一步的表现是"槽位条上多了三张看不见的幽灵节点"，
+            //       平时没事，但它们会一直挂在条上、还会挡住后面弹出的命中区。
+            for (const n of doomed) if (n.isValid) n.destroy();
+            // ③ 数据收尾（与旧实现逐字相同，只是等的时间从 300ms 变成动效总时长）
             this.relayoutSlots();
             this.refreshProgress();
             SaveService.instance.addCleared(gone.length);
             this.checkBoardEmpty();
             this.refreshSlotDanger();
         });
+    }
+
+    /**
+     * 「碰 / 吃」的**撞击**：蓄力 → 冲刺 → 撞上 → 停一拍 → 释放。
+     *
+     * 【为什么旧版不够"撞"】
+     *   旧版的三张牌**从头到尾都待在自己的槽格里**：各自放大 1.45 倍、转 14°、淡出。
+     *   也就是说它们之间从来没有发生过任何**空间关系** ——
+     *   玩家看到的是"三张牌各自胀了一下"，而不是"三张牌撞到了一起"。
+     *   差距全在下面这条时间轴上，而不在"幅度够不够大"。
+     *
+     * 【时间轴】（`MOTION` 里的常量，一个数都不许凭手感改 —— 改了就不再"表现一致"）
+     *   t=0           蓄力：三张牌朝**远离中心**的方向各退 `CLASH_PULLBACK`(12) px
+     *   t=90ms        冲刺：`EASE.DASH`(quadIn) 加速朝中心猛冲，
+     *                 撞上后的中心间距压到 `槽格宽 × CLASH_OVERLAP`(0.45)
+     *   t=200ms       ★ 撞击帧：挤压 + 冲击圆环 + 每张牌喷碎屑 + 牌堆上踢
+     *                           + 人声念白 + 中档震动 + 飘字（见 `onClash`）
+     *   t=260ms       停一拍（`POP_HOLD` 60ms）
+     *   t=260ms 起    释放：先胀到 1.20，再收缩到 0 并淡出
+     *   t=500ms       数据收尾 → 判胜负（由 `resolveMatch` 的 `CLASH_TOTAL_MS` 定时器接）
+     *
+     * 【为什么"撞击"必须是 quadIn 而不是 quadOut】
+     *   quadOut 冲到终点时会减速，看起来像"小心翼翼地靠拢"；
+     *   quadIn 是越冲越快、到位即最高速 —— 那才是撞上去。
+     *
+     * 【为什么撞完要"停一拍"】
+     *   撞击与消散直接连起来，玩家只记得"闪了一下"。
+     *   停 60ms 让"撞"和"散"成为两件可以被分别记住的事 ——
+     *   这是消除类游戏通用的一条节奏经验：先顿一下，再消失。
+     *
+     * @param doomed 待消的三张牌。**已经被摘到槽位条上**，所以它们的
+     *               `position` 已经是槽位条坐标系里的值（y 恒为 0）。
+     */
+    private playClash(doomed: Node[], type: MatchType): void {
+        const bar = this._slotBar;
+        if (!bar?.isValid) return;
+
+        const n = doomed.length;
+        // 撞击中心 = 这几张牌当前位置的平均值。它们此刻都躺在槽位条的 y=0 上。
+        let cx = 0;
+        for (const v of doomed) cx += v.position.x;
+        cx /= n;
+        const cy = 0;
+
+        // 叠拢程度：撞上之后的中心间距 = 槽格宽 × `CLASH_OVERLAP`。
+        // 三张牌叠成"一张厚牌"正是"三合一"的观感。
+        const span = this.slotCellW() * MOTION.CLASH_OVERLAP;
+
+        // ① 蓄力 → 冲刺：**一条链**走完，绝不拆成两条 tween。
+        //    拆开的话，蓄力与冲刺会同时持有 position（两条 tween 抢同一属性），
+        //    在交界处必然出现重叠帧 —— 真机上是肉眼可见的一顿。
+        for (let k = 0; k < n; k++) {
+            const v = doomed[k];
+            if (!v.isValid) continue;
+            // 第 k 张朝**远离中心**的方向退：中间的（dir = 0）不动。
+            // 只动两侧就已经足够表达"攒势"了；中间那张也退反而像整体平移。
+            // ⚠️ 这里的 `dir` 由**序号**推出（而不是由实际 x 的符号推出）——
+            //    与 game-4 逐字一致，也天然免疫"牌正好落在中心点上"的除零。
+            const dir = k < (n - 1) / 2 ? -1 : (k > (n - 1) / 2 ? 1 : 0);
+            const x0 = v.position.x;
+            const y0 = v.position.y;
+            const tx = cx + (k - (n - 1) / 2) * span;
+            MotionFx.seq(v, [
+                { props: { position: v3(x0 + dir * MOTION.CLASH_PULLBACK, y0, 0) },
+                    duration: MOTION.CLASH_ANTICIPATE, easing: EASE.ENTER },
+                { props: { position: v3(tx, cy, 0) },
+                    duration: MOTION.CLASH_DASH, easing: EASE.DASH },
+            ], { tag: TAG.SLOT });
+        }
+
+        // ② ★ 撞击帧：所有牌都撞到的时刻（+1 帧余量，理由见 `CLASH_HIT_MS` 的注释）
+        this.timer(CLASH_HIT_MS, () => {
+            if (!bar.isValid) return;
+            this.onClash(doomed, type, cx, cy);
+            // ③ 停一拍之后再释放
+            this.timer(CLASH_HOLD_MS, () => this.releaseClash(doomed));
+        });
+    }
+
+    /**
+     * ★ 撞击帧的全部表现。抽成独立方法是因为它要做 6 件事 ——
+     *   全塞进定时器闭包里会让那段代码彻底不可读（game-4 也是这么分的）。
+     */
+    private onClash(doomed: Node[], type: MatchType, cx: number, cy: number): void {
+        const bar = this._slotBar;
+        if (!bar?.isValid) return;
+
+        // ① 声音与触感 —— 这是本作**唯一"值得震"的瞬间**。
+        //    ★ 第 59 轮把它们从 `resolveMatch` 开头**搬到撞击帧**：
+        //      放大到牌真的撞上的那一帧，才是 game-4 的"咚——唰"节奏；
+        //      留在 t=0 会出现"人声先喊、牌 200ms 后才撞上"的错位（肉眼/耳朵都能察觉）。
+        //    ⚠️ 碰 / 吃 **各自一条人声念白**（第 42 轮从隔壁麻将项目复用）。
+        //      传的是 `type`（'peng' | 'chi'）—— 曾经上游把它写成 `m.kind` ⇒ undefined，
+        //      于是所有"碰"都被静默播成"吃"：这类错别字不报错，只能靠耳朵听出来。
+        AudioService.playSfx(type === 'peng' ? SFX.peng : SFX.chi, 1.0);
+        Haptics.medium();
+
+        // ② 挤压（squash & stretch）：撞上去的牌会被压扁一点、拉长一点。
+        //    两段式：先压（`EASE.EXIT` = quadIn，被撞的那一下是突然的），
+        //    再弹回（`EASE.POP` = backOut，带过冲 ⇒ 材质有弹性）。
+        //    一条曲线跑完的话，回到 1.0 的过程没有"弹"的记忆，会像"缩放"而不是"碰撞"。
+        for (const v of doomed) {
+            if (!v.isValid) continue;
+            MotionFx.seq(v, [
+                { props: { scale: v3(MOTION.CLASH_SQUASH_X, MOTION.CLASH_SQUASH_Y, 1) },
+                    duration: MOTION.CLASH_RECOIL * 0.35, easing: EASE.EXIT },
+                { props: { scale: v3(1, 1, 1) },
+                    duration: MOTION.CLASH_RECOIL * 0.65, easing: EASE.POP },
+            ], { tag: TAG.SLOT });
+        }
+
+        // ③ 冲击圆环：一圈由小到大、同时淡出的描边环 —— 三张牌撞在一起的能量释放。
+        //    父节点用**槽位条**：那里既是撞击点的正确坐标系，
+        //    又天然盖在三张牌之上、在弹层（`_topLayer`）之下。
+        //    （game-4 要在槽位层与特效层之间做一次世界坐标换算，本作不需要 —— 这里是同一个父节点。）
+        MotionFx.spawnPulse(bar, cx, cy, COLOR.GOLD, {
+            r0: MOTION.CLASH_RING_R0,
+            r1: MOTION.CLASH_RING_R1,
+            line: MOTION.CLASH_RING_LINE,
+            life: MOTION.CLASH_RING_LIFE,
+        });
+
+        // ④ 碎屑：从**每张牌**的位置各喷一次，而不是只从中心喷一个点。
+        //    只在中心喷的话，"三张牌被打散"这件事就没有空间上的分布感。
+        //    ⚠️ 取的是牌的**当前**位置 —— 此刻冲刺已收尾，正好是叠拢后的落点。
+        for (const v of doomed) {
+            if (!v.isValid) continue;
+            MotionFx.spawnShards(bar, v.position.x, v.position.y, COLOR.GOLD);
+        }
+
+        // ⑤ 牌堆上踢：把撞击的能量传导出去（替代"整屏镜头抖动"那条被否掉的方案）。
+        this.kickBoard(MOTION.CLASH_KICK);
+
+        // ⑥ 飘字：把牌型名说出来（碰 / 吃）。
+        //    ★ 与①的人声一起，这是「吃 / 碰」之间**唯一还看得见听得见的差别**
+        //      —— 动效本身两种牌型完全一致（与 game-4 的现状一致）。
+        this.popToast(type);
+    }
+
+    /**
+     * 释放段：先胀到峰值，再收缩到 0 并淡出。
+     *
+     * 【为什么是两段而不是一条曲线】
+     *   一条曲线从 1.0 直接跑到 0，看起来是"缩没了"；
+     *   先胀到 1.20 再收缩，看起来是"胀开了、然后被打散"。
+     *   前者是"消失"，后者是"消除" —— 差的正是那 60ms 的胀开。
+     */
+    private releaseClash(doomed: Node[]): void {
+        for (const v of doomed) {
+            if (!v.isValid) continue;
+            MotionFx.seq(v, [
+                { props: { scale: v3(MOTION.POP_SCALE_MAX, MOTION.POP_SCALE_MAX, 1) },
+                    duration: MOTION.POP_OUT * 0.3, easing: EASE.POP },
+                { props: { scale: v3(0, 0, 1) },
+                    duration: MOTION.POP_OUT * 0.7, easing: EASE.EXIT },
+            ], { tag: TAG.SLOT });
+            // 淡出与"胀开 → 收缩"错峰：前 30% 还在往外胀的时候不能已经开始变透明，
+            // 否则那一下"胀"是看不见的（旧实现没有这个 delay，观感像直接缩小）。
+            const op = v.getComponent(UIOpacity) ?? v.addComponent(UIOpacity);
+            MotionFx.fadeTo(op, 0, MOTION.POP_OUT * 0.7, {
+                delay: MOTION.POP_OUT * 0.3, easing: EASE.EXIT, tag: TAG.FADE,
+            });
+        }
+    }
+
+    /** 撞击时把**整个牌堆**上踢一下再落回（把撞击的能量传导出去）。 */
+    private kickBoard(amount: number): void {
+        const board = this._boardNode;
+        if (!board?.isValid) return;
+        MotionFx.seq(board, [
+            { props: { position: v3(0, amount, 0) },
+                duration: MOTION.CLASH_KICK_UP, easing: EASE.EXIT },
+            { props: { position: v3(0, 0, 0) },
+                duration: MOTION.CLASH_KICK_DOWN, easing: EASE.POP },
+        ], { tag: TAG.KICK });
     }
 
     /**
@@ -2438,7 +2723,9 @@ export class GamePage extends PageBase {
             + RESULT.MASCOT_H + RESULT.MASCOT_MB
             + RESULT.DESC_H + RESULT.DESC_MB
             + (REWARDS ? RESULT.REWARD_H + RESULT.REWARD_MB : 0)
-            + RESULT.BTN_GOLD_H + RESULT.BTN_GOLD_MB + RESULT.BTN_GHOST_H + RESULT.PAD_BOTTOM;
+            + RESULT.BTN_GOLD_H + RESULT.BTN_GOLD_MB
+            + RESULT.BTN_GHOST_H + RESULT.BTN_HOME_MT
+            + RESULT.BTN_HOME_H + RESULT.PAD_BOTTOM;
 
         // ② 玉质厚卡：锚点 (0.5, 1) = 顶边中点，于是**子元素 y 一律"从卡顶往下量"**
         const card = createNode('Card', layer, {
@@ -2578,7 +2865,21 @@ export class GamePage extends PageBase {
                     this.goto(PAGE.START, { level: this._level });
                 });
         }
-        cur += RESULT.BTN_GHOST_H + RESULT.PAD_BOTTOM;
+        // ⑨ ★ 第 58 轮：末排「返回首页」—— **胜 / 负两态都有**。
+        //   理由见 `RESULT.BTN_HOME_H` 的长注释（这不是第三颗装饰按钮，
+        //   而是补上"不想继续玩时无路可退"这个缺口）。
+        cur += RESULT.BTN_GHOST_H + RESULT.BTN_HOME_MT;
+        this.resultButton(card, 'BtnHome', cur, RESULT.BTN_HOME_H, '返回首页', 'ghost',
+            RESULT.BTN_GHOST_FONT, RESULT.CARD_W - 80, () => {
+                // 返回首页 = 本局的**一个出口** ⇒ 与「重新挑战」同口径：先 `endRun()`
+                // 把没花完的局内赠礼按约作废（它本来就会过期，不结账等于凭空多给一局）。
+                // ⚠️ 胜态在 `onWin()` 里**已经**调过一次 `endRun()` —— 这里重复调是安全的：
+                //    `endRun()` 首行就是 `if (!_run) return null`，天然幂等。
+                endRun();
+                this.closeResult();
+                this.goto(PAGE.HOME);
+            });
+        cur += RESULT.BTN_HOME_H + RESULT.PAD_BOTTOM;
         // ★ 自检：内容总高必须**恰好**等于卡高。
         //   两者不同步时卡片底部会莫名其妙多/少一截留白，而**不会有任何报错**
         //   （第 38 轮就是这么漏掉 `MASCOT_MB` 的）。用 dev 期的 console.warn 喊出来 ——
@@ -2588,10 +2889,10 @@ export class GamePage extends PageBase {
                 + ' —— 检查 openResult 里 cardH 与 cur 两处累加是否同步');
         }
 
-        // ⑨ 胜态：金币雨（全局唯一峰值）—— z 在卡之上（照抄视觉稿 .coins z-index:8 > .modal:7）
+        // ⑩ 胜态：金币雨（全局唯一峰值）—— z 在卡之上（照抄视觉稿 .coins z-index:8 > .modal:7）
         if (win) this.coinRain(layer, vs.width, vs.height);
 
-        // ⑩ 入场：蒙层淡入 + 卡片从 0.92 弹入
+        // ⑪ 入场：蒙层淡入 + 卡片从 0.92 弹入
         const op = layer.addComponent(UIOpacity);
         op.opacity = 0;
         MotionFx.fadeTo(op, 255, 0.3);

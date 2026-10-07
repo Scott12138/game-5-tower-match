@@ -44,6 +44,13 @@ const DW = 750;
 /** 内容层整体下移（用户拍板定稿值，改这一个值即可整体升降） */
 const YSHIFT = 64;
 
+/**
+ * 关卡进度条的**轨道宽**（设计 px）。
+ * ★ 第 58 轮从 `buildProgress` 的局部变量提上来：重绘路径（`refreshProgress`）
+ *   也要用它，两处各写一个 420 迟早会出现"建的宽、重绘的窄"。
+ */
+const PROGRESS_W = 420;
+
 // ------------------------------------------------------------
 //  标题尺寸（第 35 轮：用户反馈"字号偏小，适当放大"）
 // ------------------------------------------------------------
@@ -492,6 +499,29 @@ export class HomePage extends PageBase {
     private _sheet: Node | null = null;
     private _sheetOpen = false;
 
+    // ---- ★ 第 58 轮：**重置进度要"就地生效"**，于是这些显示必须留下可刷新的把手 ----
+    //
+    //  【为什么需要它们 —— 用户报的原文】
+    //   「修复点击重置进度后没有立即重置的问题，要求点击后即刻重置，无需进入下一关才生效」。
+    //   旧实现里 `resetAll()` 确实把存档清了，但首页这几处都是**建时读一次存档就再也不看**：
+    //     · 金币胶囊（有 `_walletLabel`，但只在 `onEnter` 刷）
+    //     · 关卡进度条 + 「第 N 关 · 共 M 关」（**连引用都没留**）
+    //     · 主按钮副标题「继续 · 第 N 关」（**连引用都没留**）
+    //   ⇒ 点完确认后画面**一动不动**，玩家的判断是"重置没生效"，
+    //     只有进一次下一关（= 新开一局、重新读档）才看到变化。
+    //
+    //  ⚠️ 别改成"销毁整页重建"：那会重播一遍 0.08~0.74s 的入场动画，
+    //     与"就地生效"的体感正相反（而且 `createNode` 追加会打乱 z 序）。
+    /** 进度条那张 Graphics（原地 `clear()` + 重绘，见 `refreshProgress`） */
+    private _progressG: Graphics | null = null;
+    /** 「第 N 关 · 共 M 关」那行字 */
+    private _progressLabel: Label | null = null;
+    /**
+     * 主按钮副标题「继续 · 第 N 关」。
+     * ⚠️ 它是**主按钮内部**的一行字（按钮本身是九宫格拼图，不能整颗重建）。
+     */
+    private _startSubLabel: Label | null = null;
+
     // ========================================================
     protected onBuild(): void {
         this.buildBackground();
@@ -749,13 +779,11 @@ export class HomePage extends PageBase {
         //    新拼法没有接缝可盖、素材自带明暗，整层去掉 —— 这是本次三项修改之一。
 
         // 文案
-        const lv = SaveService.instance.level;
         createLabel(btn, '开始游戏', {
             fontSize: 36, color: '#FFE9A8', bold: true, w: W, h: 46, y: 14,
         });
-        const sub = `继续 · 第 ${lv} 关`;
         const subW = 40 + 12 + 150 + 12 + 40;
-        createLabel(btn, sub, {
+        this._startSubLabel = createLabel(btn, this.startSubText(), {
             fontSize: 24, color: 'rgba(255,247,230,0.88)', bold: true, w: subW, h: 28, y: -28,
         });
         // 两侧短金线
@@ -768,9 +796,18 @@ export class HomePage extends PageBase {
         this.tapable(btn, () => {
             Haptics.medium();
             AudioService.playSfx('audio/button');
-            this.goto(PAGE.START, { level: lv });
+            // ★★ 第 58 轮修：这里**必须在点击时实时读存档**，不能用建时捕获的局部变量。
+            //   捕获旧值的后果是"重置进度后立刻点开始游戏"仍然进**重置前**的那一关 ——
+            //   而按钮上那行「继续 · 第 N 关」已经刷成"第 1 关"了 ⇒ 显示与行为**互相矛盾**，
+            //   且两边都不报错。这种"显示刷了、行为没刷"比整块没刷更难发现。
+            this.goto(PAGE.START, { level: SaveService.instance.level });
         }, true);
         this.settleIn(btn, 0.48);
+    }
+
+    /** 主按钮副标题「继续 · 第 N 关」（重置进度后要就地刷新，故收敛成一处） */
+    private startSubText(): string {
+        return `继续 · 第 ${SaveService.instance.level} 关`;
     }
 
     // ---- 左右功能列 ----
@@ -857,25 +894,87 @@ export class HomePage extends PageBase {
 
     // ---- 关卡进度 ----
     private buildProgress(): void {
-        const W = 420;
+        const W = PROGRESS_W;
         const grp = createNode('Progress', this.body, { w: W, h: 90, x: ex(165, W), y: ey(1045, 90) });
         const { g } = createGraphicsNode('Line', grp, { w: W, h: 16, y: 34 });
+        this._progressG = g;
+        this._progressLabel = createLabel(grp, '', {
+            fontSize: 24, color: COLOR.CREAM_DIM, w: W, h: 28, y: -14,
+        });
+        this.refreshProgress();          // 文案与图形都从这里出，避免"建时一套、刷新又是一套"
+        this.settleIn(grp, 0.74);
+    }
 
+    /**
+     * 按**当前存档**把进度条与「第 N 关 · 共 M 关」原地重绘。
+     *
+     * 【为什么是"重绘"而不是"重建节点"】
+     *   ① `createNode(...)` 一律**追加**到 `body` 末尾 ⇒ 重建一次，进度组就跳到最上层，
+     *      会盖住后建的元素（这里恰好是设置抽屉的背景层），而**不会有任何报错**；
+     *   ② 重建还会连带把 `settleIn` 的入场动画再播一遍（0.74s 才浮出来），
+     *      与"点了确认立刻生效"的诉求正相反。
+     *   所以留三个把手（组 / Graphics / Label），原地 `clear()` + 重绘。
+     *
+     * 【为什么分母从写死的 30 改成 `maxLevel`】
+     *   旧代码填充比例用 `lv / 30`，而下面那行文案用 `maxLevel` —— 两个来源。
+     *   关卡数一旦不是 30，进度条与文字就会各说各话（且不报错）。统一取 `maxLevel`。
+     */
+    private refreshProgress(): void {
+        const g = this._progressG;
+        const lv = SaveService.instance.level;
+        const max = Math.max(1, SaveService.instance.maxLevel);
+        if (this._progressLabel?.isValid) {
+            this._progressLabel.string = `第 ${lv} 关 · 共 ${max} 关`;
+        }
+        if (!g?.isValid) return;
+        const W = PROGRESS_W;
+        const frac = Math.max(0.04, Math.min(1, lv / max));
+        g.clear();
         // 轨道 4px
         fillRoundRect(g, 0, 0, W, 4, 3, 'rgba(255,247,230,0.14)', 255);
-        // 填充 10%
-        const lv = SaveService.instance.level;
-        const frac = Math.max(0.04, Math.min(1, lv / 30));
+        // 已完成段
         fillRoundRect(g, -W / 2 + (W * frac) / 2, 0, W * frac, 4, 3, COLOR.GOLD, 255);
         // 菱形游标
         const dx = -W / 2 + W * frac;
         g.fillColor = hex2color(COLOR.GOLD_HI);
         g.moveTo(dx, 8); g.lineTo(dx + 8, 0); g.lineTo(dx, -8); g.lineTo(dx - 8, 0); g.close(); g.fill();
+    }
 
-        createLabel(grp, `第 ${lv} 关 · 共 ${SaveService.instance.maxLevel} 关`, {
-            fontSize: 24, color: COLOR.CREAM_DIM, w: W, h: 28, y: -14,
-        });
-        this.settleIn(grp, 0.74);
+    /**
+     * ★ 第 58 轮：把首页**所有依赖存档的显示**按当前存档重刷一遍。
+     *
+     * 【为什么收成一个函数，而不是在重置处平铺几行】
+     *   "重置进度"这种事最怕**漏刷一处** —— 漏掉的那处不会报错，只是静静显示旧值，
+     *   表现成"重置好像生效了、但有个地方不对"，比整块没生效更难归因。
+     *   收成一个函数之后，**判据也就只有一条**：「调用它之后，页面上不再有任何
+     *   与存档不一致的数字」。验收脚本照这条写（见 `tools/_r59-verify.mjs` 的 R 组）。
+     *
+     * 【清单怎么来的：反向 grep，不是凭印象】
+     *   `grep -n 'SaveService\.instance' HomePage.ts` ⇒ 逐个确认它是不是"显示"：
+     *     651 金币胶囊 ✅ · 752 主按钮副标题 ✅ · 867/875 进度条 ✅
+     *     1282 商城「当前持有」✅ · 1583 签到「已连签 n 天」✅ · 1865 两颗红点 ✅
+     *   剩下的（1142 / 1205 / 1967 的 `RankService.pushScore`、签到/商城的读写动作）
+     *   不是常驻显示，不在此列。
+     *
+     * ⚠️ 两个弹层的刷新**必须带 `isValid` 守卫**：`refreshSignCells()` 里有一句
+     *    `this._signCard!`（非空断言），弹层没开时 `_signCard` 是 `null`
+     *    ⇒ 裸调会直接抛 TypeError。这类"只有弹层开着时才安全"的方法，
+     *    一律按"层在才刷"处理。
+     */
+    private refreshSaveDependent(): void {
+        // ① 顶栏金币
+        if (this._walletLabel?.isValid) this._walletLabel.string = this.coinText();
+        // ② 关卡进度条 + 「第 N 关 · 共 M 关」
+        this.refreshProgress();
+        // ③ 主按钮副标题「继续 · 第 N 关」
+        if (this._startSubLabel?.isValid) this._startSubLabel.string = this.startSubText();
+        // ④ 两颗入口红点（签到 = 今天还没签；商城 = 四件里有任一件还剩次数）
+        this.refreshFnDots();
+        // ⑤ / ⑥ 两个弹层（**层活着才刷**，理由见上面的 ⚠️）
+        //   `refreshShopRows()` 已经把「当前持有 n」一起刷了（第 58 轮补的 `hold`），
+        //   这里不需要再单独处理那一行。
+        if (this._shopLayer?.isValid) this.refreshShopRows();
+        if (this._signLayer?.isValid) this.refreshSignCells();
     }
 
     // ========================================================
@@ -970,7 +1069,13 @@ export class HomePage extends PageBase {
                 cancel: '算了',
                 onOk: () => {
                     SaveService.instance.resetAll();
-                    toast(this.body, '进度已重置，重开生效');
+                    // ★★ 第 58 轮修复（用户报「点击后没有立即重置，要进下一关才生效」）：
+                    //   根因是**首页所有读存档的显示都是建时快照、之后没人刷** ——
+                    //   `resetAll()` 把存档清了，画面上却一个数字都没变，玩家自然判定"没生效"。
+                    //   这里补一次就地刷新；toast 也去掉「重开生效」那句
+                    //   （那句本身就是"不会立刻生效"的书面承认，现在它不成立了）。
+                    this.refreshSaveDependent();
+                    toast(this.body, '进度已重置');
                 },
             });
         });
@@ -1228,8 +1333,13 @@ export class HomePage extends PageBase {
     private _shopLayer: Node | null = null;
     /** 广告播放中（连点保护；`AdService` 自己也有一次保护） */
     private _shopBusy = false;
-    /** 每行的可刷新件（领到道具后要重画按钮 + 改两行文字） */
-    private _shopRows: { key: ToolKey; g: Graphics; btnText: Label; left: Label }[] = [];
+    /**
+     * 每行的可刷新件（领到道具后要重画按钮 + 改三行文字）。
+     *
+     * ★ 第 58 轮补 `hold`：「当前持有 n」原来是个**建时写死、之后没人管**的 Label，
+     *   重置进度（清空 `inventory`）后它会一直显示旧数字 —— 典型的"漏刷一处"。
+     */
+    private _shopRows: { key: ToolKey; g: Graphics; btnText: Label; left: Label; hold: Label }[] = [];
 
     private openShop(): void {
         if (this._shopLayer?.isValid) return;
@@ -1279,10 +1389,12 @@ export class HomePage extends PageBase {
                 alignLeft: true, w: SHOP_ACT_W, h: 38, x: textX, y: 16,
             });
             // 「当前持有 n」——数量是**跨局库存**（与局内赠礼那套账分开）
-            createLabel(row, `当前持有 ${SaveService.instance.count(key)}`, {
+            const hold = createLabel(row, this.shopHoldText(key), {
                 fontSize: SHOP_STOCK_FS, color: COLOR.CREAM_DIM,
                 alignLeft: true, w: SHOP_ACT_W, h: 30, x: textX, y: -18,
             });
+            // ⚠️ 节点名必须唯一（与 `ShopBtn_*` 同规矩）—— 否则验收脚本按名取到的永远是第一行
+            hold.node.name = `ShopHold_${key}`;
 
             // 行尾操作列：按钮在上、「今日还可 n 次」在下（★ 用户拍板：不用刻度点）
             //
@@ -1302,7 +1414,7 @@ export class HomePage extends PageBase {
             left.node.name = `ShopLeft_${key}`;
             this.tapable(btn, () => this.claimShopTool(key));
 
-            this._shopRows.push({ key, g: bg, btnText, left });
+            this._shopRows.push({ key, g: bg, btnText, left, hold });
         });
 
         // ---- 关闭 ----
@@ -1330,6 +1442,11 @@ export class HomePage extends PageBase {
         this.timers.add(240, () => { if (l.isValid) l.destroy(); });
     }
 
+    /** 「当前持有 n」那行字（建行与刷新两处共用，避免出现两套口径） */
+    private shopHoldText(key: ToolKey): string {
+        return `当前持有 ${SaveService.instance.count(key)}`;
+    }
+
     /** 按当前配额把四行刷成常态 / 冷却态（★ 逐件独立 —— 一件领满不影响其余三件） */
     private refreshShopRows(): void {
         const sv = SaveService.instance;
@@ -1342,6 +1459,8 @@ export class HomePage extends PageBase {
             r.btnText.color = hex2color(can ? '#5C3610' : '#8FA79A');
             r.left.string = can ? `今日还可 ${left} 次` : '今日已领完';
             r.left.color = hex2color(can ? COLOR.CREAM_DIM : '#8FA79A');
+            // ★ 第 58 轮：库存那行也归这里刷（领取会 +1、重置进度会归零）
+            r.hold.string = this.shopHoldText(r.key);
         }
     }
 

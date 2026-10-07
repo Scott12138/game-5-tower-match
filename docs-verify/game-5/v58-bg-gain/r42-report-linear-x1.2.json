@@ -1,0 +1,69 @@
+{
+  "candidate_ref": {
+    "path": "/tmp/g5-r41-bg/B-page.png",
+    "status": "missing（/tmp 已清理 ⇒ 跳过参照段）",
+    "note": "参照段缺失不影响 grad-b.png / weave-b.png 的产出"
+  },
+  "recon_scope": "recon-B-page*.png 仅为资产反解路径，纹样尺度非引擎尺度，禁止用作视觉参照",
+  "seam": {
+    "weave+grains": {
+      "lr": 0.4098,
+      "tb": 0.3269,
+      "innerX": 0.3766,
+      "innerY": 0.3768,
+      "lr/innerX": 1.088,
+      "tb/innerY": 0.868
+    },
+    "weave_only": {
+      "lr": 0.3678,
+      "tb": 0.2317,
+      "innerX": 0.2984,
+      "innerY": 0.2977,
+      "lr/innerX": 1.233,
+      "tb/innerY": 0.778
+    },
+    "grain_only": {
+      "lr": 0.2371,
+      "tb": 0.2457,
+      "innerX": 0.2428,
+      "innerY": 0.2445,
+      "lr/innerX": 0.976,
+      "tb/innerY": 1.005
+    },
+    "alpha_01": {
+      "lr": 0.0177,
+      "tb": 0.0111,
+      "innerX": 0.0144,
+      "innerY": 0.0143,
+      "lr/innerX": 1.227,
+      "tb/innerY": 0.775
+    }
+  },
+  "seam_control_bad": {
+    "lr": 0.0,
+    "tb": 0.8176,
+    "innerX": 0.0,
+    "innerY": 0.2076,
+    "lr/innerX": 0.0,
+    "tb/innerY": 3.938
+  },
+  "sim": {
+    "status": "skipped（候选原图缺失 ⇒ 无参照可比）",
+    "仿真 topband": null,
+    "note": "仿真图 sim-page.png 仍会输出，但不做差额对账"
+  },
+  "params": {
+    "GAIN": 1.2,
+    "AMP_WAVE": 11.52,
+    "AMP_GRAIN": 1.8,
+    "D": 13.32,
+    "TEX": 256,
+    "M": 27,
+    "GRAIN_FREQ": 86,
+    "周期设计px": 9.4815,
+    "周期物理px": 15.967,
+    "denom": 240.03,
+    "bgcol_top": 14.97,
+    "alpha_max_255": 27
+  }
+}
