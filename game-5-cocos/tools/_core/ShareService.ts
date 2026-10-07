@@ -106,25 +106,41 @@ export class ShareService {
         return p;
     }
 
+    /**
+     * 邀战载荷（首页右列「好友邀战」入口专用）。
+     * 与 `payload()` 只差**标题**：走拉新文案、不带进度。
+     * query 仍带关卡号 —— 好友点进来照样能拿到"好友正在第 N 关"的落地提示。
+     */
+    private invitePayload(): SharePayload {
+        const p: SharePayload = {
+            title: SHARE.TITLE_INVITE,
+            query: `${SHARE.QUERY_KEY}=${this._level}`,
+        };
+        if (SHARE.IMAGE_URL) p.imageUrl = SHARE.IMAGE_URL;
+        return p;
+    }
+
     // --------------------------------------------------------
     //  ③ 主动分享（结算页 / 邀战入口走这条）
     // --------------------------------------------------------
 
     /**
      * 主动拉起转发面板。
+     * @param level 可选，覆盖"当前关卡"（会同步进 `_level`）
+     * @param mode  `'level'`（默认｜结算页胜态：带进度）· `'invite'`（首页邀战：拉新文案）
      * @returns 是否**真的调出去了**（平台不提供"用户有没有发成功"的回执，
      *          所以**不要**拿它当发奖依据 —— 反正我们也不发奖）。
      */
-    public share(level?: number): boolean {
+    public share(level?: number, mode: 'level' | 'invite' = 'level'): boolean {
         const w = this.wx();
         if (typeof level === 'number') this.setLevel(level);
         if (typeof w?.shareAppMessage !== 'function') {
             if (DEBUG.LOG_STATE) console.log('[ShareService] 当前环境不支持主动分享（已忽略）');
             return false;
         }
-        const p = this.payload();
+        const p = mode === 'invite' ? this.invitePayload() : this.payload();
         try {
-            // ⚠️ 直接把 `payload()` 交出去，**别在这里逐字段重列一遍**。
+            // ⚠️ 直接把 payload 交出去，**别在这里逐字段重列一遍**。
             //   重列会把"没有分享图"写成 `imageUrl: undefined` —— 字段**在**，
             //   而 `payload()` 的契约是"IMAGE_URL 为空 ⇒ 这个字段根本不出现"。
             //   （第 53 轮离线自检 B14 抓到的就是这处「代码与自己的注释不一致」：
@@ -135,7 +151,9 @@ export class ShareService {
             console.warn('[ShareService] shareAppMessage 抛异常：', e);
             return false;
         }
-        if (DEBUG.LOG_STATE) console.log(`[ShareService] 已拉起分享（关卡 ${this._level}）`);
+        if (DEBUG.LOG_STATE) {
+            console.log(`[ShareService] 已拉起分享（${mode} · 关卡 ${this._level}）`);
+        }
         return true;
     }
 

@@ -32,18 +32,20 @@
 ```ts
 this.tapable(item, () => {
     Haptics.light();
-    // ★ 第 53 轮（T17）：**排行榜**入口接线。其余三个仍留批次 3。
+    // ★ 第 53 轮（T17）：**排行榜**入口接线；第 55 轮（T15）：**好友邀战**接线。
+    //   签到 / 商城仍留批次 3（商城视觉稿已验收通过，待 T14 实装）。
     if (fn.id === 'rank') { this.openRank(); return; }
+    if (fn.id === 'invite') { this.openInvite(); return; }
     toast(this.body, `${fn.label} 敬请期待`);
 });
 ```
 
 | 入口 | 图标 | 点击反应 | 缺什么才能做 |
 |---|---|---|---|
-| 七日签到 | `home/icon_signin` | 弹「敬请期待」 | ⑥ 奖励页 + 签到逻辑（`SaveService` 已有 `signDate` / `signStreak` 字段，**数据层已备好**） |
-| 道具商城 | `home/icon_shop` | 弹「敬请期待」 | ~~激励视频广告 SDK~~ ✅ **第 53 轮已备好**（`AdService`）⇒ 只差页面本身（T14） |
+| 七日签到 | `home/icon_signin` | 弹「敬请期待」 | ⑥ 页面（**T11**，版式冲突已拍板 = **整组上移**）+ 签到逻辑（**T12**）。`SaveService` 已有 `signDate` / `signStreak` 字段，**数据层已备好**；第 7 日 = **任选 1 种 ×2** |
+| 道具商城 | `home/icon_shop` | 弹「敬请期待」 | ~~激励视频广告 SDK~~ ✅ 第 53 轮已备好 · ~~页面形态~~ ✅ **第 55 轮视觉稿已出、第 56 轮「直接验收通过」** ⇒ 只剩 **T14 实装**（Cocos 里还没有这个页面）；频次已拍板 = **每种道具 2 次/日**（`CFG.AD_QUOTA.SHOP_PER_TOOL_PER_DAY`） |
 | 排行榜 | `home/icon_rank` | ✅ **第 53 轮已接线**（T17 最小版） | 打开 `RankLayer`：有 wx 时建 `SubContextView`（640×960）承载开放数据域；**浏览器无 wx 时降级**为文案「排行榜需要在小游戏里查看」，不崩 |
-| 好友邀战 | `home/icon_invite` | 弹「敬请期待」 | ~~`wx.shareAppMessage`~~ ✅ **第 53 轮已备好**（`ShareService`）⇒ 只差入口接线（T15） |
+| 好友邀战 | `home/icon_invite` | ✅ **第 55 轮已接线**（T15） | 打开转发面板（`ShareService.share(best,'invite')`）；**浏览器无 wx 时降级**为 toast「分享需要在小游戏里使用」，不崩。★ 拉新文案与结算页分享**互不出现**（合规：只传播、零奖励） |
 
 ---
 
@@ -51,7 +53,7 @@ this.tapable(item, () => {
 
 | 能力 | 现状（第 53 轮更新） | 影响 |
 |---|---|---|
-| **激励视频广告** | ✅ **已接线**（`core/AdService.ts`）。**实例按场景缓存 + 监听器只在创建时挂一次**（挂 N 份 = 播一次发 N 份奖励，且不报错）；三种结局 `end` 发 / `abort` 不发 / `fail` 不发；看门狗 120s 防卡死 | 🟢 复活（A1）与换道具（A2）两条链路都通。⚠️ **但还没有广告位**：`CFG.AD.REAL_ENABLED = false`、`AD_UNIT` 为空串 ⇒ 走 5 秒**替身面板**（界面如实标「演示用 · 当前尚未接入广告位」）。拿到 `adunit-` ID 后只需填 ID + 把开关改 true，**代码一行不用动** |
+| **激励视频广告** | ✅ **已接线**（`core/AdService.ts`）。**实例按场景缓存 + 监听器只在创建时挂一次**（挂 N 份 = 播一次发 N 份奖励，且不报错）；三种结局 `end` 发 / `abort` 不发 / `fail` 不发；看门狗 120s 防卡死。★ **频次上限已落码**（第 56 轮）= `CFG.AD_QUOTA`：A1 复活 1 次/局·3 次/日 · A2 局内换道具**不限** · A3 商城**每道具 2 次/日** | 🟢 复活（A1）与换道具（A2）两条链路都通。⚠️ **但还没有广告位**：`CFG.AD.REAL_ENABLED = false`、`AD_UNIT` 为空串 ⇒ 走 5 秒**替身面板**（界面如实标「演示用 · 当前尚未接入广告位」）。拿到 `adunit-` ID 后只需填 ID + 把开关改 true，**代码一行不用动** |
 | **分享** | ✅ **已接线**（`core/ShareService.ts`）：`arm()` 幂等挂 `onShareAppMessage` + `showShareMenu`；结算页胜态「分享」走 `wx.shareAppMessage`；落地页 query 带 `shareLevel` | 🟢 通路成立。★ **合规口径（用户拍板）：只传播、零奖励** —— 微信《运营规范》把「分享后才给奖励」列为诱导分享，故「分享给好友」那颗按钮**已从代码里删除**，想拿道具只剩看广告一条路 |
 | **开放数据域（好友榜）** | ✅ **最小版已接线**：子包 `build-templates/wechatgame/openDataContext/index.js`（纯 `wx` 环境自绘 7 条好友行）+ `postpack-subpackages.py` 第 ④ 步自动就位 + `game.json` 登记 `openDataContext`；主域 `HomePage.openRank()` 建 `SubContextView` | 🟢 主域↔开放数据域通路成立（写 `wxgame.score` / `postMessage({type:'render'})` / 视窗 640×960 = 2:3）。⚠️ **真机好友榜待你实测回执**（需要 ≥1 位好友也玩过才有数据） |
 | **前后台生命周期** | ✅ 第 52 轮已接入——`GameRoot.armLifecycle()` 挂 `wx.onHide` / `wx.onShow`；`AudioService.suspend()/resume()`；`PageBase.onAppHide()` / `onAppShow()` | 🟢 已闭环。⚠️ `_inBackground`（切后台）与 `_paused`（有弹层）**分开存** |

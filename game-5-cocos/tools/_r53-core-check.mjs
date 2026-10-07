@@ -40,7 +40,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { AD, LOGIN, SHARE } from './_core/CFG.ts';
+import { AD, AD_QUOTA, LOGIN, SHARE } from './_core/CFG.ts';
 import { AdService } from './_core/AdService.ts';
 import { ShareService } from './_core/ShareService.ts';
 import { LoginService } from './_core/LoginService.ts';
@@ -411,6 +411,60 @@ head('B 组 · ShareService（分享 = 只传播、不奖励）');
         'B23 反向核对：GamePage 代码里「看广告复活」链路仍在（证明上面两条不是"读空文件"式的假绿）');
 }
 
+// --- ★ 第 55 轮（T15）：首页「好友邀战」入口的**拉新文案分流** ---
+//
+//  【这一组在防什么】
+//    `share(level)` 与 `share(level, 'invite')` 走的是**同一个** `wx.shareAppMessage`，
+//    唯一的差别在标题。如果只断言"调用成功 / 有 query"，两条路**看起来一模一样** ——
+//    就算 `mode` 参数被写漏、invite 分支从未生效，那几条断言照样全绿。
+//    所以这里：① 直取载荷比对**文案本身**；② 再跑一条 level 路做**差分**
+//    （标题必须不同）—— 差分才是"分流真的发生"的证据。
+
+{
+    const stat = installWx({ share: true });
+    const s = new ShareService();
+    s.setLevel(6);
+
+    ok(s.share(12, 'invite') === true, 'B24 invite 路：有 wx ⇒ 返回 true');
+    const inv = stat.shareAppMessage.at(-1);
+    ok(!!inv && inv.title === SHARE.TITLE_INVITE,
+        `★ B25 invite 路走**拉新文案**（实测 "${inv?.title}"）`);
+    ok(!!inv && !inv.title.includes('12'),
+        '★ B26 拉新文案里**不带**关卡号（是"邀好友来战"，不是"晒我的进度"）');
+    ok(!!inv && inv.query === `${SHARE.QUERY_KEY}=12`,
+        'B27 invite 路的 query 仍带关卡号（好友点进来照样拿得到落地提示）');
+    ok(!!inv && !('imageUrl' in inv), 'B28 invite 路同样不带 imageUrl（与 level 路同契约）');
+
+    // ---- 差分：两条路的标题必须真的不同 ----
+    ok(s.share(12) === true, 'B29 level 路也照常能拉起');
+    const lv = stat.shareAppMessage.at(-1);
+    ok(!!lv && !!inv && lv.title !== inv.title,
+        `★★ B30 差分：level 路与 invite 路的标题**确实不同**`
+        + `（"${lv?.title}" vs "${inv?.title}"）—— 这条才是"分流真的生效"的证据`);
+    ok(!!lv && lv.title.includes('12'), 'B31 level 路照旧带关卡号（没被 invite 分支改坏）');
+    ok(stat.shareAppMessage.length === 2,
+        'B32 调用计数 = 2（证明上面每条断言都真的调了一次，不是从缓存拿的旧值）');
+
+    // ---- 静态合规：拉新文案里不得出现诱导字样 ----
+    //  微信《小游戏运营规范》：「分享后获得奖励」= 诱导分享。
+    //  这条比"人眼审文案"可靠 —— 文案将来被改也会在这里红。
+    const banned2 = ['得', '领', '奖励', '分享后', '领取'];
+    const hit2 = banned2.filter((w) => SHARE.TITLE_INVITE.includes(w));
+    ok(hit2.length === 0,
+        `★★ B33 邀战文案不含诱导字样（命中：${hit2.join(',') || '无'}）`
+        + `—— 实测「${SHARE.TITLE_INVITE}」`);
+
+    // ★ 负控（判据纪律：判据自身也要被验证）：
+    //   `hit2.length === 0` 有两种成因 —— ① 文案确实干净；② **检查逻辑本身就是坏的**
+    //   （比如 banned2 写错、filter 用反）。这两种在输出上长得一模一样。
+    //   所以拿一条**故意含违规字样**的假文案喂给同一套检查，必须先报出来。
+    const FAKE_BAD = '《某游戏》分享给好友得道具，立即领取！';
+    const ctl = banned2.filter((w) => FAKE_BAD.includes(w));
+    ok(ctl.length > 0,
+        `★ B34 负控：同一套检查用在含诱导字样的假文案上**能报出来**（命中：${ctl.join(',')}）`
+        + ' —— 证明 B33 的"无命中"不是因为检查坏了');
+}
+
 // ============================================================
 //  C 组 · LoginService
 // ============================================================
@@ -572,6 +626,37 @@ head('D 组 · RankService（写云存储 + 通知开放数据域）');
 
 installWx(null);
 resetAdCfg();
+
+// ============================================================
+head('E 组 · 激励视频频次上限（★ 2026-10-07 用户拍板 → 落码于 `CFG.AD_QUOTA`）');
+// ============================================================
+//  为什么这几条值得断言：频次是**唯一会直接影响收入的数值**，而它只写在两处
+//  （设计文档一张表 + `CFG.AD_QUOTA`）。两处漂移时**没有任何报错**，只会静默多放/少放广告。
+//  ⇒ 这里既锁数值，也**对账文档**（判据 8：断言必须回到需求真源，不能"现状即期望"）。
+{
+    ok(AD_QUOTA.REVIVE_PER_RUN === 1 && AD_QUOTA.REVIVE_PER_DAY === 3,
+        `★ E1 A1 复活 = 1 次/局 · 3 次/日（实测 ${AD_QUOTA.REVIVE_PER_RUN}/局 · ${AD_QUOTA.REVIVE_PER_DAY}/日）`);
+
+    // ⚠️ 这条的要害在"**0 必须是 0**"：A2 拍板是「不限次数」，
+    //    若有人顺手把 0 改成某个正整数，代码会**静默**开始限量，且不报错。
+    ok(AD_QUOTA.TOOL_PER_DAY === 0,
+        `★ E2 A2 局内换道具 = 不限次数（实测 TOOL_PER_DAY=${AD_QUOTA.TOOL_PER_DAY}，**0 = 不限**）`);
+
+    ok(AD_QUOTA.SHOP_PER_TOOL_PER_DAY === 2,
+        `★ E3 A3 商城领道具 = 每种道具 2 次/日（实测 ${AD_QUOTA.SHOP_PER_TOOL_PER_DAY}）`);
+
+    // 差分：A2 与 A3 的语义**必须不同**（一个不限、一个限量）。
+    // 若将来有人把两者接成"共用池子"，这两条会一起红 —— 那正是 2026-10-07 拍板作废的旧口径。
+    ok(AD_QUOTA.TOOL_PER_DAY !== AD_QUOTA.SHOP_PER_TOOL_PER_DAY,
+        '★ E4 差分：A2（不限）与 A3（限量）口径不同 —— 防"共用每日频次计数"的旧口径被改回来');
+
+    // ★ 文档 ↔ 代码 对账：设计规则那张表必须同步改了（防止只改代码不改文档，或反之）
+    const ruleDoc = readFileSync(resolve(HERE, '..', '..', 'game-5 · 设计规则.md'), 'utf8');
+    const rowA2 = ruleDoc.split('\n').find((l) => l.includes('| A2 |')) ?? '';
+    const rowA3 = ruleDoc.split('\n').find((l) => l.includes('| A3 |')) ?? '';
+    ok(rowA2.includes('不限次数') && rowA3.includes('每种道具 2 次/日'),
+        '★ E5 对账：设计规则「商业化点总表」A2 行含「不限次数」、A3 行含「每种道具 2 次/日」（文档与代码同步）');
+}
 
 // ============================================================
 console.log(`\n═══ 结果：${pass} 通过 / ${fail} 失败 ═══`);

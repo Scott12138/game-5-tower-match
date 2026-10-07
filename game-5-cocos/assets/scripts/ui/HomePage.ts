@@ -23,6 +23,7 @@ import { MotionFx } from './MotionFx';
 import { AudioService } from './AudioService';
 import { SaveService } from '../core/SaveService';
 import { RankService } from '../core/RankService';
+import { ShareService } from '../core/ShareService';
 import {
     confirmDialog, createCoverSprite, createGraphicsNode, createLabel, createNode, createScrim,
     createSprite, fillRadialGlowE, fillRays, fillRoundRect, fillSoftBeam, fillVGradient, fitY,
@@ -506,8 +507,10 @@ export class HomePage extends PageBase {
             });
             this.tapable(item, () => {
                 Haptics.light();
-                // ★ 第 53 轮（T17）：**排行榜**入口接线。其余三个仍留批次 3。
+                // ★ 第 53 轮（T17）：**排行榜**入口接线。其余两个留批次 3。
+                // ★ 第 55 轮（T15）：**好友邀战**入口接线。签到 / 商城仍留批次 3。
                 if (fn.id === 'rank') { this.openRank(); return; }
+                if (fn.id === 'invite') { this.openInvite(); return; }
                 toast(this.body, `${fn.label} 敬请期待`);
             });
             this.settleIn(item, 0.62);
@@ -831,6 +834,38 @@ export class HomePage extends PageBase {
         const op = l.getComponent(UIOpacity)!;
         MotionFx.fadeTo(op, 0, 0.2);
         this.timers.add(240, () => { if (l.isValid) l.destroy(); });
+    }
+
+    // ========================================================
+    //  好友邀战（★ 第 55 轮新增 · T15）
+    // ========================================================
+    //
+    //  【为什么"点一下就行"——没有弹层、没有中间页、没有奖励】
+    //    微信《小游戏运营规范》把"分享后才能获得奖励"直接列为**诱导分享**。
+    //    所以这条入口的合规形态就是：**点 → 直接拉起转发面板**，
+    //    中间不插任何"分享得 XX"的页，按钮文案里也不出现"得 / 领 / 奖励"。
+    //    与结算页胜态那个「分享」按钮是**同一套载荷**（`ShareService.share()`），
+    //    只是走 `mode='invite'` 换一条拉新文案 —— 两条路的文案**互不出现**。
+    //
+    //  【为什么取 `best` 而不是 `level`】
+    //    `SaveService.level` 是"继续"要玩的下一关，分享给别人看的是**成绩**，
+    //    所以用 `best`（历史最高通关）。没有成绩时 `best = 0`，
+    //    `setLevel()` 会兜底成 1 —— 文案里不出现关卡号，但 query 仍合法。
+    //
+    //  【环境不支持时要说出来】
+    //    浏览器直跑 / 基础库过老 ⇒ `ShareService.available` 为假。
+    //    这时**明说**（toast），别让按钮看起来像坏了 —— 与 `openRank()` 的
+    //    "不留空框"是同一条原则。
+
+    private openInvite(): void {
+        const svc = ShareService.instance;
+        if (!svc.available) {
+            toast(this.body, '分享需要在小游戏里使用');
+            console.log('[HomePage] 邀战入口：当前环境无分享能力（浏览器直跑）');
+            return;
+        }
+        const ok = svc.share(Math.max(1, SaveService.instance.best), 'invite');
+        console.log(`[HomePage] 邀战入口：已拉起分享=${ok}`);
     }
 
     private openSheet(): void {
