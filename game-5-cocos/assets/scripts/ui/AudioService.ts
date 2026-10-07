@@ -12,8 +12,10 @@
  *  （表现是"点返回时音效被掐断"）。
  *
  *  【静音开关的口径】
- *  `setMuted` 同时管 BGM 与音效，并把偏好写进 localStorage（不碰游戏存档 ——
- *  保持"音频只管音频"的单一职责）。
+ *  **BGM 与音效各有一个独立开关**（第 52 轮拆开）：`setBgmMuted` / `setSfxMuted`，
+ *  各自写进 localStorage（不碰游戏存档 —— 保持"音频只管音频"的单一职责）。
+ *  ⚠️ 旧版只有一个 `setMuted` 同时管两者 ⇒ "关背景音乐"会连带把音效一起关掉
+ *     （用户报的 bug：两个开关按哪个都一样）。现已拆成两位，互不影响。
  * ============================================================
  */
 
@@ -22,8 +24,31 @@
 //    ⇒ 打包产物里它们是空函数。日志一律用 console.log / console.warn。
 import { AudioClip, AudioSource, Node, error, resources } from 'cc';
 
-/** 静音偏好的 localStorage 键 */
-const MUTE_KEY = 'game5.mute';
+/**
+ * 静音偏好的 localStorage 键 —— **BGM 与音效分开存**。
+ *
+ * `LEGACY` 是旧版那个"管两者"的单键：只在**新键缺失**时当兜底初值，
+ * 这样老玩家升级上来不会突然全开（也不会被强制静音）。
+ */
+const MUTE_BGM_KEY = 'game5.mute.bgm';
+const MUTE_SFX_KEY = 'game5.mute.sfx';
+const MUTE_KEY_LEGACY = 'game5.mute';
+
+/** 读一个布尔偏好：键存在就用它，否则用兜底值（环境无 localStorage 时也走兜底） */
+function readFlag(key: string, fallback: boolean): boolean {
+    try {
+        const v = globalThis.localStorage?.getItem(key);
+        if (v === null || v === undefined) return fallback;
+        return v === '1';
+    } catch {
+        return fallback;   // 某些环境没有 localStorage（隐私模式 / 小程序早期）
+    }
+}
+
+/** 写一个布尔偏好（失败静默 —— 存不上不该影响游戏） */
+function writeFlag(key: string, on: boolean): void {
+    try { globalThis.localStorage?.setItem(key, on ? '1' : '0'); } catch { /* 忽略 */ }
+}
 
 export class AudioService {
     private static _music: AudioSource | null = null;
@@ -32,7 +57,10 @@ export class AudioService {
     private static _poolIdx = 0;
     private static readonly _clips = new Map<string, AudioClip>();
     private static readonly _pending = new Map<string, Array<(c: AudioClip | null) => void>>();
-    private static _muted = false;
+    /** BGM 是否关闭（独立于音效） */
+    private static _bgmMuted = false;
+    /** 音效是否关闭（独立于 BGM） */
+    private static _sfxMuted = false;
     private static _inited = false;
     /** 当前 BGM 路径（避免同一首被反复从头开始） */
     private static _bgmPath = '';
@@ -52,17 +80,16 @@ export class AudioService {
         if (this._inited) return;
         this._inited = true;
 
-        try {
-            this._muted = globalThis.localStorage?.getItem(MUTE_KEY) === '1';
-        } catch {
-            this._muted = false;   // 某些环境没有 localStorage（隐私模式 / 小程序早期）
-        }
+        // 两个开关各自读；新键缺失时退回旧键（老玩家迁移，不会突然全开）
+        const legacy = readFlag(MUTE_KEY_LEGACY, false);
+        this._bgmMuted = readFlag(MUTE_BGM_KEY, legacy);
+        this._sfxMuted = readFlag(MUTE_SFX_KEY, legacy);
 
         const musicNode = new Node('Bgm');
         root.addChild(musicNode);
         const ms = musicNode.addComponent(AudioSource);
         ms.loop = true;
-        ms.volume = this._muted ? 0 : this.BGM_VOL;
+        ms.volume = this._bgmMuted ? 0 : this.BGM_VOL;
         this._music = ms;
 
         const sfxNode = new Node('Sfx');
@@ -81,18 +108,34 @@ export class AudioService {
     //  静音
     // --------------------------------------------------------
 
-    public static get muted(): boolean { return this._muted; }
+    /** BGM 是否已关闭（独立于音效） */
+    public static get bgmMuted(): boolean { return this._bgmMuted; }
+    /** 音效是否已关闭（独立于 BGM） */
+    public static get sfxMuted(): boolean { return this._sfxMuted; }
 
-    public static setMuted(m: boolean): void {
-        this._muted = m;
-        try { globalThis.localStorage?.setItem(MUTE_KEY, m ? '1' : '0'); } catch { /* 忽略 */ }
+    /**
+     * 开 / 关 **BGM**。
+     *
+     * ⚠️ **不动音效** —— 这正是第 52 轮拆开关的目的（旧版两个开关都调 `setMuted`，
+     *    关音乐会连带把音效一起关掉）。
+     * 静音走 `volume = 0`（**不停播**），恢复时是"接着放"而不是"从头放"。
+     */
+    public static setBgmMuted(m: boolean): void {
+        this._bgmMuted = m;
+        writeFlag(MUTE_BGM_KEY, m);
         if (this._music) this._music.volume = m ? 0 : this.BGM_VOL;
-        if (m) this.stopAllSfx();
     }
 
-    public static toggleMuted(): boolean {
-        this.setMuted(!this._muted);
-        return this._muted;
+    /**
+     * 开 / 关 **音效**。⚠️ **不动 BGM**。
+     *
+     * 关闭时顺手把正在响的尾巴停掉 —— 否则点下开关那一声音效还会继续响完，
+     * 读起来像"开关没生效"。
+     */
+    public static setSfxMuted(m: boolean): void {
+        this._sfxMuted = m;
+        writeFlag(MUTE_SFX_KEY, m);
+        if (m) this.stopAllSfx();
     }
 
     // --------------------------------------------------------
@@ -149,7 +192,7 @@ export class AudioService {
      * 第一次点牌也不会静音（代价是首次可能晚 100ms 出声，可接受）。
      */
     public static playSfx(path: string, volume = 1.0): void {
-        if (this._muted) return;
+        if (this._sfxMuted) return;
         const clip = this._clips.get(path);
         if (!clip) {
             if (this._failed.has(path)) return;   // 已知缺失，静默跳过
@@ -176,7 +219,7 @@ export class AudioService {
             console.warn('[AudioService] 未初始化，BGM 被忽略（检查 GameRoot.onLoad 是否调了 init）');
             return;
         }
-        this._music.volume = this._muted ? 0 : volume;
+        this._music.volume = this._bgmMuted ? 0 : volume;
         if (this._bgmPath === path && this._music.playing) return;
 
         const clip = this._clips.get(path);
@@ -203,5 +246,36 @@ export class AudioService {
     /** 页面切换时的收口：停音效、**不断 BGM**（BGM 是跨页连续的） */
     public static onPageChange(): void {
         this.stopAllSfx();
+    }
+
+    // --------------------------------------------------------
+    //  前后台（第 52 轮：别让 BGM 在后台空转）
+    // --------------------------------------------------------
+
+    /**
+     * 切到后台：暂停 BGM + 停掉音效。
+     *
+     * 【为什么用 `pause()` 而不是 `stop()`】`stop()` 会把播放位置归零，
+     *   切回来是"从头重放"；`pause()` 保留位置，`play()` 接着放。
+     *
+     * ⚠️ **不看 `_bgmMuted`** —— 静音时只是 volume = 0，BGM 其实还在播，
+     *    后台一样要暂停（否则后台还在解码，白耗电）。
+     */
+    public static suspend(): void {
+        try { if (this._music?.playing) this._music.pause(); } catch { /* 忽略 */ }
+        this.stopAllSfx();
+    }
+
+    /**
+     * 从后台回来：恢复 BGM。
+     *
+     * ⚠️ 只恢复"本来就该响"的：`_bgmMuted` 或**压根没起过**（`clip` 为空）时什么都不做 ——
+     *    后者说明 BGM 被浏览器无手势策略拦掉了，该由 GameRoot 的手势兜底那一路去起，
+     *    不在这里硬起（会再被拦一次）。
+     */
+    public static resume(): void {
+        if (!this._music || this._bgmMuted) return;
+        if (!this._music.clip || this._music.playing) return;
+        try { this._music.play(); } catch { /* 忽略 */ }
     }
 }

@@ -27,6 +27,8 @@ import { Component, Input, Layers, Node, UITransform, Widget, _decorator, input,
 import { BGM, DEBUG, GAME, PAGE } from './CFG';
 import { PageManager } from './core/PageManager';
 import { SaveService } from './core/SaveService';
+import { ShareService } from './core/ShareService';
+import { LoginService } from './core/LoginService';
 import { AudioService } from './ui/AudioService';
 import { HomePage } from './ui/HomePage';
 import { GamePage } from './ui/GamePage';
@@ -57,6 +59,12 @@ export class GameRoot extends Component {
         PageManager.create(uiRoot);
         this.step('[3/6] PageManager.create');
 
+        this.armLifecycle();
+        this.step('[3.5/6] armLifecycle（前后台）');
+
+        this.armPlatform();
+        this.step('[3.6/6] armPlatform（分享 / 登录）');
+
         this.registerPages();
         this.step('[4/6] registerPages');
 
@@ -77,6 +85,7 @@ export class GameRoot extends Component {
 
     protected onDestroy(): void {
         this.disarmBgm();
+        this.disarmLifecycle();
         view.off('canvas-resize', this.syncUIRootSize, this);
     }
 
@@ -151,6 +160,100 @@ export class GameRoot extends Component {
         if (!this._uiTransform) return;
         const vs = view.getVisibleSize();
         this._uiTransform.setContentSize(vs.width, vs.height);
+    }
+
+    // --------------------------------------------------------
+    //  ③ 前后台生命周期（★ 第 52 轮）
+    // --------------------------------------------------------
+    //
+    //  【为什么挂在 GameRoot、而不是各页面自己挂】
+    //  这是**应用级**事件：全生命期只发生一次挂载 / 摘除。让 4 个页面各挂一份，
+    //  就得各自处理"页面销毁时摘干净"——而页面是反复创建销毁的，少摘一次就是
+    //  重复响应（同一件事被处理 N 次）。挂在这里，用 PageManager.current 转发即可。
+    //
+    //  【浏览器里没有 wx】用可选链守卫静默跳过：web-desktop 构建照常跑，
+    //  只是没有"前后台"这个概念（不影响任何既有行为）。
+
+    /** 已挂上的监听（摘除必须用**同一份引用**，否则 off 摘不掉） */
+    private _onAppHide: (() => void) | null = null;
+    private _onAppShow: (() => void) | null = null;
+
+    private armLifecycle(): void {
+        const w = (globalThis as {
+            wx?: {
+                onHide?: (cb: () => void) => void;
+                onShow?: (cb: () => void) => void;
+                offHide?: (cb: () => void) => void;
+                offShow?: (cb: () => void) => void;
+            };
+        }).wx;
+        if (!w?.onHide || !w?.onShow) {
+            if (DEBUG.LOG_STATE) console.log('[GameRoot] 无 wx 前后台事件（浏览器直跑），跳过');
+            return;
+        }
+
+        const hide = (): void => {
+            console.log('[GameRoot] ► 切到后台：暂停 BGM + 通知当前页');
+            AudioService.suspend();
+            if (PageManager.ready) PageManager.instance.current?.__appHide();
+        };
+        const show = (): void => {
+            console.log('[GameRoot] ◄ 回到前台：恢复 BGM + 通知当前页');
+            // resume() 管"暂停态续播"；playBgm() 兜底"压根没起来"那一路
+            // （浏览器无手势策略会把第一次自动播放拦掉）。playBgm 自带幂等守卫，
+            // 已在播则直接 return，不会"从头重放"。
+            AudioService.resume();
+            AudioService.playBgm(BGM.MAIN);
+            if (PageManager.ready) PageManager.instance.current?.__appShow();
+        };
+
+        w.onHide(hide);
+        w.onShow(show);
+        this._onAppHide = hide;
+        this._onAppShow = show;
+        if (DEBUG.LOG_STATE) console.log('[GameRoot] 前后台监听已挂载');
+    }
+
+    /** 摘掉前后台监听 —— 不摘的话，组件销毁后回调仍会打到已销毁节点上 */
+    private disarmLifecycle(): void {
+        if (!this._onAppHide && !this._onAppShow) return;
+        const w = (globalThis as {
+            wx?: { offHide?: (cb: () => void) => void; offShow?: (cb: () => void) => void };
+        }).wx;
+        if (w?.offHide && this._onAppHide) w.offHide(this._onAppHide);
+        if (w?.offShow && this._onAppShow) w.offShow(this._onAppShow);
+        this._onAppHide = null;
+        this._onAppShow = null;
+        if (DEBUG.LOG_STATE) console.log('[GameRoot] 前后台监听已摘除');
+    }
+
+    // --------------------------------------------------------
+    //  ③之二 平台能力（★ 第 53 轮：分享 / 登录）
+    // --------------------------------------------------------
+    //
+    //  【为什么**分享**挂在这里，而不是挂到各页面】
+    //  右上角「…」里的**转发**是**应用级**入口 —— 任何页面（连启动页都算）都能被转发。
+    //  挂在这里 ⇒ 只注册一次；挂到页面上就得面对"页面反复创建销毁 ⇒ 重复注册"，
+    //  同一张卡片会被算 N 次（与 `armLifecycle` 同一个道理）。
+    //
+    //  【为什么**登录**在这里、而且不 await】
+    //  `wx.login` 的 code 是后续排行榜 / 云存档的原料，越早拿到越好；
+    //  但它**绝不能挡住首屏** —— 所以是 fire-and-forget，
+    //  失败 / 超时也只是少一条日志（`LoginService` 内部已保证永不 reject）。
+    //
+    //  ⚠️ 广告**不在这里预热**：`AdService` 是懒创建的（第一次真的要看广告时才建实例）。
+    //    没有广告位时提前建会白挨一次 `createRewardedVideoAd` 的报错日志，
+    //    而"未开通流量主却调用广告 API"本身就是审核风险。
+
+    private armPlatform(): void {
+        ShareService.instance.arm();
+
+        // 落地页：好友点分享链接进来时，query 里带着关卡号
+        const from = ShareService.instance.landingLevel();
+        if (from) console.log(`[GameRoot] 从分享落地（好友正在第 ${from} 关）`);
+
+        // 不 await：登录是锦上添花，绝不能阻塞进游戏
+        void LoginService.instance.ensureCode();
     }
 
     // --------------------------------------------------------

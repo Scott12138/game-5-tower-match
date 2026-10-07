@@ -47,8 +47,35 @@ set -uo pipefail
 #   但服务器上并没有可用的包 ⇒ 用户扫码进去 = **「运行环境加载失败」**。
 #   此时二维码、包体、产物结构、AppID 全部检查不出问题，极易误判成「游戏代码坏了」。
 #   ⇒ 唯一可靠判据就是这条日志。
+#
+# ★ 2026-10-07 第 52 轮两条修正（都来自实测，不是推测）：
+#
+#  （1）**判据必须"按尝试"算，不能"按整轮"算。**
+#      第 ⑥ 步是"重试到成功"的循环（IDE 冷启动第一次常失败）。整轮净增计数会把
+#      **早期失败尝试**的错误也算到**最终成功那次**头上 ⇒ 误判成"整包没传上去"。
+#      本轮实测：attempt#1 upload → ECONNRESET；attempt#2 重传 → `progressSuccess`
+#      + `reportNewRemoteDebug`，preview-info.json 的 mtime 正好落在 attempt#2 收尾
+#      ⇒ 包其实传上去了，是判据报了假红。
+#      改法：记下**返回 ✔ preview 的那一次**的基线（ERR_BEFORE_OK_ATTEMPT），
+#      只比这次之后的增量。刻意偏保守 —— 宁可把"迟到归因"的噪声判成失败。
+#
+#  （2）**传包不走 servicewechat.com，走的是腾讯 COS。**
+#      实测日志里的上传地址是
+#        https://mmbizwxadevlogiccos-1258344707.cos.ap-shanghai.myqcloud.com/…
+#      也就是说"给 servicewechat.com 加 DIRECT"**并不足以**保证上传成功，
+#      还得让 `myqcloud.com` 直连（本机当前档位里有这条；订阅更新会覆盖手改的规则，
+#      更新后要复查）。同域对照（各 8 次 curl）：全局代理 4/8、绕过代理 8/8。
 count_upload_errors() {
   grep -rh "task type:upload exec error" \
+    "$HOME/Library/Application Support/微信开发者工具"/*/WeappLog/logs/*.log 2>/dev/null \
+    | wc -l | tr -d ' '
+}
+
+# ★ 2026-10-07 第 52 轮补：上传**成功**的正向标记（取证用，不单独当判据）。
+#   IDE 的上传流水线收尾会打这三行：[uploadFile] doUpload:await → parseError → progressSuccess，
+#   其后紧跟 reportNewRemoteDebug。`progressSuccess` 是"包已落到 COS"的强证据。
+count_upload_success() {
+  grep -rh "\[uploadFile\] progressSuccess" \
     "$HOME/Library/Application Support/微信开发者工具"/*/WeappLog/logs/*.log 2>/dev/null \
     | wc -l | tr -d ' '
 }
@@ -152,11 +179,20 @@ sleep "${IDE_WAIT:-30}"
 #   隔 15 秒再试一次就成功。报错信息里**完全没有"还没加载完"的意思**，
 #   所以这里不靠"等更久"，而是靠"重试到成功"。
 echo "==> [6/7] 生成预览二维码"
-UPLOAD_ERR_BEFORE=$(count_upload_errors)      # ★ 出码前基线，供 [8/7] 做增量判定
+UPLOAD_ERR_BEFORE=$(count_upload_errors)      # 整轮基线（只用于展示）
+UPLOAD_OK_BEFORE=$(count_upload_success)
 QR_RAW="$ARCHIVE/.qr-raw.jpg"
 PREV=""
 OK_PREVIEW=0
+# ★ 关键：记下"返回 ✔ 的那一次尝试"自己的基线（见文件头第 52 轮修正 (1)）
+ERR_BEFORE_OK_ATTEMPT=""
+OK_BEFORE_OK_ATTEMPT=""
+ATTEMPTS=0
 for attempt in 1 2 3 4 5; do
+  ATTEMPTS=$attempt
+  sleep 2                                   # 让上一次尝试迟到的日志落盘，避免跨尝试串号
+  ERR_AT_ATTEMPT_START=$(count_upload_errors)
+  OK_AT_ATTEMPT_START=$(count_upload_success)
   PREV=$("$CLI" preview --project "$BUILD_DIR" \
           --qr-format image \
           --qr-output "$QR_RAW" \
@@ -164,6 +200,8 @@ for attempt in 1 2 3 4 5; do
   if grep -q "✔ preview" <<<"$PREV"; then
     [ "$attempt" -gt 1 ] && echo "    第 ${attempt} 次尝试成功（IDE 编译服务需要时间就绪）"
     OK_PREVIEW=1
+    ERR_BEFORE_OK_ATTEMPT=$ERR_AT_ATTEMPT_START
+    OK_BEFORE_OK_ATTEMPT=$OK_AT_ATTEMPT_START
     break
   fi
   echo "    第 ${attempt} 次未成功：$(grep -oE '✖ [a-z_]*' <<<"$PREV" | head -1)"
@@ -214,15 +252,22 @@ echo "    $PAYLOAD"
 # 走了境外节点。同一域名对照组：**直连 15/15 成功** vs **走代理 7/15 成功（53% 失败）**。
 # 排查与解决全过程见 docs-verify/game-5/device/70-第36轮-扫码无法进入-排查与解决.html
 echo "==> [8/7] 校验预览包是否真的上传成功"
+sleep 3                       # 等成功尝试收尾的日志落盘（progressSuccess / 可能的迟到报错）
 UPLOAD_ERR_AFTER=$(count_upload_errors)
-NEW_ERR=$((UPLOAD_ERR_AFTER - UPLOAD_ERR_BEFORE))
+UPLOAD_OK_AFTER=$(count_upload_success)
+# ★ 只看「返回 ✔ 的那一次尝试」自己带来的增量（早期失败尝试不算它的账）
+NEW_ERR=$((UPLOAD_ERR_AFTER - ERR_BEFORE_OK_ATTEMPT))
+NEW_OK=$((UPLOAD_OK_AFTER - OK_BEFORE_OK_ATTEMPT))
+echo "    尝试次数 ${ATTEMPTS} · 整轮上传错误 ${UPLOAD_ERR_BEFORE} → ${UPLOAD_ERR_AFTER}"
+echo "    成功那次之后的增量：upload error +${NEW_ERR} · progressSuccess +${NEW_OK}"
 if [ "$NEW_ERR" -gt 0 ]; then
-  echo "    ❌ 检出 $NEW_ERR 条 task type:upload exec error —— 本次预览包**没传上去**"
+  echo "    ❌ 最后这次（也就是出码用的那次）有 $NEW_ERR 条 task type:upload exec error —— 预览包**没传上去**"
   echo "       症状：用户扫码后会报「运行环境加载失败」（微信取不到包，环境初始化失败）。"
   echo "       修好任一条即可（不改代码、不重新构建）："
   echo "         ① 微信开发者工具 → 设置 → 代理设置 → 选「不使用任何代理」"
-  echo "         ② 代理软件给 servicewechat.com 加 DIRECT："
-  echo "            DOMAIN-SUFFIX,servicewechat.com,DIRECT"
+  echo "         ② 代理软件给**两个**域名加 DIRECT（缺一不可）："
+  echo "            DOMAIN-SUFFIX,servicewechat.com,DIRECT   # 握手/报告"
+  echo "            DOMAIN-SUFFIX,myqcloud.com,DIRECT        # ★ 真正的包上传走腾讯 COS"
   echo "         ③ 临时关系统代理再跑本脚本（跑完记得开回来）："
   echo "            networksetup -setwebproxystate \"Wi-Fi\" off"
   echo "            networksetup -setsecurewebproxystate \"Wi-Fi\" off"
@@ -230,7 +275,8 @@ if [ "$NEW_ERR" -gt 0 ]; then
   echo "       本张码图片仍已生成，但**扫了会失败**，别发出去。"
   exit 3
 fi
-echo "    ✅ 日志无新增上传错误（基线 ${UPLOAD_ERR_BEFORE} → 现在 ${UPLOAD_ERR_AFTER}）—— 上传通道正常"
+echo "    ✅ 出码用的那次尝试无上传错误（该次基线 ${ERR_BEFORE_OK_ATTEMPT} → ${UPLOAD_ERR_AFTER}）—— 上传通道正常"
+echo "       正向佐证：progressSuccess +${NEW_OK}$([ "$NEW_OK" -gt 0 ] && echo ' （包已落到 COS）')"
 
 # ---------------------------------------------------------------- 归档 README
 SIZE_BYTES=$(python3 -c "import json;print(json.load(open('$ARCHIVE/preview-info.json'))['size']['total'])" 2>/dev/null || echo "?")

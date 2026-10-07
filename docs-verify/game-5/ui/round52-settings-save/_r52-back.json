@@ -1,0 +1,44 @@
+{
+  "st0": {
+    "level": 3,
+    "remaining": 30,
+    "slots": 0,
+    "slotMax": 8,
+    "cleared": 0,
+    "total": 30,
+    "locked": false,
+    "over": false,
+    "paused": false,
+    "timeLeft": 180,
+    "revive": 0,
+    "activeSeg": 0
+  },
+  "stPause": {
+    "level": 3,
+    "remaining": 30,
+    "slots": 0,
+    "slotMax": 8,
+    "cleared": 0,
+    "total": 30,
+    "locked": false,
+    "over": false,
+    "paused": true,
+    "timeLeft": 180,
+    "revive": 0,
+    "activeSeg": 0
+  },
+  "stCancel": {
+    "level": 3,
+    "remaining": 30,
+    "slots": 0,
+    "slotMax": 8,
+    "cleared": 0,
+    "total": 30,
+    "locked": false,
+    "over": false,
+    "paused": true,
+    "timeLeft": 180,
+    "revive": 0,
+    "activeSeg": 0
+  }
+}

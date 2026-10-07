@@ -1056,6 +1056,110 @@ export function createButton(parent: Node, name: string, opts: ButtonOpts): Node
     return btn;
 }
 
+/** 二次确认弹层的节点名（也是"同一父节点下只允许一个"的判据） */
+const CONFIRM_NAME = 'ConfirmDialog';
+
+export interface ConfirmOpts {
+    /** 标题 —— 一句话说清"要干什么" */
+    title: string;
+    /** 副文案 —— 说清**后果**（例：「本局进度不会保留」）。省 = 不显示 */
+    desc?: string;
+    /** 确认按钮文案（默认「确认」） */
+    ok?: string;
+    /** 取消按钮文案（默认「取消」） */
+    cancel?: string;
+    /** 点「确认」后执行。**不用自己销毁弹层**（本函数已收干净） */
+    onOk: () => void;
+    /** 点「取消」或点遮罩后执行 */
+    onCancel?: () => void;
+}
+
+/**
+ * 二次确认弹层 —— **破坏性操作专用**（返回首页 / 重置进度 / 清档）。
+ *
+ * 【★ 为什么"取消"是金色主按钮、"确认"反而做成 ghost】
+ *   这个弹层的目的是**防误触**，不是"让玩家再表一次决心"。把**安全选项**
+ *   做成视觉主按钮，手滑连点的人自然落回安全分支；危险那颗做得克制
+ *   （ghost + 警示色描边），必须**看清文案再点**。
+ *   反过来把"确认"做成金色 = 在引导玩家点它，与做这个弹层的目的相反。
+ *
+ * 【行为约定（与全站弹层一致）】
+ *   · 点遮罩空白 = 取消
+ *   · 同一父节点下**同时只允许一个**；已存在则本次调用直接忽略（防连点叠层）
+ *   · `close` 有 `closed` 闸门，一条弹层只会走一次回调
+ *
+ * ⚠️ 遮罩尺寸必须给足（1.4× 全屏）—— `w:1,h:1` 会让命中区只有 1 像素，
+ *    这是第 40 轮 RulePanel 踩过的坑（"点任意处关闭"从来没生效过）。
+ */
+export function confirmDialog(parent: Node, opts: ConfirmOpts): void {
+    if (!parent?.isValid) return;
+    if (parent.getChildByName(CONFIRM_NAME)?.isValid) return;   // 已有一个，忽略
+
+    const vs = visibleSize();
+    const layer = createNode(CONFIRM_NAME, parent, { w: vs.width * 1.4, h: vs.height * 1.4 });
+    const layerOp = layer.addComponent(UIOpacity);
+    layerOp.opacity = 0;
+
+    let closed = false;
+    const close = (cb?: () => void): void => {
+        if (closed) return;
+        closed = true;
+        cb?.();
+        if (!layer.isValid) return;
+        MotionFx.fadeTo(layerOp, 0, 0.16);
+        const dead = layer;
+        MotionFx.after(200, () => { if (dead.isValid) dead.destroy(); });
+    };
+
+    // ---- 遮罩：吃点击，点空白 = 取消 ----
+    const { g: sg } = createGraphicsNode('Scrim', layer, { w: vs.width, h: vs.height });
+    fillRoundRect(sg, 0, 0, vs.width * 1.4, vs.height * 1.4, 0, '#000000', 176);
+    sg.node.on(Node.EventType.TOUCH_END, () => close(opts.onCancel), sg.node);
+
+    // ---- 卡片（与 PausePanel 同形制：金描边 + 深墨绿底 + 圆角 44）----
+    const W = 520, H = 352;
+    const card = createNode('Card', layer, { w: W, h: H });
+    const { g: cg } = createGraphicsNode('Bg', card, { w: W, h: H });
+    fillRoundRect(cg, 0, 0, W + 18, H + 18, 52, 'rgba(246,196,69,0.10)', 255);
+    fillRoundRect(cg, 0, 0, W, H, 44, 'rgba(9,18,13,0.98)', 255);
+    strokeRoundRect(cg, 0, 0, W, H, 44, 'rgba(246,196,69,0.34)', 2.5, 255);
+
+    createLabel(card, opts.title, {
+        fontSize: 40, color: COLOR.CREAM, bold: true, serif: true,
+        w: W - 80, h: 56, y: 106,
+    });
+    if (opts.desc) {
+        createLabel(card, opts.desc, {
+            fontSize: 22, color: COLOR.CREAM_MUTE, w: W - 80, h: 64, y: 40,
+        });
+    }
+
+    // 按钮行：左「取消」(gold，安全选项占主位) / 右「确认」(ghost + 警示色)
+    const BW = 214, BH = 80, BY = -86, BX = 116;
+    createButton(card, 'BtnCancel', {
+        w: BW, h: BH, x: -BX, y: BY, text: opts.cancel ?? '取消',
+        tone: 'gold', fontSize: 30, serif: true, noPress: true,
+        onClick: () => close(opts.onCancel),
+    });
+    const okBtn = createButton(card, 'BtnOk', {
+        w: BW, h: BH, x: BX, y: BY, text: opts.ok ?? '确认',
+        tone: 'ghost', fontSize: 30, serif: true, noPress: true,
+        onClick: () => close(opts.onOk),
+    });
+    // 危险选项加一道暖色描边（不靠颜色单独承载语义 —— 文案本身也已写明后果）
+    const okG = okBtn.getComponent(Graphics);
+    if (okG) {
+        okG.lineWidth = 2.5;
+        okG.strokeColor = hex2color('rgba(230,142,96,0.85)');
+        okG.roundRect(-BW / 2, -BH / 2, BW, BH, 40);
+        okG.stroke();
+    }
+
+    MotionFx.fadeTo(layerOp, 255, 0.18);
+    card.setScale(v3(0.92, 0.92, 1));
+    tween(card).to(0.26, { scale: v3(1, 1, 1) }, { easing: 'backOut' }).start();
+}
+
 export interface Face3DOpts {
     w: number; h: number; radius: number; depth: number;
     top: string; bottom: string; depthColor: string; border: string;

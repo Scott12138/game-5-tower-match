@@ -370,6 +370,83 @@ class CDP {
         }
         throw last;
     }
+
+    /**
+     * 取证截图。
+     *
+     * ⚠️ 裸调这个之前**先读 `verifiedShot` 的注释** —— 它记着第 53 轮实测出的
+     *    `Page.captureScreenshot` 参数真值表。本方法传的是**安全组合**
+     *    （`{format:'png', captureBeyondViewport:false}`），但它**不验尺寸**
+     *    （它不知道视口多大），所以"尺寸对不对"要由调用方或 `verifiedShot` 兜。
+     */
+    async verifiedShotPath(path, opt) {
+        return verifiedShot(this, path, opt);
+    }
+}
+
+/**
+ * ★★ 取证截图（**带尺寸自证**）—— 本工程唯一允许拿来当证据的截图通道。
+ *
+ * 【为什么必须用它，而不是裸调 `Page.captureScreenshot`】
+ *   第 53 轮实测出的真值表（探针 `tools/_r53-probe-shot2.mjs` / `_r53-probe-shot3.mjs`；
+ *   做法是**先往页面里插三条已知颜色的 DOM 横条**（CSS y=200 绿 / 500 蓝 / 900 红），
+ *   再量它们落在图里的第几行 —— 是称出来的，不是猜的）。
+ *   **倍率取决于开浏览器时的 DPR**（`openBrowser(url, { scale })`），下表按视口 421×927：
+ *
+ *     {format}                                        @DPR3 → 1263×2781  覆盖 100%  三条色条全在 3× 精确位 ✅
+ *     {format, captureBeyondViewport:false}            @DPR3 → 1263×2781  覆盖 100%                      ✅
+ *     {format, clip:{…,scale:1}}                       @DPR3 → 1263×2781  覆盖 100%（`clip.scale` 被忽略）✅
+ *     {format, fromSurface:false}                      @DPR3 →  842×1854  覆盖 84.5%  **上部色条也丢**     ❌
+ *     {format, captureBeyondViewport:false, fromSurface:false}
+ *                                                      @DPR3 →  842×1854  覆盖 84.5%（字节数与上一行**完全相同**）❌
+ *     {format, clip:{…,scale:3}}                       @DPR1 → 正常出 1263×2781（慢一点）               ⚠️可用
+ *     {format, clip:{…,scale:3}}                       @DPR3 → **150s 也不返回**（DPR3×3 = 重渲染 9× 像素）❌
+ *
+ *   ⇒ **`fromSurface:false` 会把输出静默截成残图**：底部 ~15.5% 直接没有了，
+ *     而且**图内上部的已知色条也会丢**（不是简单裁切，是一帧半合成结果）——
+ *     光看图完全看不出"缺了"，只会以为"底部那片黑就是游戏背景/暗角"。
+ *     第 52、53 轮的取证图（`_r52-shots.mjs` / `_r53-shots.mjs` / `_r53-probe-toast.mjs`，
+ *     三者都开 DPR3 且都传了 `fromSurface:false`）正是这么被污染的：底部含 toast 的高度区间**全黑**，
+ *     于是"toast 不可见"这个假象被当成产品问题查了两轮。
+ *   ⇒ 而 `_r46 / _r47 / _r47b / _r48 / _r49` 那批脚本**没事** —— 它们开的是 **DPR1**，
+ *     `clip{scale:3}` 只等于 3× 像素（不是 9×），所以既没超时也没截断。**别因为同段代码就一并怀疑。**
+ *
+ *   ⇒ 所以这里**捕获后立刻验 IHDR 宽高**，不符就抛错。判据 1：判据自身也要被验证 ——
+ *     截图是本轮所有取证的尺子，尺子必须先标定，而且**每次用都要自检**。
+ *
+ * @param cdp   CdpClient
+ * @param path  落盘路径
+ * @param opt   `{ w, h, scale }` —— 期望尺寸 = `w*scale × h*scale`，
+ *              默认 `{w:421, h:927, scale:3}` = 真机基线视口 @DPR3 = 1263×2781。
+ *              ⚠️ `scale` **必须填开浏览器时用的那个 DPR**（`openBrowser(url,{scale})`），
+ *              因为本函数不带 `clip` ⇒ 出图 = 视口 CSS 尺寸 × DPR，
+ *              传错就会「期望 1263，实际 421」直接抛错（这是**故意的**，宁可响也不要静默错）。
+ */
+export async function verifiedShot(cdp, path, opt = {}) {
+    const { w = 421, h = 927, scale = 3 } = opt;
+    const expW = w * scale, expH = h * scale;
+    let last = null;
+    for (const t of [60000, 90000]) {
+        try {
+            // ⚠️ 只有这两个参数是安全的。**绝不要**加 `fromSurface`（静默截断），
+            //    也**不要**加 `clip`（scale 一大就要重渲染 9× 像素，极易超时；
+            //    而 scale:1 又会被忽略，白白冒超时风险）。
+            const r = await cdp.send('Page.captureScreenshot',
+                { format: 'png', captureBeyondViewport: false }, t);
+            const buf = Buffer.from(r.data, 'base64');
+            // PNG：8 字节签名 + 4 字节块长 + 4 字节 'IHDR' ⇒ 宽在偏移 16、高在偏移 20
+            const gotW = buf.readUInt32BE(16), gotH = buf.readUInt32BE(20);
+            if (gotW !== expW || gotH !== expH) {
+                throw new Error(
+                    `取证截图尺寸不对：期望 ${expW}×${expH}（${w}×${h} css ×${scale}），实际 ${gotW}×${gotH}。`
+                    + ' 这就是"残图"，**绝不可当证据**。'
+                    + ' 八成是传了 fromSurface / clip —— 见 verifiedShot 注释里的真值表。');
+            }
+            await writeFile(path, buf);
+            return path;
+        } catch (e) { last = e; }
+    }
+    throw last;
 }
 
 /** 起 Chrome + 建 CDP 连接（含页面助手注入） */

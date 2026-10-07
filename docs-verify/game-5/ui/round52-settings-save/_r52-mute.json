@@ -1,0 +1,32 @@
+{
+  "m0": {
+    "sfx": null,
+    "bgm": null,
+    "legacy": null
+  },
+  "m1": {
+    "sfx": "1",
+    "bgm": null,
+    "legacy": null
+  },
+  "m2": {
+    "sfx": "1",
+    "bgm": "1",
+    "legacy": null
+  },
+  "m3": {
+    "sfx": "0",
+    "bgm": "1",
+    "legacy": null
+  },
+  "m4": {
+    "sfx": "0",
+    "bgm": "1",
+    "legacy": null
+  },
+  "m5": {
+    "sfx": "1",
+    "bgm": "1",
+    "legacy": null
+  }
+}

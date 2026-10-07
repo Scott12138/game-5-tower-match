@@ -107,6 +107,31 @@ export class PageBase extends Component {
         this.timers.clear();
     }
 
+    /**
+     * @internal 由 GameRoot 在**小游戏切到后台**时调用 —— 子类不要覆写。
+     *
+     * ★ 第 52 轮新增。⚠️ **别拿它去改 `_paused` 那类"弹层状态"**：
+     *   切后台前如果正开着暂停弹层，回到前台时那个弹层**还得在** ——
+     *   用一个标志兼表两件事，回前台就会把弹层凭空关掉。
+     *   要挡计时的子类请**自己加一个独立的后台标志**（见 `GamePage._inBackground`）。
+     */
+    public __appHide(): void {
+        try {
+            this.onAppHide();
+        } catch (e) {
+            console.error(`[PageBase] ${this.node.name} onAppHide 抛异常：`, e);
+        }
+    }
+
+    /** @internal 由 GameRoot 在**从后台回来**时调用 —— 子类不要覆写 */
+    public __appShow(): void {
+        try {
+            this.onAppShow();
+        } catch (e) {
+            console.error(`[PageBase] ${this.node.name} onAppShow 抛异常：`, e);
+        }
+    }
+
     // --------------------------------------------------------
     //  子类钩子
     // --------------------------------------------------------
@@ -119,6 +144,16 @@ export class PageBase extends Component {
 
     /** 离场之前：停计时、清理（`timers` 会被自动清空） */
     protected onLeave(): void { /* 子类重写 */ }
+
+    /**
+     * **应用切到后台**（不是页面转场）—— 需要"暂停"语义的页面重写它。
+     * 例：主玩页停倒计时、停"卡住提示"的发呆计时。
+     * ⚠️ 别在这里改弹层状态，理由见 `__appHide`。
+     */
+    protected onAppHide(): void { /* 子类重写 */ }
+
+    /** **从后台回来** —— 与 `onAppHide` 成对，恢复在 `onAppHide` 里暂停的东西 */
+    protected onAppShow(): void { /* 子类重写 */ }
 
     // --------------------------------------------------------
     //  关闭（供子类在按钮里调）

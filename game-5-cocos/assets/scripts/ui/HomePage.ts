@@ -15,16 +15,17 @@
  * ============================================================
  */
 
-import { Graphics, Node, UIOpacity, UITransform, _decorator, tween, v3 } from 'cc';
+import { Graphics, Node, SubContextView, UIOpacity, UITransform, _decorator, tween, v3 } from 'cc';
 
 import { ASSET, BTN_PRIMARY, COLOR, DEVICE, FIT, GAME, HOME_FN, PAGE } from '../CFG';
 import { PageBase } from './PageBase';
 import { MotionFx } from './MotionFx';
 import { AudioService } from './AudioService';
 import { SaveService } from '../core/SaveService';
+import { RankService } from '../core/RankService';
 import {
-    createCoverSprite, createGraphicsNode, createLabel, createNode, createScrim, createSprite,
-    fillRadialGlowE, fillRays, fillRoundRect, fillSoftBeam, fillVGradient, fitY,
+    confirmDialog, createCoverSprite, createGraphicsNode, createLabel, createNode, createScrim,
+    createSprite, fillRadialGlowE, fillRays, fillRoundRect, fillSoftBeam, fillVGradient, fitY,
     fromBottom, fromTop, strokeRoundRect, toast,
 } from './UIFactory';
 import { hex2color } from './Palette';
@@ -112,6 +113,21 @@ function ey(top: number, h: number): number { return fitY(top + YSHIFT + h / 2, 
 
 /** 抽屉高度（**外框尺寸不变**，只重排内部 —— 改动面最小、最好回退） */
 const SHEET_H = 700;
+
+// ------------------------------------------------------------
+//  排行榜浮层几何（★ 第 53 轮 · T17）
+// ------------------------------------------------------------
+//  ⚠️ `RANK_ODC_W:H` **必须是 2:3** —— 开放数据域的共享画布尺寸由引擎
+//     `SubContextView` 固定为 640×960（`designResolutionSize` 默认值，运行期只读），
+//     组件按 SHOW_ALL 把画布缩放进节点框；节点框比例不同就会左右/上下留黑边。
+const RANK_ODC_W = 640;
+const RANK_ODC_H = 960;
+/** 画布上方的留边（让金框包住画布而不是压在画布上） */
+const RANK_TOP_PAD = 12;
+/** 底部操作条（只放「关闭」） */
+const RANK_BAR_H = 130;
+/** 卡宽 = 画布宽 + 左右各 12 */
+const RANK_CARD_W = RANK_ODC_W + 24;
 /** 内容左右边距 → 行宽 = DW − 2×PAD = 654；四行共用同一个左缘与右缘 */
 const SHEET_PAD = 48;
 const SHEET_ROW_W = DW - SHEET_PAD * 2;
@@ -490,6 +506,8 @@ export class HomePage extends PageBase {
             });
             this.tapable(item, () => {
                 Haptics.light();
+                // ★ 第 53 轮（T17）：**排行榜**入口接线。其余三个仍留批次 3。
+                if (fn.id === 'rank') { this.openRank(); return; }
                 toast(this.body, `${fn.label} 敬请期待`);
             });
             this.settleIn(item, 0.62);
@@ -586,22 +604,34 @@ export class HomePage extends PageBase {
         rule(SHEET_T.rule2, 0.16);
 
         // ---- 开关组 ----
-        const mute = AudioService.muted;
-        this.sheetRow(sheet, SHEET_T.row1, ASSET.HOME_MUTE_ON, '音效', !mute, (on) => {
-            AudioService.setMuted(!on);
+        // ★ 第 52 轮修 bug：原来两个开关**都读同一个 `AudioService.muted`、都调 `setMuted`**
+        //   ⇒ 按哪个都是"全静音 / 全开"，用户报"关背景音乐会连音效一起关"就是这个。
+        //   现在各读各的位、各调各的 setter，互不影响。
+        this.sheetRow(sheet, SHEET_T.row1, ASSET.HOME_MUTE_ON, '音效', !AudioService.sfxMuted, (on) => {
+            AudioService.setSfxMuted(!on);
             toast(this.body, on ? '音效已开启' : '音效已关闭');
             return on;
         });
-        this.sheetRow(sheet, SHEET_T.row2, ASSET.HOME_ICON_MUSIC, '背景音乐', !mute, (on) => {
-            AudioService.setMuted(!on);
+        this.sheetRow(sheet, SHEET_T.row2, ASSET.HOME_ICON_MUSIC, '背景音乐', !AudioService.bgmMuted, (on) => {
+            AudioService.setBgmMuted(!on);
             toast(this.body, on ? '音乐已开启' : '音乐已关闭');
             return on;
         });
 
         // ---- 链接组 ----
         this.sheetLink(sheet, SHEET_T.row3, 'reset', '重置进度', () => {
-            SaveService.instance.resetAll();
-            toast(this.body, '进度已重置，重开生效');
+            // ★ 第 52 轮：**破坏性操作加二次确认**。
+            //   原来一点就把存档清了（关卡 / 金币 / 道具 / 签到全没），一点挽回余地都没有。
+            confirmDialog(this.body, {
+                title: '重置进度？',
+                desc: '关卡进度、金币与道具会全部清空',
+                ok: '确认重置',
+                cancel: '算了',
+                onOk: () => {
+                    SaveService.instance.resetAll();
+                    toast(this.body, '进度已重置，重开生效');
+                },
+            });
         });
         this.sheetLink(sheet, SHEET_T.row4, 'info', '关于本作', () => {
             toast(this.body, `《${GAME.NAME}》· 试玩版 v0.1`);
@@ -724,8 +754,86 @@ export class HomePage extends PageBase {
         }
     }
 
+    // ========================================================
+    //  排行榜（★ 第 53 轮新增 · T17 好友榜）
+    // ========================================================
+    //
+    //  【它为什么长这样 —— 三个尺寸不是随便定的】
+    //   ① `RANK_ODC_W:H = 640:960`（= **2:3**）。
+    //      开放数据域的共享画布尺寸由引擎 `SubContextView` 定成 **640×960**
+    //      （`designResolutionSize` 的默认值，运行期只读），组件再按 **SHOW_ALL**
+    //      把画布缩放进节点框。⇒ 节点框必须是同一个 2:3，否则会左右留黑边。
+    //   ② 卡宽 664 = 640 + 左右各 12 留边，让金框包住画布而不是压在画布上。
+    //   ③ 底部 130 的条只放「关闭」——**不再叠任何奖励文案**（分享/奖励的合规口径）。
+    //
+    //  【环境不支持时不要留空框】浏览器直跑 / 基础库太老 ⇒ `RankService.available`
+    //    为假。这时**画出说明文字**，而不是给一个"什么都没有"的黑框（那会被当成 bug）。
+
+    /** 排行榜浮层（null = 没开） */
+    private _rankLayer: Node | null = null;
+
+    private openRank(): void {
+        if (this._rankLayer?.isValid) return;
+
+        const layer = createNode('RankLayer', this.body, { w: 1, h: 1 });
+        this._rankLayer = layer;
+        layer.addComponent(UIOpacity).opacity = 0;
+
+        createScrim(layer, 190, () => this.closeRank());
+
+        const H = RANK_TOP_PAD + RANK_ODC_H + RANK_BAR_H;
+        const top = H / 2;
+        const card = createNode('RankCard', layer, { w: RANK_CARD_W, h: H });
+        const { g } = createGraphicsNode('Bg', card, { w: RANK_CARD_W, h: H });
+        g.fillColor = hex2color('rgba(8,18,13,0.98)');
+        g.roundRect(-RANK_CARD_W / 2, -top, RANK_CARD_W, H, 40); g.fill();
+        g.lineWidth = 2; g.strokeColor = hex2color('rgba(246,196,69,0.34)');
+        g.roundRect(-RANK_CARD_W / 2, -top, RANK_CARD_W, H, 40); g.stroke();
+
+        // ---- 画布（开放数据域的视窗）----
+        const odcY = top - RANK_TOP_PAD - RANK_ODC_H / 2;
+        if (RankService.instance.available) {
+            const view = createNode('OpenDataView', card, { w: RANK_ODC_W, h: RANK_ODC_H, y: odcY });
+            // `SubContextView` 自己会在内部建一个带 Sprite 的 content 子节点，
+            // 所以这里**不需要**再给本节点挂 Sprite（挂了也不影响，纯多余）。
+            view.addComponent(SubContextView);
+            // 先上报自己的最高关卡，再让开放数据域拉一次好友数据重绘
+            RankService.instance.pushScore(SaveService.instance.best);
+            RankService.instance.render();
+        } else {
+            createLabel(card, '排行榜需要在小游戏里查看', {
+                fontSize: 28, color: COLOR.CREAM_DIM, w: RANK_CARD_W, h: 40, y: odcY + 40,
+            });
+            createLabel(card, '（浏览器预览环境没有开放数据域）', {
+                fontSize: 22, color: COLOR.CREAM_MUTE, w: RANK_CARD_W, h: 32, y: odcY - 10,
+            });
+        }
+
+        // ---- 底部：关闭 ----
+        const barY = -top + RANK_BAR_H / 2;
+        const close = createNode('RankClose', card, { w: 360, h: 88, y: barY });
+        const { g: cg } = createGraphicsNode('Btn', close, { w: 360, h: 88 });
+        cg.fillColor = hex2color('rgba(255,247,230,0.06)');
+        cg.roundRect(-180, -44, 360, 88, 44); cg.fill();
+        cg.lineWidth = 2; cg.strokeColor = hex2color('rgba(246,196,69,0.45)');
+        cg.roundRect(-180, -44, 360, 88, 44); cg.stroke();
+        createLabel(close, '关闭', { fontSize: 32, color: COLOR.CREAM, bold: true, w: 360, h: 40 });
+        this.tapable(close, () => this.closeRank());
+
+        MotionFx.fadeTo(layer.getComponent(UIOpacity)!, 255, 0.22);
+        console.log(`[HomePage] 排行榜已打开（环境可用=${RankService.instance.available}）`);
+    }
+
+    private closeRank(): void {
+        const l = this._rankLayer;
+        this._rankLayer = null;
+        if (!l?.isValid) return;
+        const op = l.getComponent(UIOpacity)!;
+        MotionFx.fadeTo(op, 0, 0.2);
+        this.timers.add(240, () => { if (l.isValid) l.destroy(); });
+    }
+
     private openSheet(): void {
-        if (!this._sheet || this._sheetOpen) return;
         this._sheetOpen = true;
         const scrim = (this._sheet as unknown as { _scrim: Node })._scrim;
         this._sheet.active = true;
@@ -813,5 +921,9 @@ export class HomePage extends PageBase {
         if (this._walletLabel?.isValid) this._walletLabel.string = this.coinText();
         // 抽屉收起
         if (this._sheet) this._sheet.setPosition(0, -this.visible().height / 2 - SHEET_H, 0);
+        // ★ 第 53 轮：把"历史最高通关关卡"同步到微信云存储（排行榜的数据来源）。
+        //   放在这里是因为**结算后必然回到首页**，一次上报覆盖所有通关路径；
+        //   而 `RankService` 内部对"同分不重发"有幂等保护，重复进首页不会刷接口。
+        RankService.instance.pushScore(SaveService.instance.best);
     }
 }

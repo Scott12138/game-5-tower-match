@@ -285,6 +285,24 @@ judge(multisetOk, '牌面多重集逐张守恒（置换不改变"每种牌面几
 judge(geomOk, '几何（x / z）逐张一致（置换只换面、不动位置）');
 
 // ── D. 当前 CFG 档位的落点 ─────────────────────────────────
+//
+// ★ 第 52 轮：用户拍板把 `CFG.DIFF.BLOCK` 由 6 调到 7。7 档的代价**正是**放弃
+//   "必可解"的数学保证（照清序 30/30 → 29.8/30），所以下面对"可解性"的两条期望值
+//   不能再硬编"必须是 30"，改成**按档位分级**。
+//   阈值取自 2026-10-07 的拍板记录与上表标定值，**不是**从当前输出反抄的：
+//     · BLOCK ≤ 6 ：照清序**必须 30/30**（构造性可解，槽内峰值 < 8，留有余量）
+//     · BLOCK 7~8 ：照清序 **≥ 29/30**（实测 7→29.8 · 8→29.3；槽内峰值已顶到 8）
+//     · BLOCK ≥ 9 ：可解性已被破坏（10→17.5 · 12→10.3 · 16→1.7）⇒ **不接受**
+//   这样判据守的仍然是"档位不能乱调"，而不是"现状即期望"。
+/** 可解性"破坏线"：越过后连照清序都过不了关 */
+const SAFE_HARD = 8;
+/** 该档位下"照清序"的最低可接受通关数 */
+function minClearOf(block) {
+    if (block <= SAFE_BLOCK) return LEVELS.length;      // 30：构造性可解
+    if (block <= SAFE_HARD) return LEVELS.length - 1;   // 29：拍板接受的取舍
+    return Infinity;                                    // ≥9：不接受
+}
+
 console.log('\n[D] 当前 CFG.DIFF 的落点');
 DIFF.BLOCK = CFG_BLOCK;                 // 还原成配置值（见 CFG_BLOCK 的注释）
 DIFF.ENABLED = CFG_ENABLED;
@@ -298,8 +316,11 @@ console.log(`  无脑 ${f1(cur.blind)}/30 · 会看牌 ${f1(cur.aware)}/30 · �
     + ` · 槽内峰值 ${cur.peak} · 同组连续度 ${(cur.intact * 100).toFixed(1)}%`);
 judge(cur.blind <= LEVELS.length * 0.55,
     `当前档位下「无脑」不再稳过（${f1(cur.blind)}/30 ≤ 16.5）—— 玩家得动脑子了`);
-judge(cur.block <= SAFE_BLOCK, `当前档位在"可解保证"区间内（BLOCK ${cur.block} ≤ ${SAFE_BLOCK}）`);
-judge(cur.soOk >= LEVELS.length - 1e-9, `当前档位下"照清序"仍 30/30 —— 有解，不是坑`);
+judge(cur.block <= SAFE_HARD,
+    `当前档位未越过"可解性破坏线"（BLOCK ${cur.block} ≤ ${SAFE_HARD}）`);
+judge(cur.soOk >= minClearOf(cur.block),
+    `当前档位下"照清序" ${f1(cur.soOk)}/30 ≥ 该档最低要求 ${minClearOf(cur.block)}/30`
+    + `（BLOCK ${cur.block}：≤6 满清 30 · 7~8 允许 29 · ≥9 不接受）`);
 judge(cur.aware >= LEVELS.length * 0.8,
     `当前档位下「会看牌」贪心也能过 ${f1(cur.aware)}/30（≥ 24）—— 难度来自"要想"，不是"要运气"`);
 

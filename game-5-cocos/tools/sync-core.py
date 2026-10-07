@@ -28,6 +28,15 @@ FILES = [
     # ★ 难度置换 —— Board.ts 现在 import 它（第 46 轮需求⑥），必须一起平铺
     ('Difficulty.ts', os.path.join(SRC, 'core', 'Difficulty.ts')),
     ('Board.ts', os.path.join(SRC, 'core', 'Board.ts')),
+    # ★★ 第 53 轮：平台能力四件套也要平铺。
+    #   理由：这四件的"真实分支"（有三条结局、会累积的监听器、一次性票据、云存储值格式）
+    #   是**离线可确定性复现**的 —— 注入一个 fake `wx` 就能把真路跑一遍，
+    #   而不用等"哪天有广告位 / 有真机"才验。见 `tools/_r53-core-check.mjs`。
+    #   ⚠️ 这四件都**不 import 'cc'**（各自文件头写了这条纪律），所以能直接平铺。
+    ('AdService.ts', os.path.join(SRC, 'core', 'AdService.ts')),
+    ('ShareService.ts', os.path.join(SRC, 'core', 'ShareService.ts')),
+    ('LoginService.ts', os.path.join(SRC, 'core', 'LoginService.ts')),
+    ('RankService.ts', os.path.join(SRC, 'core', 'RankService.ts')),
 ]
 
 # from '...' / import '...' → 统一压平成 './<名字>.ts'

@@ -1,0 +1,197 @@
+{
+  "pass": 38,
+  "fail": 0,
+  "rows": [
+    {
+      "name": "起点：两个静音键都还没写过（默认都开）",
+      "ok": true,
+      "detail": "{\"sfx\":null,\"bgm\":null,\"legacy\":null}"
+    },
+    {
+      "name": "设置抽屉已升起（Sheet 可见）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "真实鼠标点中「音效」行里的开关",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 点音效开关：sfx 键被写为 1",
+      "ok": true,
+      "detail": "sfx=1"
+    },
+    {
+      "name": "★ 点音效开关：**bgm 键纹丝不动**（旧 bug 就死在这里）",
+      "ok": true,
+      "detail": "bgm null → null"
+    },
+    {
+      "name": "旧键 game5.mute 不再被写入（新代码只用两个新键）",
+      "ok": true,
+      "detail": "legacy=null"
+    },
+    {
+      "name": "真实鼠标点中「背景音乐」行里的开关",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 点音乐开关：bgm 键被写为 1",
+      "ok": true,
+      "detail": "bgm=1"
+    },
+    {
+      "name": "★ 点音乐开关：**sfx 键保持 1 不变**（反方向也要成立）",
+      "ok": true,
+      "detail": "sfx 1 → 1"
+    },
+    {
+      "name": "★ 再次点音效开关：sfx 1 → 0",
+      "ok": true,
+      "detail": "sfx=0"
+    },
+    {
+      "name": "★ 此时两开关处于不同档位（sfx 关 / bgm 开）—— 旧版做不到",
+      "ok": true,
+      "detail": "{\"sfx\":\"0\",\"bgm\":\"1\",\"legacy\":null}"
+    },
+    {
+      "name": "★ 重载后两个偏好**各自保持**（sfx=0 / bgm=1，没有被互相覆盖）",
+      "ok": true,
+      "detail": "{\"sfx\":\"0\",\"bgm\":\"1\",\"legacy\":null}"
+    },
+    {
+      "name": "重载后点音效开关：0 → 1（证明确实读回了持久值，不是每次重置成默认）",
+      "ok": true,
+      "detail": "sfx=1"
+    },
+    {
+      "name": "前置：存档里已垫入非默认值（coins=999 / best=2 / plays=7）",
+      "ok": true,
+      "detail": "{\"level\":3,\"best\":2,\"inventory\":{\"erase\":0,\"move\":0,\"shuffle\":0,\"addslot\":0},\"coins\""
+    },
+    {
+      "name": "真实鼠标点中「重置进度」行",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 点一次**不对**清档 —— 而是弹出确认层",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 确认层出现时，存档**一个字节都没动**",
+      "ok": true,
+      "detail": "逐字节相同"
+    },
+    {
+      "name": "点「取消」→ 确认层消失",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 取消后存档**仍逐字节未变**（这条才是\"防误触\"的真判据）",
+      "ok": true,
+      "detail": "逐字节相同"
+    },
+    {
+      "name": "第二次点「重置进度」仍会弹确认层（不是\"只拦第一次\"）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 点「确认重置」→ 存档真的被清（coins 999→0 / best 2→0 / plays 7→0）",
+      "ok": true,
+      "detail": "{\"level\":1,\"best\":0,\"inventory\":{\"erase\":0,\"move\":0,\"shuffle\":0,\"addslot\":0},\"coins\":0,\"pl"
+    },
+    {
+      "name": "已进入主玩页（调试桥可用）",
+      "ok": true,
+      "detail": "level 3 · 剩 30 张"
+    },
+    {
+      "name": "暂停面板已弹出",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "真实鼠标点中「返回首页」",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 点「返回首页」**没有直接走** —— 而是弹出确认层",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 确认层出现时**仍在主玩页**（没有被悄悄退掉）",
+      "ok": true,
+      "detail": "Page_game 仍在"
+    },
+    {
+      "name": "点「取消」→ 确认层消失",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 取消后仍在主玩页",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 取消后局面**逐字段未变**（remaining / cleared / slots 全部一致）",
+      "ok": true,
+      "detail": "剩 30 · 已清 0 · 槽 0"
+    },
+    {
+      "name": "★ 点「确认返回」→ 真的回到首页",
+      "ok": true,
+      "detail": "Page_home 在"
+    },
+    {
+      "name": "★ GameRoot 已把前后台回调挂到 wx 上（armLifecycle 跑过）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "前置：倒计时本来是在走的（否则\"停下来\"这条判不出来）",
+      "ok": true,
+      "detail": "timeLeft 179 → 177"
+    },
+    {
+      "name": "★ 切后台后倒计时**停住**（2.6s 内 timeLeft 不变）",
+      "ok": true,
+      "detail": "timeLeft 177 → 177"
+    },
+    {
+      "name": "★ 切后台**没有**把弹层状态搅乱（paused 未被改动）",
+      "ok": true,
+      "detail": "paused false → false"
+    },
+    {
+      "name": "★ 回到前台后倒计时**继续走**（不是整个卡死）",
+      "ok": true,
+      "detail": "timeLeft 177 → 175"
+    },
+    {
+      "name": "负控：连发 hide/show 不抛异常",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "★ 构建产物里游戏名的**字符串字面量** =「麻麻大消除」",
+      "ok": true,
+      "detail": "1 个产物文件命中（共扫 11 个 js）"
+    },
+    {
+      "name": "★ 没有任何字符串字面量还写着旧名「叠塔消消」",
+      "ok": true,
+      "detail": "残留 0 个文件"
+    }
+  ],
+  "at": "2026-10-07T04:54:44.827Z"
+}

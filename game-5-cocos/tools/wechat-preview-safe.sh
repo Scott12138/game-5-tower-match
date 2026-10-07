@@ -47,7 +47,7 @@ echo "============================================================"
 
 # ---------------------------------------------------------------- ⓪ 前置检查
 if ! networksetup -listallnetworkservices 2>/dev/null | grep -qx "$SERVICE"; then
-  echo "❌ 找不到网络服务「$SERVICE」。可用服务如下："
+  echo "❌ 找不到网络服务「${SERVICE}」。可用服务如下："
   networksetup -listallnetworkservices 2>/dev/null | tail -n +2 | sed 's/^/     /'
   echo "   → 用 NET_SERVICE=\"<服务名>\" 重新执行本脚本"
   exit 1
@@ -91,7 +91,7 @@ restore_proxy() {
       echo "==> 内核模式已切回 ${CLASH_MODE_BEFORE}（当前 ${now:-?}）"
       ;;
     system)
-      echo "==> 恢复系统代理（HTTP=$http_state / HTTPS=$https_state）"
+      echo "==> 恢复系统代理（HTTP=$http_state / HTTPS=${https_state}）"
       if [ "$http_state" = "Yes" ]; then
         networksetup -setwebproxystate "$SERVICE" on        >/dev/null 2>&1
       else
@@ -136,8 +136,18 @@ else
     CLASH_MODE_BEFORE="${CLASH_MODE_BEFORE:-rule}"
     if curl -s --noproxy '*' -X PATCH -d '{"mode":"direct"}' \
         "http://127.0.0.1:${CTRL_PORT}/configs" >/dev/null 2>&1; then
-      PROXY_BACKEND="kernel:${CTRL_PORT}"
-      echo "    路径 B：内核模式 ${CLASH_MODE_BEFORE} → direct（出码后自动切回）"
+      # ★ 2026-10-07 第 52 轮：**必须读回验证**。
+      #   原实现只看 curl 的退出码 —— 而 curl 收到 HTTP 401（需要 secret）也返回 0，
+      #   于是会在"其实没切成"的情况下打印"已切到 direct"，把排查带偏。
+      ACTUAL_MODE="$(curl -s --noproxy '*' --max-time 3 \
+        "http://127.0.0.1:${CTRL_PORT}/configs" \
+        | python3 -c 'import sys,json;print(json.load(sys.stdin).get("mode","?"))' 2>/dev/null)"
+      if [ "$ACTUAL_MODE" = "direct" ]; then
+        PROXY_BACKEND="kernel:${CTRL_PORT}"
+        echo "    路径 B：内核模式 ${CLASH_MODE_BEFORE} → direct（读回确认，出码后自动切回）"
+      else
+        echo "    ⚠️  PATCH 返回成功但读回模式 = ${ACTUAL_MODE:-?}（不是 direct）—— 未生效"
+      fi
     fi
   fi
 fi
@@ -177,7 +187,7 @@ if [ "$RC" = "0" ]; then
   echo "============================================================"
 else
   echo "============================================================"
-  echo "❌ 出码未通过（退出码 $RC）。若是 3 = 上传失败，见上方指引。"
+  echo "❌ 出码未通过（退出码 ${RC}）。若是 3 = 上传失败，见上方指引。"
   echo "============================================================"
 fi
 exit "$RC"

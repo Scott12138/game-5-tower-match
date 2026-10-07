@@ -28,21 +28,23 @@
 
 import { Input, Node, Sprite, Texture2D, UIOpacity, UITransform, _decorator, input, tween, v3 } from 'cc';
 
-import { ASSET, COLOR, DEBUG, DIFF, FONT, LAYOUT, NUDGE, PAGE, PLAY, SFX, SKIN, TOOL, TOOL_ICON,
-    TOOL_META, TOOL_ORDER, diffBlockOf, timeLimitOf, type ToolKey } from '../CFG';
+import { AD, ASSET, COLOR, DEBUG, DIFF, FONT, LAYOUT, NUDGE, PAGE, PLAY, SFX, SKIN, TOOL, TOOL_ICON,
+    TOOL_META, TOOL_ORDER, diffBlockOf, timeLimitOf, type AdScene, type ToolKey } from '../CFG';
 import { PageBase } from './PageBase';
 import { Layout } from './Layout';
 import { EASE, MotionFx, TAG } from './MotionFx';
 import { AudioService } from './AudioService';
 import { Haptics } from './Haptics';
 import { SaveService } from '../core/SaveService';
+import { AdService, type AdOutcome } from '../core/AdService';
+import { ShareService } from '../core/ShareService';
 import { LEVELS, type LevelDef } from '../core/LevelData';
 import { Board, makeBoard } from '../core/Board';
 import { findMatch, MATCH_LABEL, type MatchType } from '../core/MatchRule';
 import { currentRun, endRun, reviveLeft, useRevive, useRunItem } from '../core/Gift';
 import { faceLabel, spritePath } from '../core/TileData';
 import {
-    createGraphicsNode, createLabel, createNode, createSprite,
+    confirmDialog, createGraphicsNode, createLabel, createNode, createSprite,
     draw3dFace, drawProgressBar, fillRadialGlow, fillRoundRect, fillVGradient, loadFrame,
     strokeRoundRect, toast,
 } from './UIFactory';
@@ -290,6 +292,15 @@ export class GamePage extends PageBase {
     private _lockSeq = 0;
     private _over = false;
     private _paused = false;
+    /**
+     * ★ 第 52 轮：**应用切到后台**（≠ 弹层暂停）。
+     *
+     * 【为什么必须与 `_paused` 分开存】`_paused` 的语义是"有弹层开着"。
+     *   切后台时玩家可能正开着暂停面板，回到前台那个面板**还得在** ——
+     *   两者共用一个标志的话，回前台会把面板状态一并抹掉（"我的暂停面板呢？"）。
+     *   所以这位只管"倒计时 / 发呆提示要不要走"，不参与任何 UI 判断。
+     */
+    private _inBackground = false;
     private _cleared = 0;
     private _timeLeft = 0;
     private _totalTime = 0;
@@ -386,7 +397,32 @@ export class GamePage extends PageBase {
     protected onLeave(): void {
         this.detachRuleTap();
         this.hideNudgeGlow();
+        // ★ 第 53 轮：**广告流程可能正开着就离页了**（比如超时判负后玩家直接退出）。
+        //   不强制结算的话：`_adPanelResolve` 悬着不放、`_paused` 留在 true、
+        //   面板节点挂在已销毁的 `_topLayer` 上 ⇒ 下次进主玩页直接全屏点不动。
+        this.settleAdPanel('abort');
+        this._adBusy = false;
         this.uninstallDebugBridge();
+    }
+
+    /**
+     * ★ 第 52 轮：小游戏切到后台。
+     *
+     * 只置后台标志 —— 倒计时与"卡住提示"的计时都会读它
+     * （见 `tickTimer` 与 `tickNudge`）。
+     *
+     * ⚠️ **不碰 `_paused`**：玩家切后台前若正开着暂停 / 规则面板，
+     *   回到前台时那个面板得**原样还在**。共用一个标志就会把它抹掉。
+     */
+    protected onAppHide(): void {
+        this._inBackground = true;
+        this.log('切到后台 → 倒计时与卡住提示已暂停');
+    }
+
+    /** 从后台回来：清掉后台标志，倒计时接着走（不补扣后台那段时间） */
+    protected onAppShow(): void {
+        this._inBackground = false;
+        this.log('回到前台 → 倒计时继续');
     }
 
     // ---- 环境（第 42 轮换血：桌外底色 = B「织锦经纬」× 1.20）----
@@ -1783,7 +1819,7 @@ export class GamePage extends PageBase {
         if (!this.node.isValid || this._over) return;
         this.timer(1000, () => {
             if (!this.node.isValid || this._over) return;
-            if (!this._paused && !this._locked && !this._armedErase) {
+            if (!this._paused && !this._inBackground && !this._locked && !this._armedErase) {
                 if (this._nudgeCool > 0) this._nudgeCool -= 1;
                 this._nudgeIdle += 1;
 
@@ -2520,7 +2556,11 @@ export class GamePage extends PageBase {
             this.resultButton(card, 'BtnShare', cur, RESULT.BTN_GHOST_H, '分享', 'ghost',
                 RESULT.BTN_GHOST_FONT, RESULT.CARD_W - 80, () => {
                     Haptics.light();
-                    toast(this.body, '分享功能待接入微信开放能力');
+                    // ★ 第 53 轮：真分享，**不给任何奖励**。
+                    //   合规口径见 `ShareService` 文件头 —— 分享是**传播入口**，
+                    //   想要道具只有"看广告"一条路。文案里也刻意不出现"得/领/奖励"。
+                    const ok = ShareService.instance.share(this._level);
+                    if (!ok) toast(this.body, '当前环境不支持分享，请在微信里试');
                 });
         } else {
             // 负态第二排：重新挑战（同一个出口语义 → 走 endRun 作废本局赠礼）
@@ -2692,10 +2732,37 @@ export class GamePage extends PageBase {
         return `${mm}:${ss}`;
     }
 
-    /** 看广告复活（A1：1 次/局）—— 补一次复活机会，**这局继续**，所以不走 endRun() */
+    /**
+     * 看广告复活（A1：1 次/局）—— 补一次复活机会，**这局继续**，所以不走 `endRun()`。
+     *
+     * ★ 第 53 轮：**只有广告看完（`end`）才复活**。中途关掉 / 拉不到，什么都不发生，
+     *   且必须把 `_paused` 复位（否则结算弹层关不掉 = 卡死）。
+     */
     private adRevive(): void {
         if (!this._over) return;
+        if (this._adBusy) return;                     // 连点保护
+        if (this._topLayer?.getChildByName('AdPanel')?.isValid) return;
         AudioService.playSfx(SFX.button, 1.0);
+
+        this._adBusy = true;
+        void this.playAd('revive', {
+            title: '看广告复活',
+            // ⚠️ 复活**没有对应的道具图标**（见 GameStartPage 的同款注释：
+            //   复活档用矢量补一枚）⇒ 这里不传 icon，副标题自动上移填补空档。
+            sub: '复活机会 ×1',
+        }).then((o) => {
+            this._adBusy = false;
+            if (o !== 'end') {
+                if (o === 'fail') toast(this.body, '广告暂时拉不到，稍后再试');
+                return;
+            }
+            this.doAdRevive();
+        });
+    }
+
+    /** 广告看完后真正执行的复活（与 `adRevive` 分开 ⇒ "看完"这个判据是显式的、可断言的） */
+    private doAdRevive(): void {
+        if (!this.node.isValid || !this._over) return;
         const run = currentRun();
         if (run) run.revive = run.reviveUsed + 1;      // 补 1 次可用的复活机会
         if (run && !useRevive()) {
@@ -2731,7 +2798,7 @@ export class GamePage extends PageBase {
 
     private tickTimer(): void {
         if (this._over || !this.node.isValid) return;
-        if (this._paused) { this.timer(200, () => this.tickTimer()); return; }
+        if (this._paused || this._inBackground) { this.timer(200, () => this.tickTimer()); return; }
 
         if (this._timeLeft <= 0) {
             this.onFail('timeout');
@@ -2739,6 +2806,11 @@ export class GamePage extends PageBase {
         }
         this.updateTimerLabel();
         this.timer(1000, () => {
+            // ⚠️ **在途的这一秒到点时，可能已经切到后台 / 已打开弹层** ⇒ 那一秒不该扣。
+            //    只在函数开头判一次是不够的：`onHide` 那一刻若正好有一个 1s 定时器在跑，
+            //    它到点仍会 `--`，白掉 1 秒（第 52 轮实测：2.6s 采样窗里掉的正是这 1）。
+            //    递归回 `tickTimer()` 后会走上面那条 200ms 轮询，不会继续扣。
+            if (this._inBackground || this._paused) { this.tickTimer(); return; }
             this._timeLeft--;
             this.tickTimer();
         });
@@ -2798,8 +2870,20 @@ export class GamePage extends PageBase {
             this.close(PAGE.GAME, { level: this._level, restart: true });
         });
         this.panelButton(panel, -150, '返回首页', 'ghost', () => {
-            endRun();
-            this.close(PAGE.HOME);
+            // ★ 第 52 轮：**破坏性操作加二次确认**。
+            //   原来一点就直接退 —— 误触一次本局就没了，而且没有任何提示
+            //   （设计规则 P3/P2-R3 早就写了"破坏性操作需二次确认"，代码里一直没做）。
+            if (!this._topLayer) return;
+            confirmDialog(this._topLayer, {
+                title: '返回首页？',
+                desc: '本局进度不会保留',
+                ok: '确认返回',
+                cancel: '再玩一会',
+                onOk: () => {
+                    endRun();
+                    this.close(PAGE.HOME);
+                },
+            });
         });
 
         MotionFx.fadeTo(layer.getComponent(UIOpacity), 255, 0.22);
@@ -2912,98 +2996,170 @@ export class GamePage extends PageBase {
         this._ruleTapCb = null;
     }
 
+    // ========================================================
+    //  ★ 第 53 轮：广告（A1 复活 / A2 换道具）与分享
+    // ========================================================
+    //
+    //  【统一入口 `playAd()`】复活与换道具都走它，内部二选一：
+    //    · `AdService.modeOf(scene) === 'real'` ⇒ 真微信激励视频；
+    //    · 否则 ⇒ `openMockAdPanel()` 的**替身**（5 秒进度条，界面上如实标「演示用」）。
+    //    把"没有广告位"这件事**只**限定在"广告从哪来"这一个点上 ——
+    //    于是 T06/T07/T08 的每条判据在预览环境下都能**确定性复现**，
+    //    而不是"等哪天有广告位了再验"。
+    //
+    //  【★ 合规改造：分享不再换奖励（第 53 轮用户拍板）】
+    //    旧版这一屏是「看广告满 5 秒，**或分享给好友** —— 到手即用」，即"分享 = 白送道具"。
+    //    微信《小游戏运营规范》把"分享后才能获得奖励"明确列为**诱导分享**，故这条路**已删**。
+    //    现在：想拿道具**只有看广告一条路**；分享退化为**纯传播入口**
+    //    （结算页胜态那颗「分享」按钮，见 `openResult()` 的 `BtnShare`）。
+    //
+    //  【为什么 `abort` / `fail` 一律不发】见 `AdService` 文件头：这是判据不是体验 ——
+    //    "关掉了也算数"会让"看广告"这个行为失去意义。
+
+    /** 替身广告面板的结算函数（null = 没有面板开着）；配 `settleAdPanel()` 用 */
+    private _adPanelResolve: ((o: AdOutcome) => void) | null = null;
+    /** 广告流程进行中（含替身面板）—— 连点保护；`AdService` 自己也有一次保护 */
+    private _adBusy = false;
+
+    /** 播一次广告（真 / 替身两条路），返回 `end` | `abort` | `fail` */
+    private playAd(scene: AdScene, mockUi: { title: string; icon?: string; sub: string }): Promise<AdOutcome> {
+        if (AdService.instance.modeOf(scene) === 'real') {
+            return AdService.instance.play(scene);
+        }
+        return this.openMockAdPanel({ ...mockUi, seconds: AD.MOCK_SECONDS });
+    }
+
     /**
-     * 道具不够 → 「**看广告 / 分享**」二选一，换来的道具**立刻生效**。
+     * 替身广告面板（mock 模式专用）。
      *
-     * ★ 第 46 轮改造（用户拍板）：
-     *   ① **保留**"骰子赠礼给库存、库存空了才走这里"的机制（不改成 game-4 的无库存）；
-     *   ② 但看完之后**不再补 1 个进库存** —— 而是**立马使用、产生效果**
-     *      （game-4 `onPropTap` 正是这个流程：过门禁 → 直接 `applyProp(id)`）；
-     *   ③ 新增「分享给好友」这条路（game-4 的 `RewardGate` 里两者就是并列的）。
-     *
-     * 【为什么不补库存】补库存的话玩家还得再点一次道具键 —— 中间那一步是纯摩擦，
-     *   而"我刚看完广告，东西应该立刻到手"才是本能预期。
+     * ⚠️ 界面上**如实标了「演示用 · 当前尚未接入广告位」** ——
+     *   这不是"假装有广告"，而是"没有广告位时让链路可走完"的替身。
+     *   一旦 `CFG.AD.REAL_ENABLED` 打开且配了 adUnitId，这块面板**根本不会被走到**。
      */
-    private openAd(id: string): void {
-        if (!this._topLayer) return;
-        if (this._topLayer.getChildByName('AdPanel')?.isValid) return;
+    private openMockAdPanel(ui: { title: string; icon?: string; sub: string; seconds: number }): Promise<AdOutcome> {
+        const top = this._topLayer;
+        if (!top) return Promise.resolve('fail');
+        // 幂等：已经开着一块就别再开（连点）。判 `fail` 是故意的 —— 什么都不发生。
+        if (top.getChildByName('AdPanel')?.isValid) return Promise.resolve('fail');
+
         this._paused = true;
         this.hideNudgeGlow();                 // 引导环先收掉，别压在弹层上
 
         const vs = this.visible();
-        const layer = createNode('AdPanel', this._topLayer, { w: 1, h: 1 });
+        const layer = createNode('AdPanel', top, { w: 1, h: 1 });
         layer.addComponent(UIOpacity).opacity = 0;
 
         const { g: sg } = createGraphicsNode('Scrim', layer, { w: vs.width, h: vs.height });
         fillRoundRect(sg, 0, 0, vs.width * 1.4, vs.height * 1.4, 0, '#000000', 214);
 
-        // ⚠️ 卡高 520 → **600**：多出来的 80 是给「分享给好友」那颗按钮的。
-        //    改这里必须同步改下面每个 y —— 卡片是**居中**的，y 一错就会戳出卡外。
-        const CW = 560, CH = 600;
+        // ⚠️ 卡高 600 → **520**：旧版多出来的 80 是给「分享给好友」那颗按钮的，
+        //    该按钮已按合规口径删除 ⇒ 一并收回。改这里必须同步改下面每个 y
+        //    （卡片是**居中**的，y 一错就会戳出卡外，且不会有任何报错）。
+        const CW = 560, CH = 520;
         const card = createNode('AdCard', layer, { w: CW, h: CH });
         const { g: cg } = createGraphicsNode('Bg', card, { w: CW, h: CH });
         fillRoundRect(cg, 0, 0, CW, CH, 40, 'rgba(9,18,13,0.98)', 255);
         strokeRoundRect(cg, 0, 0, CW, CH, 40, 'rgba(246,196,69,0.30)', 2.5, 255);
 
-        const tname = TOOL_META[id as keyof typeof TOOL_META].name;
-        createLabel(card, '获取道具', {
-            fontSize: 38, color: COLOR.CREAM, bold: true, serif: true, w: 520, h: 48, y: 248,
+        createLabel(card, ui.title, {
+            fontSize: 38, color: COLOR.CREAM, bold: true, serif: true, w: 520, h: 48, y: 208,
         });
-        createSprite(card, 'Icon', { path: TOOL_ICON[id as keyof typeof TOOL_ICON], aspectW: 96, y: 152 });
-        createLabel(card, `${tname} ×1`, {
-            fontSize: 30, color: COLOR.GOLD_HI, bold: true, w: 520, h: 40, y: 78,
+        if (ui.icon) createSprite(card, 'Icon', { path: ui.icon, aspectW: 96, y: 112 });
+        createLabel(card, ui.sub, {
+            fontSize: 30, color: COLOR.GOLD_HI, bold: true, w: 520, h: 40, y: ui.icon ? 38 : 96,
         });
 
-        // 路线 A：看广告 —— 进度条自己跑满
-        const bar = createNode('Bar', card, { w: 400, h: 16, y: 24 });
+        const bar = createNode('Bar', card, { w: 400, h: 16, y: -16 });
         const bg = bar.addComponent(GraphicsCtor);
-        const secLabel = createLabel(card, '5', {
-            fontSize: 24, color: COLOR.CREAM_MUTE, w: 520, h: 30, y: -12,
+        const secLabel = createLabel(card, String(ui.seconds), {
+            fontSize: 24, color: COLOR.CREAM_MUTE, w: 520, h: 30, y: -52,
         });
-        // 路线 B：分享 —— 立即到手（与广告**并列**出现在这一屏，合规要求）
-        this.panelButton(card, -92, '分享给好友', 'jade', () => this.closeAd(id, true, 'share'));
-        createLabel(card, '看广告满 5 秒，或分享给好友 —— 到手即用', {
-            fontSize: 20, color: COLOR.CREAM_MUTE, w: 540, h: 28, y: -160,
+        createLabel(card, '演示用 · 当前尚未接入广告位', {
+            fontSize: 20, color: COLOR.CREAM_MUTE, w: 540, h: 28, y: -110,
         });
-        this.panelButton(card, -224, '跳过', 'ghost', () => this.closeAd(id, false));
-
-        // 5 秒进度（用 timers 驱动，状态不依赖 tween 回调）
-        const AD_SEC = 5;
-        let left = AD_SEC;
-        const paint = (): void => {
-            drawProgressBar(bg, 1 - left / AD_SEC, 400, 16, 8, 'rgba(255,247,230,0.12)', COLOR.GOLD_HI, COLOR.GOLD);
-        };
-        paint();
-        const step = (): void => {
-            if (!layer.isValid) return;
-            left -= 0.1;
-            if (left <= 0) { this.closeAd(id, true, 'ad'); return; }
-            paint();
-            if (secLabel.isValid) secLabel.string = String(Math.ceil(left));
-            this.timer(100, step);
-        };
-        this.timer(100, step);
+        this.panelButton(card, -190, '跳过', 'ghost', () => this.settleAdPanel('abort'));
 
         MotionFx.fadeTo(layer.getComponent(UIOpacity), 255, 0.22);
+
+        return new Promise<AdOutcome>((resolve) => {
+            this._adPanelResolve = resolve;
+            const total = Math.max(1, ui.seconds);
+            let left = total;
+            // 进度由 `timers` 驱动，状态不依赖 tween 回调（同旧版，理由不变）
+            const paint = (): void => {
+                drawProgressBar(bg, 1 - left / total, 400, 16, 8, 'rgba(255,247,230,0.12)', COLOR.GOLD_HI, COLOR.GOLD);
+            };
+            paint();
+            const step = (): void => {
+                if (!layer.isValid) { this.settleAdPanel('fail'); return; }
+                left -= 0.1;
+                if (left <= 0) { this.settleAdPanel('end'); return; }
+                paint();
+                if (secLabel.isValid) secLabel.string = String(Math.ceil(left));
+                this.timer(100, step);
+            };
+            this.timer(100, step);
+        });
     }
 
     /**
-     * 关闭广告卡。`grant = true` ⇒ **立刻执行该道具**（而不是补 1 个进库存）。
+     * 关闭替身广告面板并结算。**无论从哪条路来都只结算一次**（幂等）。
      *
-     * ⚠️ 回到主流程之前**必须复查**：这 5 秒里局面可能已经变了
-     *   （超时判负 / 页面被销毁 / 槽被别处清空）—— game-4 的同款注释。
+     * ⚠️ `_paused = false` 必须在这里做 —— 少一次复位就是**整页卡死**
+     *   （所有触摸都被 `_paused` 挡住，玩家只能杀进程）。这条是 T08 的核心判据。
      */
-    private closeAd(id: string, grant: boolean, via: 'ad' | 'share' = 'ad'): void {
-        const l = this._topLayer?.getChildByName('AdPanel');
+    private settleAdPanel(outcome: AdOutcome): void {
+        const r = this._adPanelResolve;
+        if (!r) return;                        // 没面板开着 ⇒ 幂等返回
+        this._adPanelResolve = null;
+
         this._paused = false;
+        const l = this._topLayer?.getChildByName('AdPanel');
         if (l?.isValid) {
             const op = l.getComponent(UIOpacity)!;
             MotionFx.fadeTo(op, 0, 0.2);
             const dead = l;
             this.timer(240, () => { if (dead.isValid) dead.destroy(); });
         }
-        if (!grant) return;
-        if (!this.node.isValid || this._over) return;
+        r(outcome);
+    }
+
+    /**
+     * 道具不够 → **看广告换一次**，换来的道具**立刻生效**（不进库存）。
+     *
+     * ★ 第 46 轮口径（**保留**）：骰子赠礼给库存、库存空了才走这里；
+     *   看完**不再补 1 个进库存**，而是**立马使用、产生效果** ——
+     *   补库存的话玩家还得再点一次道具键，中间那步是纯摩擦。
+     * ★ 第 53 轮改动：① 广告来源换成 `AdService`；
+     *                ② **删除「分享给好友」这条发奖路径**（合规，见本节开头）。
+     */
+    private openAd(id: string): void {
+        if (!this._topLayer) return;
+        if (this._adBusy) return;
+        if (this._topLayer.getChildByName('AdPanel')?.isValid) return;
+
+        this._adBusy = true;
+        const tname = TOOL_META[id as keyof typeof TOOL_META].name;
+        void this.playAd('tool', {
+            title: '获取道具',
+            icon: TOOL_ICON[id as keyof typeof TOOL_ICON],
+            sub: `${tname} ×1`,
+        }).then((o) => {
+            this._adBusy = false;
+            this.grantByAd(id, o);
+        });
+    }
+
+    /**
+     * 广告结束后的结算分支。
+     * ★ **只有 `end` 才发**；`abort`（中途关）/ `fail`（拉不到）**一个字节都不给**。
+     */
+    private grantByAd(id: string, outcome: AdOutcome): void {
+        if (outcome !== 'end') {
+            if (outcome === 'fail') toast(this.body, '广告暂时拉不到，稍后再试');
+            return;
+        }
+        if (!this.node.isValid || this._over) return;   // 这几十秒里局面可能已经变了
 
         const reason = this.propBlockReason(id);
         if (reason) {
@@ -3016,7 +3172,7 @@ export class GamePage extends PageBase {
         //   与 `useTool` 的唯一差别就是这一点，效果完全同源（都走 `applyTool`）。
         if (id === TOOL.ERASE) {
             // 「消除」是两段式的：这里只负责把它推进就绪态，抛给玩家的提示由 armErase 发。
-            // ⚠️ 传 `false` —— 这一次是靠广告/分享换来的，**没进过库存**，
+            // ⚠️ 传 `false` —— 这一次是靠广告换来的，**没进过库存**，
             //   真正消掉那张牌时不得再扣一次（见 `_eraseFromStock`）。
             if (this.armErase(false)) {
                 AudioService.playSfx(SFX.toolUse, 1.0);
@@ -3030,7 +3186,7 @@ export class GamePage extends PageBase {
         AudioService.playSfx(SFX.toolUse, 1.0);
         Haptics.medium();
         this.refreshTools();
-        toast(this.body, `${via === 'share' ? '分享成功' : '看完广告'} · ${tname} 已生效`);
+        toast(this.body, `看完广告 · ${tname} 已生效`);
         this.nudgeReset();
     }
 
@@ -3068,6 +3224,9 @@ export class GamePage extends PageBase {
         this.startNudge();          // ★ 第 46 轮：卡住提示心跳（含开局宽限）
         // 预加载音效（本局要用的）
         AudioService.preloadAll([SFX.tilePick, SFX.peng, SFX.chi, SFX.slotWarn, SFX.toolUse, SFX.shuffle, SFX.revive]);
+        // ★ 第 53 轮：把当前关卡号告诉 ShareService —— 分享文案要带进度，而服务
+        //   不该反过来 import 页面（那是反向依赖）。每次入场刷新一次即可。
+        ShareService.instance.setLevel(this._level);
         this.installDebugBridge();
         this.log(`入场完成 · 开局可点 ${this._board?.pickable().length ?? 0} 张`);
     }
@@ -3362,6 +3521,48 @@ export class GamePage extends PageBase {
                 this._over = true;
                 this.openResult(win, 20 + this._level * 5, 'slotsFull');
                 return true;
+            },
+            /**
+             * ★ 第 53 轮：**平台能力现状**（广告 / 分享 / 登录）。
+             *
+             * ⚠️ 它**只报事实、不做断言**—— 特别是"广告走真还是走替身"这件事，
+             *   本身就是一条必须如实说出来的口径（没有广告位 ≠ 假装有广告）。
+             *   本项目的规矩是"判据要能自证"：`ad.revive === 'mock'` 时，
+             *   任何"复活可用"的结论都只能标成"替身链路通过"，不能写成"广告通过"。
+             */
+            platform: () => ({
+                ad: AdService.instance.describe(),
+                adPanelOpen: !!this._topLayer?.getChildByName('AdPanel')?.isValid,
+                adBusy: this._adBusy,
+                shareAvailable: ShareService.instance.available,
+                landingLevel: ShareService.instance.landingLevel(),
+            }),
+            /**
+             * ⚠️ **仅供验收脚本**：运行期翻转广告配置。
+             *
+             * 【为什么必须留这个口子】`CFG.AD.REAL_ENABLED` 默认 false（理由见 CFG 第 九之二 节），
+             *   于是浏览器 / 预览环境**永远**走替身面板，`AdService` 的三种真实结局
+             *   （`end` 发奖 / `abort` 不发 / `fail` 不发）就**没有任何一条能端到端验**。
+             *   有了它，脚本可以：注入 fake `wx.createRewardedVideoAd` → 翻开关 → 用
+             *   **真实鼠标**点「看广告复活」→ 由脚本决定回调哪一条 ⇒ 三条路各走一遍。
+             *   （这是 CFG 里"本文件唯一不写 `as const`"那条注释所承诺的能力，
+             *     第 53 轮才把访问路径补上 —— 此前那句注释是**空头支票**。）
+             *
+             * 【安全性】生产代码里**没有任何地方**调它；它只把 `AD` 上两个字段改掉，
+             *   不改任何别的状态。改回 `{ REAL_ENABLED: false }` 即完全恢复默认行为。
+             */
+            adConfig: (patch: { REAL_ENABLED?: boolean; AD_UNIT?: Partial<Record<AdScene, string>> }) => {
+                if (typeof patch?.REAL_ENABLED === 'boolean') AD.REAL_ENABLED = patch.REAL_ENABLED;
+                if (patch?.AD_UNIT) Object.assign(AD.AD_UNIT, patch.AD_UNIT);
+                return AdService.instance.describe();
+            },
+            /**
+             * 跨局库存 + 金币（**负控断言用**：广告中途关 / 拉不到时，这些必须逐字段不变）。
+             * 注意它读的是 `SaveService`（跨局账），与"本局限定的赠礼"是两套账。
+             */
+            inventory: () => {
+                const d = SaveService.instance.data;
+                return { ...d.inventory, coins: d.coins };
             },
         };
         (globalThis as unknown as { __game5?: unknown }).__game5 = api;

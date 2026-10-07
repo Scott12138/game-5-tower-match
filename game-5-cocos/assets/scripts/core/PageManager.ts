@@ -100,6 +100,12 @@ export class PageManager {
     public get isTransitioning(): boolean { return this._transitioning; }
     /** 供 Toast / 顶层弹层挂在最上层使用 */
     public get layer(): Node { return this._pageRoot; }
+    /**
+     * 当前页面实例 —— ★ 第 52 轮加：GameRoot 在前后台切换时要**通知当前页**
+     * （局内计时得停，见 `GamePage.onAppHide`）。转场中可能是即将被回收的旧页，
+     * 所以调用方一律走 `PageBase.__appHide/__appShow` 那对**带 try/catch 的包装**。
+     */
+    public get current(): PageBase | null { return this._current; }
 
     // --------------------------------------------------------
     //  核心：打开（替换）一个页面

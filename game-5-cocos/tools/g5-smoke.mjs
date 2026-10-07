@@ -176,7 +176,16 @@ const FINISH_JS = `(async () => {
     if (!st || st.over) return { stop: 'over', i, ms: Date.now() - t0, st, marks };
     if (st.locked) { await new Promise(r => setTimeout(r, 90)); if (++waits > 5000) break; continue; }
     const ps = api.pickables();
-    if (!ps.length) return { stop: 'nopick', i, ms: Date.now() - t0, st, marks };
+    if (!ps.length) {
+      // ★★ 第 52 轮补：牌堆里点不出牌时，**暂存架（移出工具的三格）里可能还有牌可捞回主槽**。
+      //   判胜条件是「牌堆空 **且** 暂存架空」（见 GamePage.checkBoardEmpty 与 hasTempTiles），
+      //   所以架子非空时这一局**根本不算终局** —— 脚本若不把架子里的牌取回来，
+      //   就会停在一个"没牌可点、但也没结束"的假死态，把下面那条结算断言判成失败。
+      //   （那是**脚本的漏**，不是游戏的 bug：真机上玩家点一下架子里的牌就能取回。）
+      const tp = api.tempPickables ? api.tempPickables() : [];
+      if (tp.length) return { stop: 'temp', i, ms: Date.now() - t0, st, marks, temp: tp };
+      return { stop: 'nopick', i, ms: Date.now() - t0, st, marks };
+    }
     // 用**槽内真实牌面**判"这一张会不会凑成"（不是靠本地记账猜）
     const cnt = new Map();
     for (const fl of api.slotFaces()) { const f = pf(fl); const k = f.s + '-' + f.n; cnt.set(k, (cnt.get(k) || 0) + 1); }
@@ -417,17 +426,38 @@ try {
     //   · 已在弹层 → 直接点按钮收尾
     console.log('\n───── ⑤ 把这一局走到底（此段用 __game5.pick，与真实触摸同一处理函数）─────');
     let layerNow = await hasResult();
+    // ⚠️ 这两个必须声明在 if **外面** —— 下面的断言要用（第一版写在 if 里，
+    //    结果 check() 求值消息时 ReferenceError：「中断：tempAfter is not defined」）。
+    let tempAfter = null;
+    let fin = null;
     if (!layerNow) {
-        const fin = await cdp.ev(FINISH_JS);
-        console.log(`    ${JSON.stringify({ stop: fin.stop, i: fin.i, ms: fin.ms, st: fin.st, marks: fin.marks })}`);
+        // ★★ 第 52 轮：这里是**循环**，不只是调一次。
+        //   理由见 FINISH_JS 里 `stop:'temp'` 那段注释 —— 牌堆点空之后还要把
+        //   暂存架里的牌**用真实鼠标**取回来（走 onTempTileTap → takeFromTemp），
+        //   取回后才可能凑成组、才可能把"牌堆空 + 暂存架空"同时满足、才会出结算。
+        for (let round = 0; round < 10; round++) {
+            fin = await cdp.ev(FINISH_JS);
+            console.log(`    [轮 ${round}] ${JSON.stringify({ stop: fin.stop, i: fin.i,
+                ms: fin.ms, st: fin.st, marks: fin.marks })}`);
+            if (fin.stop !== 'temp') break;
+            const css = await designToCss(cdp, fin.temp);
+            if (!css.length) break;
+            console.log(`    暂存架还有 ${fin.temp.length} 张，真实鼠标取回第 1 张（${css[0].face}）`);
+            await cdp.click(css[0].x, css[0].y);
+            await sleep(700);
+            if (await hasResult()) break;
+        }
         check('收尾过程有实际进展（消除数上升）', !!fin.st && fin.st.cleared > 0, `cleared=${fin.st?.cleared}`);
+        tempAfter = await cdp.ev('window.__game5.temp ? window.__game5.temp() : null');
+        console.log(`    终局暂存架：${JSON.stringify(tempAfter)}`);
         await sleep(2500);
         await shot('final');
         layerNow = await hasResult();
     }
     const final = await state();
     check('本局走完后弹出结算弹层（胜或负）', !!layerNow,
-        `over=${final?.over} remaining=${final?.remaining} cleared=${final?.cleared}`);
+        `over=${final?.over} remaining=${final?.remaining} cleared=${final?.cleared}`
+        + ` 暂存架=${tempAfter?.count ?? '?'} 槽=${final?.slots}`);
 
     if (layerNow) {
         const axis = await cdp.ev(`(() => { const c = window.__g5t.find('ResultLayer');

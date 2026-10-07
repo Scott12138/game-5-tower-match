@@ -55,6 +55,17 @@
 【幂等】重复执行安全：已是分包则跳过，数组去重。
 【用法】
     python3 tools/postpack-subpackages.py [build/wechatgame]
+
+------------------------------------------------------------
+★ 第 53 轮追加：开放数据域（好友排行榜）
+
+  `build-templates/wechatgame/openDataContext/` → 产物里的 `openDataContext/`，
+  并在 `game.json` 写 `"openDataContext": "openDataContext"`。
+
+  【为什么不靠 build-templates 自动拷】Cocos 文档说 `build-templates/<平台>/` 会被
+    自动拷进产物 —— 本项目 CLI 构建下**实测没拷到**。所以这里兜底复拷（以源为准整体覆盖）。
+  【为什么 game.json 必须手改】构建器不会写 `openDataContext` 字段，
+    缺了它平台找不到开放数据域入口（表现为好友榜永远是空白）。
 ============================================================
 """
 
@@ -63,6 +74,9 @@ import json
 import os
 import shutil
 import sys
+
+# 工程根（本文件在 tools/ 下）—— 用来定位 build-templates/
+PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 需要转成「小游戏分包」的自定义 Bundle 名（= 目录 meta 里的 bundleName）
 SUBPACKAGE_BUNDLES = ['home', 'game']
@@ -165,7 +179,38 @@ def main():
     print('[+] game.json subpackages = %s'
           % json.dumps([i.get('name') for i in gsubs], ensure_ascii=False))
 
-    # ---------- ④ 对账 ----------
+    # ---------- ④ 开放数据域（好友排行榜，第 53 轮新增）----------
+    # 【为什么必须在这里补】
+    #   ① `build-templates/wechatgame/` 下的文件**理论上**由 Cocos 构建时自动拷进产物，
+    #      但这条路在 CLI 构建下不可靠（本项目实测没拷进来）⇒ 这里兜底复拷一份。
+    #   ② `game.json` 的 `openDataContext` 字段**构建器根本不会写**，
+    #      没有它平台就不知道开放数据域的入口在哪。
+    #   两件事都幂等：目录已一致就跳过、字段已存在就跳过。
+    odc_src = os.path.join(PROJ_ROOT, 'build-templates', 'wechatgame', 'openDataContext')
+    odc_dst = os.path.join(build_dir, 'openDataContext')
+    if os.path.isdir(odc_src):
+        # 以「源目录为准」整体覆盖 —— 只比 mtime 的话，改了源码但时间戳没变会漏拷
+        if os.path.isdir(odc_dst):
+            shutil.rmtree(odc_dst)
+        shutil.copytree(odc_src, odc_dst)
+        entry_js = os.path.join(odc_dst, 'index.js')
+        if not os.path.isfile(entry_js):
+            print('[✗] 开放数据域缺入口 index.js：%s' % odc_dst)
+            return 2
+        print('[+] openDataContext/ 已就位（%.1fK，入口 index.js）' % (dir_size(odc_dst) / 1024.0))
+    else:
+        print('[!] 找不到 %s —— 好友排行榜会失效（构建模板被删了？）' % odc_src)
+
+    game = read_json(game_json_path)
+    if os.path.isdir(odc_dst):
+        if game.get('openDataContext') != 'openDataContext':
+            game['openDataContext'] = 'openDataContext'
+            write_json(game_json_path, game)
+            print('[+] game.json openDataContext = "openDataContext"')
+        else:
+            print('[=] game.json openDataContext 已登记，跳过')
+
+    # ---------- ⑤ 对账 ----------
     total = dir_size(build_dir)
     sub_total = dir_size(sub_dir)
     main_total = total - sub_total
@@ -174,6 +219,7 @@ def main():
     print('    分包合计   = %8.2f MB' % (sub_total / 1048576.0))
     print('    ─────────────────────────')
     print('    主包        = %8.2f MB   (微信红线 4MB)' % (main_total / 1048576.0))
+    print('    开放数据域  = %s' % ('已就位' if os.path.isdir(odc_dst) else '缺失'))
 
     remain = []
     for d in sorted(os.listdir(assets_dir)):
