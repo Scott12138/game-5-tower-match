@@ -57,6 +57,9 @@ function allTexturePaths(): string[] {
         ASSET.HOME_BTN_L, ASSET.HOME_BTN_M, ASSET.HOME_BTN_R,
         ASSET.HOME_MUTE_ON, ASSET.HOME_MUTE_OFF, ASSET.HOME_ICON_MUSIC,
         ASSET.TABLE, ASSET.RULE_PAGE,
+        // 第 47 轮：负态结算吉祥物（方案 C）。必须一起预加载 —— 否则第一次打输时
+        // 图还在路上，会先显示空位再"啪"地冒出来（结算卡是对局最后一眼，不能抖）。
+        ASSET.GAME_MASCOT_FAIL,
     ];
     for (const f of HOME_FN) list.push(f.icon);
     for (const k of Object.values(TOOL)) list.push(TOOL_ICON[k]);

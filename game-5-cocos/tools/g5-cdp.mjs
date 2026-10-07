@@ -218,6 +218,7 @@ window.__g5t = (function () {
       //    于是"遍历一遍场景树"就刷出上百条 error，看着像游戏崩了。
       var ui = n.getComponent && n.getComponent('cc.UITransform');
       var p = worldToScreen(n);
+      var ws = n.worldScale || n.scale;
       out.push({
         name: n.name,
         active: n.activeInHierarchy,
@@ -226,6 +227,13 @@ window.__g5t = (function () {
         w: ui ? Math.round(ui.width) : null,
         h: ui ? Math.round(ui.height) : null,
         kids: n.children.length,
+        // ★ 2026-10-07 补：w/h 是**未乘缩放的** contentSize（设计 px）。
+        //   想知道"看上去多大"必须再乘 worldScale —— 小牌（槽内/暂存架）
+        //   正是把尺寸系数**挂在节点 scale 上**的，只读 w/h 会把两者看成一样大。
+        //   ⚠️ 这段整体是模板字面量：注释里**不许出现反引号**（会被当模板闭合）。
+        parent: n.parent ? n.parent.name : null,
+        sx: ws ? Math.round(ws.x * 10000) / 10000 : 1,
+        sy: ws ? Math.round(ws.y * 10000) / 10000 : 1,
       });
     });
     return out;

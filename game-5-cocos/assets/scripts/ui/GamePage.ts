@@ -10,13 +10,15 @@
  *     点可点牌 → 飞入槽位 → 凑成**碰/吃** → 消除 → 压着的牌露出 → 清场胜 / 槽满或超时负
  *
  *  ── 三条不能破的口径 ──────────────────────────────────────
- *  ① **可点判定只有一个真源**：`Board.pickable()`（限定当前段 + 覆盖 < 18%）。
+ *  ① **可点判定只有一个真源**：`Board.pickable()`（**只看覆盖 < 30 %，没有段限制**）。
  *     牌面的"亮/暗"直接由它派生 —— **绝不允许**用 `tile.cover` 另算一遍。
  *     两者一旦分叉，表现是"看着能点、点了没反应"，或反之，且完全不报错。
  *  ② **数据先行、视觉后到**：点牌的瞬间就把数据入槽（而不是等飞行动画结束）。
  *     否则玩家连点时会计数错乱 —— 这类 bug 在飞行 0.26s 的窗口里高频复现。
- *  ③ **分段是逻辑分段**，全堆同时在桌；不可点的牌**不是因为被压，而是"还没轮到"**。
- *     所以从下层露出来但不在当前段的牌，视觉上仍然是暗的（由 ① 统一派生）。
+ *  ③ ★ **第 46 轮起「段限制」已取消**（用户拍板）：全桌只要没被压住就能点，
+ *     可点集**只由覆盖决定**，而覆盖是看得见的 ⇒ 「看着能点就能点」成立。
+ *     旧口径下"从下层露出来、但不在当前段"的牌是灰的，玩家完全推不出原因
+ *     （实测占"露出却点不动"的 66.1 %），那是用户截图里最困惑的一处。
  *
  *  ── 调试桥 ───────────────────────────────────────────────
  *  `globalThis.__game5` 暴露 state / pickables / pick —— **无头验收脚本靠它**。
@@ -26,17 +28,17 @@
 
 import { Input, Node, Sprite, Texture2D, UIOpacity, UITransform, _decorator, input, tween, v3 } from 'cc';
 
-import { ASSET, COLOR, DEBUG, FONT, LAYOUT, PAGE, PLAY, SFX, SKIN, TOOL, TOOL_ICON, TOOL_META,
-    TOOL_ORDER, timeLimitOf } from '../CFG';
+import { ASSET, COLOR, DEBUG, DIFF, FONT, LAYOUT, NUDGE, PAGE, PLAY, SFX, SKIN, TOOL, TOOL_ICON,
+    TOOL_META, TOOL_ORDER, diffBlockOf, timeLimitOf, type ToolKey } from '../CFG';
 import { PageBase } from './PageBase';
 import { Layout } from './Layout';
-import { EASE, MotionFx } from './MotionFx';
+import { EASE, MotionFx, TAG } from './MotionFx';
 import { AudioService } from './AudioService';
 import { Haptics } from './Haptics';
 import { SaveService } from '../core/SaveService';
 import { LEVELS, type LevelDef } from '../core/LevelData';
 import { Board, makeBoard } from '../core/Board';
-import { findMatch, allMatches, MATCH_LABEL, type MatchType } from '../core/MatchRule';
+import { findMatch, MATCH_LABEL, type MatchType } from '../core/MatchRule';
 import { currentRun, endRun, reviveLeft, useRevive, useRunItem } from '../core/Gift';
 import { faceLabel, spritePath } from '../core/TileData';
 import {
@@ -182,6 +184,24 @@ export class GamePage extends PageBase {
     /** 槽容量（加槽道具 +1，上限 9） */
     private _slotMax = PLAY.SLOT_MAX;
 
+    /**
+     * ★ 第 46 轮：**暂存架** —— 「移出」道具的临时 3 格（照搬 game-4）。
+     *
+     * 【语义（用户拍板 + game-4 口径）】
+     *   · 存的是**关卡下标**（与 `_slots` 同口径），不是牌面
+     *   · 里面的牌**不参与**「碰 / 吃」成组判定（隔离区）—— 它们在 `_slots` 之外
+     *   · 可以**取回主槽**（点一下那张牌）
+     *   · **洗牌时整架撒回场上**（见 `releaseTempToBoard`）
+     *   · 架子**默认隐藏**，第一次点「移出」才浮现（game-4 的 S14.2b 口径）
+     *
+     * ⚠️ 这些牌在 `Board` 里仍是 `alive === false`（已离场）——
+     *   "移出"不等于"放回牌堆"，只是换个地方放。所以判胜要额外看本数组是否为空。
+     */
+    private _temp: number[] = [];
+    /** 暂存架里每张牌的显示节点（下标与 `_temp` 一一对应） */
+    private _tempNodes: Array<Node | null> = [];
+    private _tempBar: Node | null = null;
+
     // ---- 状态 ----
     private _locked = false;
     /** 点按序号 —— 输入锁看门狗的归属校验（见 `onTapTile` 注释） */
@@ -192,6 +212,57 @@ export class GamePage extends PageBase {
     private _timeLeft = 0;
     private _totalTime = 0;
     private _addSlotUsed = 0;
+
+    /**
+     * ★ 第 46 轮：【消除】的**就绪态**（armed）。
+     *
+     * 【用户拍板的口径】「消除按钮原设定是要选定槽里的一张牌，进行强制消除
+     *   （剩余多余两张不管）」⇒ 点消除键**不再直接消**，而是进入本状态：
+     *   槽内每张牌变成可选，玩家点哪张就消哪张，**只消 1 张**。
+     *
+     * 【为什么"只消 1 张"要单独写清楚】它打破了"同牌面张数 ≡ 0 (mod 3)"这条不变量
+     *   （game-4 正是靠这条不变量才把「消除」做成"消整组 3 张"）。
+     *   用户已明确知晓并选择方案 A —— 代价是卡住率上升（这与需求⑥提难度同向）。
+     *
+     * 【取消路径】再点一次消除键 = 取消（不消耗任何库存）；
+     *   槽内牌被清空 / 本局结束 / 离开页面 都会自动复位。
+     */
+    private _armedErase = false;
+    /**
+     * ★ 这一次「消除」就绪态是不是**靠库存点开的**。
+     *
+     * 决定真正消掉那张牌时要不要 `useRunItem()`：
+     *   · `true`  —— 玩家用自己的库存点开的 → 生效时扣 1
+     *   · `false` —— 走广告 / 分享拿到的那一次（从没进过库存） → **不扣**
+     * 不区分的话，看完广告用掉一次消除会把玩家库存凭空减 1（甚至减成负数）。
+     */
+    private _eraseFromStock = false;
+
+    // ========================================================
+    //  ★ 第 46 轮 · 卡住提示（nudge）—— 照搬 game-4 `CFG.NUDGE` 那一套
+    // ========================================================
+    //  【用户拍板】「引入 3 秒没消就主动引导看广告换道具」。
+    //  【形态】取 game-4 的「无条极简」：**键上金环 + 键上方「点这里 ▼」**，
+    //    零遮挡。game-5 的底带被道具栏 / 槽位条 / 暂存架塞满，没有 game-4 那种
+    //    "可以临时接管"的导航行（见 CFG.NUDGE 的长注释）。
+    //
+    //  ⚠️ **只做"指路"，不做"第二条道具路径"** —— 点环 / 点标签最终都走同一个
+    //    `useTool(id)`，于是"先查能不能用 → 再要权限（库存 or 广告/分享）→ 才执行"
+    //    这条顺序天然被复用，不可能出现"引导环能白拿道具"的漏洞。
+    /**
+     * "卡住"秒表（秒）。**只在玩家当下真的能动手的那些秒里累加** ——
+     * 理由见 `tickNudge()`。开局先给 `NUDGE.START_GRACE` 的负值，用于宽限。
+     */
+    private _nudgeIdle = 0;
+    /** 冷却（秒）—— 调了 `_nudgeIdle` 的同一个心跳一起走 */
+    private _nudgeCool = 0;
+    /** 这一"轮"是否已经提示过（玩家消掉一组后复位，见 `nudgeReset`） */
+    private _nudgeShown = false;
+    private _nudgeGlow: Node | null = null;
+    /** 当前被罩住的键（`null` = 没提示）—— `refreshTools()` 靠它做"推荐键失效即收环" */
+    private _nudgeGlowId: ToolKey | null = null;
+    /** 心跳是否已经起过（防重复 schedule） */
+    private _nudgeTicking = false;
 
     // ---- 节点 ----
     private _boardNode: Node | null = null;
@@ -220,6 +291,7 @@ export class GamePage extends PageBase {
         this.buildTableAndBoard();
         this.buildHud();
         this.buildSlotBar();
+        this.buildTempRack();          // ★ 第 46 轮：暂存架（默认隐藏）
         this.buildToolBar();
 
         this._topLayer = createNode('TopLayer', this.body, { w: 1, h: 1 });
@@ -231,6 +303,7 @@ export class GamePage extends PageBase {
     /** 离开本页：把挂在**全局 input** 上的规则页兜底监听摘掉（否则会跨页残留） */
     protected onLeave(): void {
         this.detachRuleTap();
+        this.hideNudgeGlow();
         this.uninstallDebugBridge();
     }
 
@@ -548,7 +621,11 @@ export class GamePage extends PageBase {
         });
         this._slotBar = bar;
 
-        const cw = LAYOUT.SLOT_CELL.w;
+        // ★ 第 46 轮修：格宽**按当前容量重算**（原写死 68 + 间距 16）。
+        //   写死时 8 格恰好铺满 656（8×68 + 7×16），加槽到 9 格后第 9 格右缘会冲出
+        //   屏幕 **37 设计 px** —— 这正是用户截图里右侧红框圈出的那个框。
+        //   现口径照 game-4 的 `slotWidth()`：条宽不变，格宽 = (条宽 − 间距×(n−1)) / n。
+        const cw = this.slotCellW();
         const gap = LAYOUT.SLOT_CELL.gap;
         for (let i = 0; i < this._slotMax; i++) {
             const left = i * (cw + gap);
@@ -557,11 +634,322 @@ export class GamePage extends PageBase {
                 x: -LAYOUT.SLOT_BAR.w / 2 + left + cw / 2,
             });
             const { g } = createGraphicsNode('G', cell, { w: cw, h: LAYOUT.SLOT_CELL.h });
-            this.paintSlotCell(g, false, true);
+            this.paintSlotCell(g, false, true, cw);
             this._slotCells.push(cell);
             this._slotNodes.push(null);
         }
     }
+
+    /**
+     * 槽格宽度（**随容量自适应**）—— 与 game-4 的 `slotWidth()` 同口径。
+     *
+     * 【为什么必须是"重算"而不是"写死"】槽位条宽 `SLOT_BAR.w` 是固定的 656；
+     *   8 格时写死的 68+16 恰好铺满，但加槽后第 9 格会直接排在条外
+     *   （实测右缘超出条右缘 84 设计 px = 屏幕外 37）⇒ 玩家看到的是
+     *   「加槽后新格子跑到屏幕外」，而且**没有任何报错**。
+     *
+     * 【8 格时结果不变】`(656 − 16×7) / 8 = 68` —— 与旧写死值逐像素相同，
+     *   所以这条修改**不会**动到已经验收过的 8 格布局。
+     */
+    private slotCellW(): number {
+        const gap = LAYOUT.SLOT_CELL.gap;
+        const n = Math.max(1, this._slotMax);
+        return (LAYOUT.SLOT_BAR.w - gap * (n - 1)) / n;
+    }
+
+    /**
+     * 槽内小牌的**可用框**（跟着格宽缩）。
+     *
+     * 牌是格子的子节点；格宽从 68 缩到 9 格时的 ~58.7 后，如果仍按写死的 62×74
+     * 摆牌，牌会横向顶出格子、压到邻格上。这里按「格宽 − 6」与基准取小。
+     * 高度按基准的宽高比等比缩（基准框 62×74 ≈ 0.838），保证不改变牌的观感比例。
+     */
+    private slotBox(): { w: number; h: number } {
+        const w = Math.min(SLOT_BOX.w, this.slotCellW() - 6);
+        const k = w / SLOT_BOX.w;
+        return { w, h: SLOT_BOX.h * k };
+    }
+
+    // ========================================================
+    //  ★ 第 46 轮 · 暂存架（「移出」道具的临时 3 格 / 照搬 game-4）
+    // ========================================================
+    //  【逐条对应 game-4】语义与边界完全照搬，只把几何换成 game-5 的口径：
+    //    · 3 格、**默认隐藏**、第一次点「移出」才浮现     → showTempRack()
+    //    · 搬走槽内**最靠前的 N 张**（N = min(空位, 3, 槽内张数)）→ toolMove()
+    //    · 点架子里的牌 → **取回主槽**（槽满则提示）        → takeFromTemp()
+    //    · **不参与**「碰 / 吃」成组判定（隔离区）          → 它们不在 `_slots` 里
+    //    · 洗牌时**整架撒回场上**                          → releaseTempToBoard()
+
+    /** 暂存架第 i 格的中心 x（相对屏幕中心） */
+    private tempCellX(i: number): number {
+        const T = LAYOUT.TEMP_RACK;
+        const total = T.count * T.cellW + (T.count - 1) * T.gap;
+        return -total / 2 + T.cellW / 2 + i * (T.cellW + T.gap);
+    }
+
+    /** 暂存架的纵向中心（引擎 y）—— 用"距底边"口径，跟着底带走 */
+    private tempRackY(): number {
+        return Layout.botY(LAYOUT.TEMP_RACK.fromBottom);
+    }
+
+    /** 主槽位小牌的缩放系数（`_def` 的牌面 → 槽位格的可用框） */
+    private slotTileK(): number {
+        const box = this.slotBox();
+        return Math.min(box.w / this._def.w, box.h / this._def.h);
+    }
+
+    /**
+     * 暂存架小牌的**尺寸系数**（`_def` 的牌面 → 架格）。
+     *
+     * ★ 第 47 轮两处修正：
+     *   ① **按轴分别留白**。旧写法宽高两条都用 `max(w, h)` 当除数 ⇒ 宽度轴被高估
+     *      （牌是竖的，`max` 是它的高）⇒ 格子做窄之后牌会莫名变小。
+     *      现在宽除 `_def.w`、高除 `_def.h` —— 与 `slotBox()` / `buildSmallTile` 同一口径。
+     *   ② 留白取 **6**：主槽位格「格高 80 / 牌高 74」= 上下各 3px 边距，
+     *      这里沿用同一套观感（架格 70 → 牌 64）。
+     */
+    private smallTileK(cellW: number, cellH: number): number {
+        const PAD = 6;
+        return Math.min(this.slotTileK(),
+            (cellW - PAD) / this._def.w, (cellH - PAD) / this._def.h);
+    }
+
+    /**
+     * ★★ 第 47 轮修的真 bug：把**主槽位的牌节点**放进暂存架时，该乘的**额外**缩放。
+     *
+     * 【怎么坏的】`toolMove()` 是把槽内牌节点**原样 reparent** 到架子上（为的是让
+     *   "飞过去"的动效连续），而那个节点里的贴图**已经按主槽缩过一次**了
+     *   （`buildSmallTile` 里 `_def × slotTileK()`）。旧代码又乘了一个
+     *   `smallTileK()` ⇒ 实际缩放 = `slotTileK × smallTileK` ≈ 0.63 × 0.55 = **0.35**，
+     *   牌在架子里只剩 **27.6×36.7**（主槽位是 55.7×74，不到一半）。
+     *   而 `spawnTempTile()` 那条冷门路径建出来的是 48.1×64 ——
+     *   同一张牌走两条路径会得到**两个尺寸**，这正是 bug 能长期藏住的原因。
+     *
+     * 【正确口径】给"已经缩过一次"的节点补上**两者之比**，即回到统一基准：
+     *   `scale = smallTileK / slotTileK` ⇒ 视觉尺寸 = `_def × smallTileK`，
+     *   与 `spawnTempTile()` 完全一致。本轮该值 ≈ **0.86**。
+     *
+     * ⚠️ 它在 1 附近，**不是**可直接乘牌面尺寸的尺寸系数 ——
+     *   别拿它去乘 `_def.w/_def.h`，那样会再错一次。
+     */
+    private tempTileScale(): number {
+        const T = LAYOUT.TEMP_RACK;
+        return this.smallTileK(T.cellW, T.cellH) / this.slotTileK();
+    }
+
+    /** 建暂存架（**默认隐藏**）—— 几何全在 `LAYOUT.TEMP_RACK`（含位置推导） */
+    private buildTempRack(): void {
+        if (this._tempBar?.isValid) this._tempBar.destroy();
+        this._tempNodes = new Array<Node | null>(LAYOUT.TEMP_RACK.count).fill(null);
+
+        const T = LAYOUT.TEMP_RACK;
+        const total = T.count * T.cellW + (T.count - 1) * T.gap;
+        const bar = createNode('TempRack', this.body, {
+            w: total + 160, h: T.cellH + 20, x: 0, y: this.tempRackY(),
+        });
+        bar.addComponent(UIOpacity).opacity = 255;
+        this._tempBar = bar;
+
+        // 3 个格子：与槽位格同一套「深玉底 + 玉绿描边 + 中心短横」
+        // （它们都是"装牌的位"，不是可点按钮 —— 金才是可交互语义，见 paintSlotCell）
+        for (let i = 0; i < T.count; i++) {
+            const cell = createNode(`TempCell${i}`, bar, {
+                w: T.cellW, h: T.cellH, x: this.tempCellX(i),
+            });
+            const { g } = createGraphicsNode('G', cell, { w: T.cellW, h: T.cellH });
+            // ★ 第 47 轮：改成与主槽位格**同一套画法**（= `paintSlotCell` 的四层，逐层同序同参）。
+            //   旧版少了「顶内缘高光」那一层，而且圆角/线宽写死 ⇒ 三个格子看着是
+            //   "三个平铺的方框"，与槽位条不是一套语言。补上后两者才在同一个设计系统里。
+            //   （常量也一并改引 `SKIN.SLOT.*`：以后调槽位格的外观，这里自动跟随。）
+            const S = SKIN.SLOT;
+            fillRoundRect(g, 0, 0, T.cellW, T.cellH, S.RADIUS, S.FILL, 255);
+            fillRoundRect(g, 0, T.cellH / 2 - 4, T.cellW - 8, 3, 1.5, S.TOP_LIGHT, 255);
+            fillRoundRect(g, 0, 0, S.DASH.w, S.DASH.h, S.DASH.r, S.DASH.color, 255);
+            strokeRoundRect(g, 0, 0, T.cellW, T.cellH, S.RADIUS, S.LINE, S.LINE_W, 255);
+        }
+        // 「暂存」标签（在架子左侧）—— 没有它，玩家只会看到三个空盒子，不知道是干什么的
+        createLabel(bar, '暂存', {
+            fontSize: 22, color: COLOR.CREAM_MUTE, w: 66, h: 28,
+            x: -(total / 2 + T.labelGap + 33),
+        });
+
+        bar.active = false;
+    }
+
+    /**
+     * 让暂存架浮现。**必须在"牌飞出去"之前调** ——
+     * 顺序反了会看到"牌飞向一个还不存在的格子"（game-4 `applyMoveOut` 的同款注释）。
+     */
+    private showTempRack(): void {
+        const bar = this._tempBar;
+        if (!bar?.isValid || bar.active) return;
+        bar.active = true;
+        const op = bar.getComponent(UIOpacity) ?? bar.addComponent(UIOpacity);
+        op.opacity = 0;
+        MotionFx.fadeTo(op, 255, 0.22);
+    }
+
+    /**
+     * 「小牌」节点的**唯一建法**（主槽位 / 暂存架共用）。
+     *
+     * ★ 第 47 轮合并：早先 `spawnSlotTile()` 与 `spawnTempTile()` 各建各的，
+     *   连**结构都不一样**（槽内 = 节点 + `Img` 子节点挂 Sprite；架内 = Sprite 直接挂节点），
+     *   于是两条路径下"尺寸基准"不同 —— 重复缩放那个 bug 正因此能长期藏住
+     *   （改哪一条的系数，另一条就错，而且谁都不报错）。
+     *   现在统一成「**内容盒 = `slotBox()`、贴图挂 `Img` 子节点、缩放由调用方给**」。
+     *
+     * 调用方：`spawnSlotTile()`（scale 1）、`spawnTempTile()`（scale = `tempTileScale()`）。
+     */
+    private buildSmallTile(parent: Node, name: string, face: number): Node {
+        const box = this.slotBox();
+        const k = this.slotTileK();
+        const w = Math.round(this._def.w * k);
+        const h = Math.round(this._def.h * k);
+
+        const node = createNode(name, parent, { w: box.w, h: box.h });
+        const holder = createNode('Img', node, { w, h });
+        const sp = holder.addComponent(Sprite);
+        sp.sizeMode = Sprite.SizeMode.CUSTOM;
+        sp.trim = false;
+        holder.active = false;
+        loadFrame(spritePathOf(face), (sf) => {
+            if (!node.isValid) return;
+            if (!sf) {
+                // ⚠️ `holder.active = true` 这一句**不能漏**：`drawFallbackFace` 是往 holder 上
+                //    画 Graphics，旧代码的架内分支漏了它 ⇒ 贴图缺失时连兜底牌面也一起隐身。
+                drawFallbackFace(holder, face, w, h);
+                holder.active = true;
+                return;
+            }
+            sp.spriteFrame = sf;
+            holder.getComponent(UITransform)!.setContentSize(w, h);
+            holder.active = true;
+        });
+        // 点一下 → 交给 `onTileNodeTap` 按"节点现在住在哪"分派
+        // ⚠️ 刻意**不用** `this.tap()` —— 它按下会缩到 0.94，会和入槽那条 1.18 → 1 的
+        //    弹入 tween 抢同一条 scale 通道（表现是"新入槽的牌弹到一半被按回去"）。
+        node.on(Node.EventType.TOUCH_END, () => this.onTileNodeTap(node), node);
+        return node;
+    }
+
+    /** 建一张暂存架里的小牌（点一下 = 取回主槽） */
+    private spawnTempTile(face: number): Node | null {
+        const bar = this._tempBar;
+        if (!bar?.isValid) return null;
+        const node = this.buildSmallTile(bar, 'TempTile', face);
+        // ★ 架格比槽格小 ⇒ 在"已按主槽缩过"的节点上补一个**比值**（见 `tempTileScale`）
+        const s = this.tempTileScale();
+        node.setScale(v3(s, s, 1));
+        return node;
+    }
+
+    /**
+     * 「小牌节点」（槽内 / 暂存架里的那两种）的**统一点击入口**。
+     *
+     * ★★ 第 46 轮修的真 bug —— **不改它，暂存架里的牌永远取不回来**。
+     *
+     * 【怎么坏的】「移出」并不是新建节点，而是把槽内的牌节点**原样 reparent**
+     *   到架子上（见 `toolMove` 第 ⑤ 步，为的是让"飞过去"的动效连续）。
+     *   于是节点上挂的仍是**建它时**那个 handler ——
+     *   `spawnSlotTile()` 注册的是 `onSlotNodeTap()`（只在「消除」就绪态下才动），
+     *   在架子里点它 ⇒ 走 `onSlotNodeTap()` ⇒ `if (!this._armedErase) return;`
+     *   ⇒ **怎么点都取不回来，而且一声不响**。
+     *
+     * 【为什么改成"分派"而不是"reparent 时重绑"】重绑要记得在**每一个**
+     *   reparent 点上写一遍；漏一处就是同一个静默 bug 换个地方复发。
+     *   按"节点现在住在哪"分派，则任何一次 reparent 都天然正确。
+     *   （第 46 轮无头验收 `tools/_r46-verify.mjs` ②段用真实鼠标点出来的
+     *     正是这一条：当时"暂存架 3 → 3"，一点没动。）
+     */
+    private onTileNodeTap(node: Node): void {
+        if (this._tempNodes.indexOf(node) >= 0) this.onTempTileTap(node);
+        else this.onSlotNodeTap(node);
+    }
+
+    /** 把暂存架里的牌重排到前几格（取回一张之后补位） */
+    private relayoutTemp(): void {
+        // ★ 第 47 轮：架内节点都**带主槽位那一层缩放**（见 `buildSmallTile`），
+        //   所以这里要的是**比值**而不是尺寸系数 —— 与 `toolMove` 第 ⑦ 步同源。
+        const k = this.tempTileScale();
+        for (let i = 0; i < this._temp.length; i++) {
+            const nd = this._tempNodes[i];
+            if (!nd?.isValid) continue;
+            tween(nd).to(0.18, {
+                position: v3(this.tempCellX(i), 0, 0), scale: v3(k, k, 1),
+            }, { easing: 'quadOut' }).start();
+        }
+    }
+
+    private onTempTileTap(node: Node): void {
+        if (this._over || this._paused) return;
+        const i = this._tempNodes.indexOf(node);
+        if (i < 0) return;
+        this.takeFromTemp(i);
+    }
+
+    /**
+     * **从暂存架取回一张 → 放回主槽**（照搬 game-4 的 `takeFromTemp`）。
+     *
+     * 边界：**槽满时拒绝并提示**（game-4 原文案「槽位已满，先消掉几张再取回」）——
+     *   这里不能默默丢弃，否则玩家的牌就凭空消失了。
+     */
+    private takeFromTemp(i: number): void {
+        const board = this._board;
+        if (!board) return;
+        const tileIdx = this._temp[i];
+        if (tileIdx === undefined) return;
+
+        if (this._slots.length >= this._slotMax) {
+            toast(this.body, '槽位已满，先消掉几张再取回');
+            return;
+        }
+
+        const node = this._tempNodes[i];
+        if (node?.isValid) node.destroy();
+        this._temp.splice(i, 1);
+        this._tempNodes.splice(i, 1);
+        this._tempNodes.push(null);
+        this.relayoutTemp();
+
+        // 入主槽（数据 + 视觉），随后走与"从牌堆拿牌"同一条判定链
+        this._slots.push(tileIdx);
+        this.placeSlotTile(this._slots.length - 1, board.tiles[tileIdx].face);
+        this.refreshSlotDanger();
+        this.log(`暂存取回：牌 #${tileIdx} → 槽内第 ${this._slots.length - 1} 位`);
+        // 取回之后可能**立刻**就能消（架子那张正好补上缺口）
+        this.timer(180, () => this.resolveMatch());
+    }
+
+    /**
+     * **整架撒回场上**（洗牌时调 —— 照搬 game-4 `applyShuffle` 的第一步）。
+     *
+     * 【为什么必须撒回去】架子里的牌本来就能取回，把"场上 + 架子"当成两拨
+     *   会让洗牌只解决一半问题；而且它们**不参与成组**，留在架子里
+     *   会让玩家觉得"洗了还是老的局面"。
+     */
+    private releaseTempToBoard(): void {
+        const board = this._board;
+        if (!board || this._temp.length === 0) return;
+        for (const idx of this._temp) {
+            board.restore(idx);
+            const v = this._views[idx];
+            const t = board.tiles[idx];
+            if (v && t) v.resetToBoard(board.engineX(t), board.engineY(t));
+        }
+        for (const nd of this._tempNodes) if (nd?.isValid) nd.destroy();
+        this._temp = [];
+        this._tempNodes = new Array<Node | null>(LAYOUT.TEMP_RACK.count).fill(null);
+    }
+
+    /**
+     * 暂存架是否还有牌 → 本局**不能判胜**。
+     *
+     * 【为什么单独一条】这些牌在 `Board` 里是 `alive=false`（已离场），
+     *   所以 `board.remaining === 0` 时它们**不在统计里** ——
+     *   不加这条就会出现"牌堆空了就判胜，可架子里的牌还没消"的错判。
+     *   同理也不判负：玩家还能把它们取回来凑组（见 `checkBoardEmpty`）。
+     */
+    private get tempLeft(): number { return this._temp.length; }
 
     /**
      * 画一个槽位格（**只画底**，牌是它上面的子节点）。
@@ -584,9 +972,10 @@ export class GamePage extends PageBase {
      */
     private paintSlotCell(
         g: ReturnType<typeof createGraphicsNode>['g'], danger: boolean, empty: boolean,
+        cw: number = LAYOUT.SLOT_CELL.w,
     ): void {
         g.clear();
-        const w = LAYOUT.SLOT_CELL.w;
+        const w = cw;
         const h = LAYOUT.SLOT_CELL.h;
         const S = SKIN.SLOT;
         fillRoundRect(g, 0, 0, w, h, S.RADIUS, danger ? S.DANGER_FILL : S.FILL, 255);
@@ -701,6 +1090,10 @@ export class GamePage extends PageBase {
         const run = currentRun();
         TOOL_ORDER.forEach((id, i) => {
             const n = run ? (run.items[id] ?? 0) : 0;
+            // ★ 第 46 轮：「消除」处于就绪态时键面转金（金 = 可交互 —— 见 setArmedErase）；
+            //   "亮 / 暗" 改由 `propBlockReason()` 单一真源决定（不再自己判一遍）。
+            const armed = id === TOOL.ERASE && this._armedErase;
+            const on = (this.propBlockReason(id) === null) || armed;
             const label = this._toolCounts[i]?.getComponentInChildren(
                 // 角标里的 Label 是唯一子节点
                 LabelCtor,
@@ -714,12 +1107,12 @@ export class GamePage extends PageBase {
             const face = cell.getChildByName('Face')?.getComponent(GraphicsCtor);
             if (face) {
                 face.clear();
-                face.fillColor = hex2color(n > 0 ? SKIN.TOOL.FILL : SKIN.TOOL.FILL_EMPTY);
+                face.fillColor = hex2color(on ? SKIN.TOOL.FILL : SKIN.TOOL.FILL_EMPTY);
                 face.roundRect(-LAYOUT.TOOL_CELL.w / 2, -LAYOUT.TOOL_CELL.h / 2,
                     LAYOUT.TOOL_CELL.w, LAYOUT.TOOL_CELL.h, SKIN.TOOL.RADIUS);
                 face.fill();
-                const lineColor = n > 0 ? SKIN.TOOL.LINE_ON : SKIN.TOOL.LINE;
-                face.lineWidth = 2;
+                const lineColor = armed ? COLOR.GOLD : (on ? SKIN.TOOL.LINE_ON : SKIN.TOOL.LINE);
+                face.lineWidth = armed ? 3 : 2;
                 face.strokeColor = hex2color(lineColor);
                 face.roundRect(-LAYOUT.TOOL_CELL.w / 2, -LAYOUT.TOOL_CELL.h / 2,
                     LAYOUT.TOOL_CELL.w, LAYOUT.TOOL_CELL.h, SKIN.TOOL.RADIUS);
@@ -727,6 +1120,13 @@ export class GamePage extends PageBase {
             }
             cell.setSiblingIndex(TOOL_ORDER.length - 1);   // 保持顺序不变（占位，防意外乱序）
         });
+
+        // ★ 第 46 轮：**推荐键中途变得不可用 → 立刻收环**（game-4 `refreshPropBar` 的同款守卫）。
+        //   不守这一条的话会出现"金环还在招呼你点，点了却弹一句「暂存架已经满了」"——
+        //   提示语比错误提示更伤信任。
+        if (this._nudgeGlowId && this.propBlockReason(this._nudgeGlowId) !== null) {
+            this.hideNudgeGlow();
+        }
     }
 
     private refreshRevive(): void {
@@ -797,7 +1197,8 @@ export class GamePage extends PageBase {
         const world = cell.getWorldPosition();
         const local = boardNode.getComponent(UITransform)!.convertToNodeSpaceAR(world);
         // 目标缩放：槽内小牌尺寸 / 牌体尺寸；再除以桌面缩放（牌堆被整体缩过）
-        const k = Math.min(SLOT_BOX.w / this._def.w, SLOT_BOX.h / this._def.h) / this._tableScale;
+        const box = this.slotBox();
+        const k = Math.min(box.w / this._def.w, box.h / this._def.h) / this._tableScale;
 
         const node = view.node;
         // 横牌在飞的过程中转正（槽内小牌一律正立），与排版稿的 `transform:scale(.55)` 同口径
@@ -853,23 +1254,16 @@ export class GamePage extends PageBase {
     private spawnSlotTile(slotIdx: number, face: number): Node | null {
         const cell = this._slotCells[slotIdx];
         if (!cell) return null;
-        const node = createNode(`SlotTile${slotIdx}`, cell, { w: SLOT_BOX.w, h: SLOT_BOX.h });
-        const k = Math.min(SLOT_BOX.w / this._def.w, SLOT_BOX.h / this._def.h);
-        const w = Math.round(this._def.w * k);
-        const h = Math.round(this._def.h * k);
+        const box = this.slotBox();
+        // ★ 第 47 轮：建节点的那一大段合并进 `buildSmallTile()`（与架内小牌**同一份**）。
+        //   以前这里另写一遍，正是"两条路径缩放基准不同"的温床。
+        const node = this.buildSmallTile(cell, `SlotTile${slotIdx}`, face);
 
-        const holder = createNode('Img', node, { w, h });
-        const sp = holder.addComponent(Sprite);
-        sp.sizeMode = Sprite.SizeMode.CUSTOM;
-        sp.trim = false;
-        holder.active = false;
-        loadFrame(spritePathOf(face), (sf) => {
-            if (!node.isValid) return;
-            if (!sf) { drawFallbackFace(holder, face, w, h); return; }
-            sp.spriteFrame = sf;
-            holder.getComponent(UITransform)!.setContentSize(w, h);
-            holder.active = true;
-        });
+        // 就绪态中途入槽的牌也要补上可选环（否则它看着"不能选"）
+        if (this._armedErase) {
+            const { g: rg } = createGraphicsNode('ArmedRing', node, { w: box.w, h: box.h });
+            strokeRoundRect(rg, 0, 0, box.w + 8, box.h + 8, 12, COLOR.GOLD, 3, 255);
+        }
         return node;
     }
 
@@ -891,10 +1285,11 @@ export class GamePage extends PageBase {
 
     private refreshSlotDanger(): void {
         const danger = this._slots.length >= this._slotMax - 1;
+        const cw = this.slotCellW();
         this._slotCells.forEach((c, i) => {
             const g = c.getChildByName('G')?.getComponent(GraphicsCtor);
             // 第 3 参 = 本格是否为空（决定画不画中心短横）—— 真源里短横只属于 `.slot.empty`
-            if (g) this.paintSlotCell(g, danger && this._slots.length > 0, this._slotNodes[i] === null);
+            if (g) this.paintSlotCell(g, danger && this._slots.length > 0, this._slotNodes[i] === null, cw);
         });
     }
 
@@ -930,6 +1325,9 @@ export class GamePage extends PageBase {
         AudioService.playSfx(m.type === 'peng' ? SFX.peng : SFX.chi, 1.0);
         Haptics.medium();
 
+        // ★ 第 46 轮：成组消除 = "这一轮卡住"到此结束 → 秒表归零 + 立刻收掉引导环。
+        this.nudgeReset();
+
         // ★ 摘出**不会被消掉的**槽内节点，交给 300ms 后的重排 ——
         //    必须在 `_slots` / `_slotNodes` 改动**之前**（见 `takeSurvivors` / `relayoutSlots`）。
         //    ⚠️ 这一步早先漏了，直接导致"消除一次之后槽里剩下的牌全部变空白"。
@@ -938,6 +1336,8 @@ export class GamePage extends PageBase {
         // 再从数据里摘掉（**立即**，不等动画）
         this._slots = this._slots.filter((_, i) => !gone.includes(i));
         this._cleared += gone.length;
+        // ★ 第 46 轮：槽被清空时就绪态自动失效（否则键面一直亮着"等你选牌"，但没牌可选）
+        if (this._armedErase && this._slots.length === 0) this.setArmedErase(false);
 
         // 视觉：爆开 → 移除 → 槽位重排
         for (const si of gone) {
@@ -1029,6 +1429,18 @@ export class GamePage extends PageBase {
     /**
      * 牌堆是否已清空 → 收局判胜负。
      *
+     * ★★ **第 47 轮用户拍板：牌堆清空 = 判定为「成功」。**（原话：
+     *   「牌堆的牌已经清空，而且槽位没有超出，应当判定为成功」）
+     *
+     * 判胜条件 = **牌堆空 + 暂存架空**，**槽里剩几张不再判负**。
+     *   · 为什么：牌堆一空，场上就再没有可点的牌；玩家已无从下手，
+     *     此时把这一局算成失败，在玩家那边读作"我明明清完了"。
+     *   · 槽位**爆了**才是真失败 —— 那条另有出口（`resolveMatch` 的 `slotsFull`），
+     *     且它的 240ms 判定**早于**本函数的 420ms 复查，所以"槽满 + 牌堆空"仍判负
+     *     （= 玩家确实一步都走不下去），与用户"槽位没有超出才算成功"的口径一致。
+     *   · 实测触发场景：用「消除」道具删掉一张、把三张组拆散 ⇒ 留 2 张孤牌永远凑不成组，
+     *     牌堆一空必然撞上（旧逻辑 100% 弹「就差一点！」，见 `_r47-verify.mjs`）。
+     *
      * ⚠️⚠️ **必须延迟复查，绝不能在"牌堆刚变空"的那一刻直接下判决。**
      *  「入槽 → 落位 → 判定 → 消除」是一条**异步链**（飞入 0.28s + 消除 0.3s），
      *  牌堆变空的那一瞬，槽里往往正躺着一组**正在消除**的牌。
@@ -1049,130 +1461,648 @@ export class GamePage extends PageBase {
         const board = this._board;
         if (!board || this._over) return;
         if (board.remaining > 0) return;
+        // ★ 第 46 轮：暂存架里还有牌 ⇒ 本局**既不算胜也不算负** ——
+        //   那些牌在 Board 里是 alive=false（不占 remaining），但并没被消掉；
+        //   玩家还能把它们取回主槽凑组。等架子空了再判。
+        if (this.tempLeft > 0) return;
         const seq = ++this._endSeq;
         this.timer(PLAY.END_SETTLE_MS, () => {
             if (this._over || this._endSeq !== seq) return;   // 局面又变了 → 作废
             const b = this._board;
             if (!b || b.remaining > 0) return;
-            if (this._slots.length === 0) this.onWin();
-            else this.onFail('boardEmptySlotsLeft');
+            if (this.tempLeft > 0) return;                    // 架子里还有牌 → 不到终局
+            // ★★ 第 47 轮：条件收紧到这一步就够 —— 剩下的槽内残牌**一律不再判负**
+            //   （它们是"被道具拆散的孤牌"，凑不成组不是玩家的错）。
+            this.settleLeftoversOnWin();
+            this.onWin();
         });
+    }
+
+    /**
+     * 判胜前把**槽内残牌**一并结算掉：计入已消 + 清空槽位。
+     *
+     * 【为什么需要】牌堆清空时槽里可能还剩 1~2 张孤牌（被「消除」拆散的三张组），
+     *   它们凑不成组、也没法再从牌堆取牌。这一局既然判胜，进度就该是满的 ——
+     *   否则 HUD 会停在「已清 91/93」而弹层写着「通关啦！」，同一屏自相矛盾。
+     *
+     * 【为什么可以在这里清】调用点只在 `checkBoardEmpty` 的**延迟复查**里，
+     *   而 `_slots` 的改动全部发生在 `resolveMatch` 的**同步段**（立即 filter + pop），
+     *   复查时刻不可能有"正在消除中的牌"被抢走 `_slots` 下标。
+     *   为了彻底断掉竞争，这里连 `_pendingKeep` 一起清掉（防止更早一轮排下的
+     *   `relayoutSlots()` 回头把节点重新摆回来 —— 那会变成"清完又冒出来"）。
+     *
+     * 【与 `performRevive` 的分工】那个是"复活后**继续打**"（要留重排），
+     *   这里是"本局**结束**"，所以直接销毁节点、不排布。`_cleared` 记账口径相同。
+     */
+    private settleLeftoversOnWin(): void {
+        const n = this._slots.length;
+        if (n <= 0) return;
+        this._pendingKeep = null;
+        for (let i = 0; i < this._slotNodes.length; i++) {
+            const nd = this._slotNodes[i];
+            if (nd?.isValid) nd.destroy();
+            this._slotNodes[i] = null;
+        }
+        this._slots = [];
+        this._cleared += n;
+        this.refreshProgress();
+        this.refreshSlotDanger();
+        this.log(`判胜收尾：槽内 ${n} 张孤牌一并结算（已清 ${this._cleared}/${this._def.n}）`);
     }
 
     // ========================================================
     //  道具
     // ========================================================
+    /**
+     * 玩家点了道具键。
+     *
+     * ★ 第 46 轮改了两处流程（对齐 game-4）：
+     *   ① **【消除】是两段式**（用户拍板）——点键只进入"就绪态"，
+     *      真正生效发生在玩家点中槽里某一张牌时。所以：
+     *        · 二次点键 = 取消（**不消耗**任何库存）
+     *        · 库存的扣减放在 `eraseSlotAt()` 里（"点了但没选中牌"不该扣）
+     *   ② **可用性先于一切**：槽空 / 暂存架满这类"用了也没用"的情况要**先拦**。
+     *      顺序反过来的话，玩家会先看完广告才被告知"你槽里没牌"——
+     *      game-4 的注释写得很直白：那种体验足以让人直接卸载。
+     */
     private useTool(id: string): void {
         if (this._over || this._paused) return;
-        const run = currentRun();
-        const n = run ? (run.items[id as keyof typeof run.items] ?? 0) : 0;
-        if (n <= 0) {
-            this.openAd(id);
+
+        // ① 「消除」二次点击 = 取消就绪态（**不消耗任何东西**）
+        if (id === TOOL.ERASE && this._armedErase) {
+            this.setArmedErase(false);
+            toast(this.body, '已取消「消除」');
             return;
         }
 
-        let used = false;
-        switch (id) {
-            case TOOL.ERASE: used = this.toolErase(); break;
-            case TOOL.MOVE: used = this.toolMove(); break;
-            case TOOL.SHUFFLE: used = this.toolShuffle(); break;
-            case TOOL.ADD_SLOT: used = this.toolAddSlot(); break;
-            default: break;
+        // ② ★ **可用性先于一切**（game-4 口径）——
+        //   "槽里没牌"这类情况必须在**弹广告之前**拦掉，不能让玩家先看 5 秒广告
+        //   再被告知"你槽里没牌"。
+        const reason = this.propBlockReason(id);
+        if (reason) {
+            toast(this.body, reason);
+            return;
         }
-        if (!used) return;
 
+        // ③ 换道具 → 收掉「消除」的就绪态（同一时刻只允许一个道具待命）
+        if (this._armedErase) this.setArmedErase(false);
+
+        // ④ 有库存就直用；没有 → 看广告 / 分享
+        const run = currentRun();
+        const n = run ? (run.items[id as keyof typeof run.items] ?? 0) : 0;
+        if (n <= 0) { this.openAd(id); return; }
+
+        // ⑤ ★ **「消除」两段式 —— 库存不在这里扣**（扣在 `eraseSlotAt()`）：
+        //   这一步只把键推进就绪态，"点了键但没选牌"不该算用掉一次。
+        //   ⚠️ 曾经这里无条件 `useRunItem(id)` ⇒ 点一下键就扣 1 个、再取消也退不回来。
+        if (id === TOOL.ERASE) {
+            if (!this.applyTool(id)) return;
+            AudioService.playSfx(SFX.toolUse, 1.0);
+            Haptics.medium();
+            this.nudgeReset();
+            return;
+        }
+
+        if (!this.applyTool(id)) return;
         useRunItem(id as never);
+        this.afterToolUsed(id);
+        this.nudgeReset();     // 玩家动过了 → "发呆"计时重新开始
+    }
+
+    /**
+     * 执行一个道具（**不扣库存**）。
+     *
+     * 库存扣减刻意留给调用方，因为三条路径的规矩不同：
+     *   · 走库存（`useTool`）→ 调 `useRunItem`
+     *   · 走广告 / 分享（`closeAd`）→ **不扣** —— 它本来就不进库存
+     *   · 「消除」→ 谁都不在这儿扣，真正的扣减在 `eraseSlotAt()`（"选牌"才算用掉）
+     */
+    private applyTool(id: string, fromStock = true): boolean {
+        switch (id) {
+            case TOOL.ERASE: return this.armErase(fromStock);
+            case TOOL.MOVE: return this.toolMove();
+            case TOOL.SHUFFLE: return this.toolShuffle();
+            case TOOL.ADD_SLOT: return this.toolAddSlot();
+            default: return false;
+        }
+    }
+
+    /**
+     * **道具当前是否可用**；返回不可用的原因（`null` = 可用）。
+     *
+     * ★ 第 46 轮新增 —— 照搬 game-4 的 `propBlockReason(id)`，文案逐字对齐。
+     *
+     * 【为什么必须"先查它，再谈广告"】顺序反过来的话，玩家会先看完 5 秒广告
+     *   才被告知"你槽里没牌"。game-4 的注释写得很直白：那种体验足以让人直接卸载。
+     *
+     * 【它同时是"道具键亮/暗"的唯一真源】`refreshTools()` 不再自己判一遍 ——
+     *   两处判定迟早分叉，表现是"键看着能点、点了却弹一句不能用的原因"。
+     */
+    private propBlockReason(id: string): string | null {
+        switch (id) {
+            case TOOL.ERASE:
+                if (this._slots.length === 0) return '槽里还没有牌';
+                return null;
+            case TOOL.MOVE:
+                if (this._slots.length === 0) return '槽里还没有牌';
+                if (this._temp.length >= PLAY.TEMP_CAPACITY) return '暂存架已经满了';
+                return null;
+            case TOOL.SHUFFLE:
+                // 暂存架里的牌也算"还在牌局里"（洗牌会把它们一并撒回场上）
+                if ((this._board?.remaining ?? 0) + this._temp.length <= 1) return '场上没有可洗的牌了';
+                return null;
+            case TOOL.ADD_SLOT:
+                if (this._addSlotUsed >= PLAY.ADD_SLOT_PER_LEVEL) return '本关的加槽名额已用完';
+                if (this._slotMax >= PLAY.ADD_SLOT_MAX) return `槽位已是上限 ${PLAY.ADD_SLOT_MAX} 格`;
+                return null;
+            default:
+                return null;
+        }
+    }
+
+    /** 道具**真正生效之后**的统一收尾（库存已扣） */
+    private afterToolUsed(id: string): void {
         this.refreshTools();
         AudioService.playSfx(SFX.toolUse, 1.0);
         Haptics.medium();
         toast(this.body, `已使用 ${TOOL_META[id as keyof typeof TOOL_META].name}`);
     }
 
-    /** 消除：把槽内**已存在的一组**直接消掉 */
-    private toolErase(): boolean {
-        const board = this._board;
-        if (!board) return false;
-        const faces = this._slots.map((i) => board.tiles[i].face);
-        const groups = allMatches(faces);
-        if (groups.length === 0) {
-            toast(this.body, '槽内还没有可消除的组合');
+    // ========================================================
+    //  ★ 第 46 轮 · 卡住提示（3 秒没消 → 引导「看广告 / 分享」换道具）
+    // ========================================================
+
+    /** 起心跳。**只在进关时调一次**（`onEnter`）。 */
+    private startNudge(): void {
+        if (!NUDGE.ENABLED || this._nudgeTicking) return;
+        if (this._level < NUDGE.FROM_LEVEL) return;
+        this._nudgeTicking = true;
+        this._nudgeIdle = -NUDGE.START_GRACE;    // 开局宽限（见 CFG.NUDGE.START_GRACE）
+        this._nudgeCool = 0;
+        this._nudgeShown = false;
+        this.tickNudge();
+    }
+
+    /**
+     * 「卡住」秒表。全部参数见 `CFG.NUDGE`。
+     *
+     * ── 为什么"不可操作"的那些秒不累加（三种情形，第三种最要命）──
+     *   · `_locked`：牌正飞向槽位（0.26 s 的输入锁窗口）—— 玩家没得操作。
+     *   · `_paused`：任意弹层开着（暂停 / 广告 / 规则）。
+     *   · `_armedErase`：**「消除」已就绪、正等玩家点槽里那张牌**。
+     *     最典型的坏例子 —— 玩家点道具键 → 看完 5 秒广告 → 回到牌局：
+     *     若广告期间的秒数照算，`_nudgeIdle` 早就超过 3 秒，回来的**第一秒**
+     *     就会再浮一圈"卡住了？看广告换道具"。读起来就是"刚给你东西又来推销"。
+     *
+     * ⚠️ 这是**累加条件**，不是**触发条件**。触发条件严格按用户口径：
+     *     距上次成组消除满 `IDLE_SECONDS` 秒（且过了开局宽限、冷却已走完）。
+     * `_over` 一到整条心跳就停（最后一次 `timer` 不再续）。
+     */
+    private tickNudge(): void {
+        if (!this.node.isValid || this._over) return;
+        this.timer(1000, () => {
+            if (!this.node.isValid || this._over) return;
+            if (!this._paused && !this._locked && !this._armedErase) {
+                if (this._nudgeCool > 0) this._nudgeCool -= 1;
+                this._nudgeIdle += 1;
+
+                if (!this._nudgeShown && this._nudgeIdle >= NUDGE.IDLE_SECONDS
+                    && this._nudgeCool <= 0) {
+                    // 挑不出"当下真能用"的道具就**不提示** —— 提示了也没有下一步，
+                    // 那只是白拿玩家一份注意力（见 pickNudgeProp 的注释）。
+                    const id = this.pickNudgeProp();
+                    if (id) {
+                        this._nudgeShown = true;
+                        this._nudgeCool = NUDGE.COOLDOWN;
+                        this.log(`卡住提示：${this._nudgeIdle}s 无消除 → 推荐「${TOOL_META[id].name}」`);
+                        this.showNudge(id);
+                    }
+                }
+            }
+            this.tickNudge();
+        });
+    }
+
+    /**
+     * 挑一个"当下推荐"的道具。返回 null = 一个都不能用（→ 不提示）。
+     *
+     * 【优先级为什么是这个顺序】按"能立刻解开困境"的强度排（与 game-4 逐项一致）：
+     *   ① 消除 —— 只在槽里已经有牌时可用，而"槽里攒了几张却没成型"正是最常见的卡；
+     *   ② 洗牌 —— 在牌堆层面重排，能救"顶层全被压死、一片灰"；
+     *   ③ 加槽 —— 只解决"快满了"，是最缓的一档；
+     *   ④ 移出 —— 把槽里的牌腾出去，但**牌并没有被消掉**，最不解卡。
+     * ⚠️ 顺序改了不会报错，只会让提示显得"不懂玩家正在做什么"
+     *    （对应 `CFG.NUDGE.LEAD` 的四句前导语）。
+     */
+    private pickNudgeProp(): ToolKey | null {
+        const order: ToolKey[] = [TOOL.ERASE, TOOL.SHUFFLE, TOOL.ADD_SLOT, TOOL.MOVE];
+        for (const id of order) if (this.propBlockReason(id) === null) return id;
+        return null;
+    }
+
+    /**
+     * 显示卡住提示。**全工程唯一的分流点** —— game-5 目前只有 glow 一种形态，
+     *   将来若要加"底部引导条"，只在这里多一行（game-4 的 `MODE` 分流同款）。
+     */
+    private showNudge(id: ToolKey): void {
+        this.showNudgeGlow(id);
+        // 合规文案（"看广告 / 分享"两处**必须并列**出现）走 toast，见 CFG.NUDGE.TEXT。
+        toast(this.body, `${NUDGE.LEAD[id]} ${NUDGE.TEXT.replace('%s', TOOL_META[id].name)}`, 2.4);
+    }
+
+    /**
+     * 在推荐键上套一圈金环 + 键上方浮出「点这里 ▼」。
+     *
+     * 【为什么挂成"道具键的子节点"】
+     *   ① 不用做任何坐标换算 —— 只写键内局部坐标（键心 = 原点）；
+     *   ② 键被销毁（换局 / 离场 / 结算重建）时环与标签跟着一起销毁，不会留孤儿节点。
+     *
+     * 【点哪儿有效】环 / 标签本身**不挂事件**：真正接指针的是那个透明的 `NudgeHit`
+     *   命中盒，它把"键 + 环 + ▼"整片圈进来后转发给 `useTool(id)` ——
+     *   于是"箭头指着哪就点哪"是天然成立的，而且**不构成第二条道具路径**
+     *   （照样走"先查可用 → 再过库存/广告门禁 → 才执行"）。
+     *   ⚠️ **命中盒半宽必须 < 相邻格中心距的一半（150/2 = 75）**，否则会抢隔壁键的
+     *      点击。下面算式末尾那个 `+ 2` 就是为此留的余量（63+7+2+2 = 74 < 75）。
+     *      改 `RING_OFF` / `RING_LINE` / `TOOL_CELL` 时这条不变量要重新过一遍。
+     */
+    private showNudgeGlow(id: ToolKey): void {
+        const cell = this._toolCells[TOOL_ORDER.indexOf(id)];
+        if (!cell || !cell.isValid) return;
+        this.hideNudgeGlow();                        // 同一时刻只允许罩一个键
+
+        const cw = LAYOUT.TOOL_CELL.w;
+        const ch = LAYOUT.TOOL_CELL.h;
+        const R = SKIN.TOOL.RADIUS;
+
+        // ---- 视觉层（只画，不接指针）----
+        const art = createNode('NudgeGlow', cell, { w: 1, h: 1 });
+        const op = art.addComponent(UIOpacity);
+        op.opacity = 0;
+
+        const { g } = createGraphicsNode('Ring', art, { w: 1, h: 1 });
+        // ① 外发光：多层极淡描边（引擎没有模糊，与 `drawSoftShadow` 造柔影同一招）
+        for (const grow of [10, 7, 4]) {
+            const d = (NUDGE.RING_OFF + grow) * 2;
+            strokeRoundRect(g, 0, 0, cw + d, ch + d, R + d / 2, COLOR.GOLD, 2, 40);
+        }
+        // ② 实环
+        strokeRoundRect(g, 0, 0, cw + NUDGE.RING_OFF * 2, ch + NUDGE.RING_OFF * 2,
+            R + NUDGE.RING_OFF, COLOR.GOLD, NUDGE.RING_LINE, 255);
+
+        // ---- 「点这里 ▼」：容器底边压在键上沿，▼ 尖端咬进键内一点 ----
+        const TIP = 12;              // ▼ 高（= 宽）
+        const TXT = 34;              // 文字带高
+        const TAG_H = TIP + TXT;
+        const OVER = 6;              // ▼ 尖端咬进键内的深度
+        const tag = createNode('Tag', art, {
+            w: 170, h: TAG_H, y: ch / 2 + TAG_H / 2 - OVER,
+        });
+        const tg = createGraphicsNode('Tip', tag, { w: TIP, h: TIP, y: -TAG_H / 2 + TIP / 2 }).g;
+        const hw = TIP / 2;
+        tg.moveTo(-hw, hw); tg.lineTo(hw, hw); tg.lineTo(0, -hw); tg.close();
+        tg.fillColor = hex2color(COLOR.GOLD);
+        tg.fill();
+        tg.lineWidth = 2;
+        tg.strokeColor = hex2color('#3A2A10');       // 深墨边：金压在深键面上没有它就会糊
+        tg.stroke();
+        createLabel(tag, NUDGE.TAG_TEXT, {
+            fontSize: 24, color: COLOR.GOLD, bold: true, serif: true,
+            w: 170, h: TXT, y: -TAG_H / 2 + TIP + TXT / 2,
+            outline: '#3A2A10', outlineWidth: 3,
+        });
+
+        // ---- 指针层：透明命中盒（把键 + 环 + ▼ 整片圈进来）----
+        //  ⚠️ 做成 `art` 的子节点 → `hideNudgeGlow()` 销毁 `art` 时它一起走。
+        const hitHalfW = cw / 2 + NUDGE.RING_OFF + NUDGE.RING_LINE / 2 + 2;
+        const topExt = TAG_H - OVER + 4;
+        const hit = createNode('NudgeHit', art, {
+            w: hitHalfW * 2, h: ch + 2 * (NUDGE.RING_OFF + NUDGE.RING_LINE) + topExt,
+            y: topExt / 2,
+        });
+        const press = (): void => {
+            tween(hit).to(0.07, { scale: v3(0.96, 0.96, 1) }).start();
+        };
+        const release = (): void => {
+            tween(hit).to(0.14, { scale: v3(1, 1, 1) }, { easing: 'backOut' }).start();
+        };
+        // ⚠️⚠️ **三个事件都要 `propagationStopped = true`**（第 46 轮修的真 bug）。
+        //   命中盒是道具键的**子节点**，Cocos 的节点触摸事件会**向父节点冒泡**。
+        //   早先只停了 `TOUCH_START`，于是 `TOUCH_END` 会**一路冒到 `Tool_xxx` 键**上：
+        //     · 命中盒的 handler 先跑 → `useTool('erase')` → 进入「消除」就绪态；
+        //     · 紧接着键的 `tap()` 又跑一次 → `useTool('erase')` 看到"已就绪" ⇒
+        //       **判定为二次点击 = 取消** ⇒ 玩家看到的是"点了引导环，什么都没发生"。
+        //   症状极具迷惑性：`armed` 从 false → true → false，单看每个函数都对，
+        //   是**同一次点击跑了两遍**才出的错。`_r46-verify.mjs` ④段点的是命中盒
+        //   中心（真实鼠标），才把它逼出来 —— 只点键永远验不到。
+        const claim = (e: { propagationStopped: boolean }): void => {
+            e.propagationStopped = true;
+        };
+        hit.on(Node.EventType.TOUCH_START, (e: { propagationStopped: boolean }) => {
+            claim(e);                                // 认领，免得下面的键再收一次
+            press();
+        }, hit);
+        hit.on(Node.EventType.TOUCH_END, (e: { propagationStopped: boolean }) => {
+            claim(e);
+            release();
+            this.useTool(id);
+        }, hit);
+        hit.on(Node.EventType.TOUCH_CANCEL, (e: { propagationStopped: boolean }) => {
+            claim(e);
+            release();
+        }, hit);
+
+        this._nudgeGlow = art;
+        this._nudgeGlowId = id;
+
+        MotionFx.fadeTo(op, 255, 0.24);
+        // 呼吸两下**播完即停**（不做常驻闪烁）：`breath` 是 repeatForever，
+        //   按"一次往复 = PULSE×2"算出总时长后自己喊停。
+        MotionFx.breath(art, NUDGE.PULSE_SCALE, NUDGE.PULSE, { tag: TAG.NUDGE, delay: 0.24 });
+        const pulseMs = Math.round((NUDGE.PULSE * 2 * NUDGE.PULSE_TIMES) * 1000) + 240;
+        this.timer(pulseMs, () => {
+            if (!art.isValid) return;
+            MotionFx.stop(art, TAG.NUDGE);
+            art.setScale(v3(1, 1, 1));
+        });
+        // 到期自动收起。⚠️ 用"是不是同一个 art"做归属校验 —— 中途换键 / 被
+        //   `nudgeReset()` 收掉之后，这条定时器**不得**再去收别人的环。
+        this.timer(NUDGE.LIFE * 1000, () => {
+            if (this._nudgeGlow === art) this.hideNudgeGlow(true);
+        });
+        this.log(`卡住提示已挂到「${TOOL_META[id].name}」键上（${NUDGE.LIFE}s 后自动收）`);
+    }
+
+    /**
+     * 收掉金环 / 标签 / 命中盒。
+     * @param fade true = 先淡出再销毁（到期自动收起时用）；
+     *             false = 立刻收掉（换目标 / 玩家消掉一组 / 局终 / 离场用 ——
+     *             那几种情况下"立刻消失"本身就是反馈，慢慢淡反而显得迟钝）。
+     */
+    private hideNudgeGlow(fade = false): void {
+        const art = this._nudgeGlow;
+        this._nudgeGlow = null;
+        this._nudgeGlowId = null;
+        if (!art || !art.isValid) return;
+
+        MotionFx.stop(art, TAG.NUDGE);
+        MotionFx.stop(art, TAG.FADE);
+        if (!fade) { art.destroy(); return; }
+
+        const op = art.getComponent(UIOpacity);
+        if (op) MotionFx.fadeTo(op, 0, 0.2);
+        const dead = art;
+        this.timer(260, () => { if (dead.isValid) dead.destroy(); });
+    }
+
+    /**
+     * 玩家**消掉一组**（或刚用过道具）→ 这一轮"卡住"结束，重新开始计时。
+     *
+     * ⚠️ 冷却（`_nudgeCool`）**刻意不动**：它防的是"消一组 → 卡 3 秒 → 又消一组
+     *    → 又卡 3 秒"这种快节奏循环。跟着清零的话，冷却就等于不存在了。
+     */
+    private nudgeReset(): void {
+        this._nudgeIdle = 0;
+        this._nudgeShown = false;
+        this.hideNudgeGlow();
+    }
+
+    // ========================================================
+    //  ★ 第 46 轮 · 「消除」= 选槽内一张 → 强制消掉这 1 张
+    // ========================================================
+
+    /**
+     * 进入「消除」就绪态。**不扣库存** —— 扣减在 `eraseSlotAt()` 里。
+     *
+     * 边界：槽里没牌时**不进入就绪态**（提示后原样返回），
+     *       这是 game-4 `propBlockReason('remove')` 的第一条。
+     */
+    private armErase(fromStock = true): boolean {
+        if (this._slots.length === 0) {
+            toast(this.body, '槽里还没有牌');
             return false;
         }
-        const gone = groups[0].indices.slice();
-        // ★ 与 `resolveMatch` 同口径：先摘存活节点，再动数据（见 `takeSurvivors`）
-        this._pendingKeep = this.takeSurvivors(gone);
-        this._slots = this._slots.filter((_, i) => !gone.includes(i));
-        this._cleared += gone.length;
-        SaveService.instance.addCleared(gone.length);
+        // ★ 记下"这一次就绪态是怎么来的" —— 决定真正消掉那张牌时**要不要扣库存**。
+        //   走广告 / 分享拿到的那一次本来就没进过库存，扣了就是凭空虚扣玩家一个道具。
+        this._eraseFromStock = fromStock;
+        this.setArmedErase(true);
+        toast(this.body, '点槽里任意一张，把它消掉');
+        this.log(`道具 消除 就绪：槽内 ${this._slots.length} 张可选（${fromStock ? '消耗库存' : '广告/分享得来，不扣库存'}）`);
+        return true;
+    }
 
-        // 视觉
-        for (const si of gone) {
-            const nd = this._slotNodes[si];
-            if (nd?.isValid) {
-                tween(nd).to(0.3, { scale: v3(0, 0, 1), angle: 40 }, { easing: 'quadIn' }).start();
-                const dead = nd;
-                this.timer(320, () => { if (dead.isValid) dead.destroy(); });
+    /**
+     * 开 / 关就绪态，并同步视觉。
+     *
+     * 【视觉提示为什么是"金环 + 键面变金"】金在本作 = 可交互/奖励（玉绿 = 状态，
+     *   见 `paintSlotCell` 的注释）。就绪态要说的正是"现在点我是对的"，所以用金。
+     *   ⚠️ 与第 45 轮删掉的"牌堆金环"不是一回事：那是**每张牌常驻**的装饰
+     *      （太吵、被用户圈掉），这里只在**选牌态**存在，且是可交互的语义。
+     */
+    private setArmedErase(on: boolean): void {
+        if (this._armedErase === on) return;
+        this._armedErase = on;
+        if (!on) this._eraseFromStock = false;   // 退出就绪态 ⇒ "这次算不算库存"的记账一并作废
+
+        // 槽内牌上的可选环
+        for (const c of this._slotCells) {
+            for (const ch of c.children.slice()) {
+                if (ch.name === 'ArmedRing' && ch.isValid) ch.destroy();
             }
         }
+        if (on) {
+            const box = this.slotBox();
+            for (const n of this._slotNodes) {
+                if (!n?.isValid) continue;
+                const { g } = createGraphicsNode('ArmedRing', n, { w: box.w, h: box.h });
+                strokeRoundRect(g, 0, 0, box.w + 8, box.h + 8, 12, COLOR.GOLD, 3, 255);
+            }
+        }
+        this.refreshTools();
+    }
+
+    /**
+     * 槽内牌被点中（**只在就绪态下有效**）。
+     *
+     * ⚠️ 用 `indexOf(node)` **当场解析下标**，不能把 `spawnSlotTile` 的入参 `slotIdx`
+     *    闭包进去 —— 槽内节点会在 `relayoutSlots()` 里被复用、下标随之改变，
+     *    闭包捕获的旧下标会**指向另一张牌**（而且完全不报错）。
+     */
+    private onSlotNodeTap(node: Node): void {
+        if (!this._armedErase || this._over || this._paused) return;
+        const i = this._slotNodes.indexOf(node);
+        if (i < 0) return;
+        this.eraseSlotAt(i);
+    }
+
+    /**
+     * **强制消除槽内第 i 张牌（只此 1 张）** —— 用户拍板方案 A。
+     *
+     * 与 `resolveMatch()` 的三点不同，逐一说明（都容易写错）：
+     *  ① **牌是永久离场**，不是退回牌堆 ⇒ 用 `board.forceRemove()`（不校验可点性），
+     *     而「移出」用的是 `board.restore()`。
+     *  ② **只摘 1 个槽位**，不是一整组。
+     *  ③ 扣库存放在这里（而不是 `useTool`）——「进入就绪态又取消」不该消耗玩家一个道具。
+     *
+     * 【连带后果（用户已知晓）】只消 1 张会打破"同牌面张数 ≡ 0 (mod 3)"不变量，
+     *   同牌面剩下的 2 张若凑不出「吃」，这一关就清不空 ⇒ 判负。
+     *   这正是"用道具换来的代价"，也是需求⑥提难度要的效果。
+     */
+    private eraseSlotAt(i: number): void {
+        const board = this._board;
+        if (!board || i < 0 || i >= this._slots.length) return;
+
+        const tileIdx = this._slots[i];
+        const node = this._slotNodes[i];
+        // ⚠️ 必须先取走这个标记 —— 下面 `setArmedErase(false)` 会把它清掉
+        const fromStock = this._eraseFromStock;
+
+        // ① 数据：牌永久离场 + 槽位移除（**先摘存活节点，再动数据** —— 见 takeSurvivors）
+        this._pendingKeep = this.takeSurvivors([i]);
+        this._slots = this._slots.filter((_, k) => k !== i);
+        board.forceRemove(tileIdx);
+        this._cleared += 1;
+        SaveService.instance.addCleared(1);
         this._slotNodes = new Array<Node | null>(this._slotMax).fill(null);
-        this.timer(340, () => {
+
+        this.setArmedErase(false);
+        this.nudgeReset();          // 消掉一张 = 有进展 → "卡住"秒表归零
+
+        // ② 视觉：缩小旋转消失（与 resolveMatch 同族的"被消掉"语言）
+        if (node?.isValid) {
+            tween(node).to(0.28, { scale: v3(0, 0, 1), angle: 40 }, { easing: 'quadIn' }).start();
+            const dead = node;
+            this.timer(300, () => { if (dead.isValid) dead.destroy(); });
+        }
+
+        // ③ 真正生效之后才扣库存 —— **且只在"这次就绪态是靠自己库存点开的"时才扣**。
+        //   走广告 / 分享拿到的那一次从没进过库存，扣了就是凭空虚扣玩家一个道具。
+        if (fromStock) useRunItem(TOOL.ERASE as never);
+        this.refreshTools();
+
+        this.timer(320, () => {
             this.relayoutSlots();
             this.refreshProgress();
             this.refreshSlotDanger();
             this.checkBoardEmpty();
         });
-        return true;
+        this.log(`道具 消除 已生效：强制消掉牌 #${tileIdx}（槽内第 ${i} 位）`);
     }
 
-    /** 移出：把槽里最后一张退回桌上 */
+    // ⚠️ 旧的 `toolErase()`（「槽内已凑满一组才让消」）已在第 46 轮**删除**：
+    //    用户拍板改成「选定槽里的一张牌，强制消除（剩余多余两张不管）」——
+    //    实现在上面的 `armErase()` / `eraseSlotAt()`。
+    //    旧口径的失败提示「槽内还没有可消除的组合」正是用户截图 1 里那条文案
+    //    （当时槽里只有 2 张 3 筒，永远凑不满 3 张）。
+
+    /**
+     * 「移出」：把槽里**最靠前的 N 张**搬进暂存架。
+     *
+     * ★ 第 46 轮**整块重写**（旧实现是"把最后一张退回牌堆"，与本作的道具语义不符）。
+     *   现在是 game-4 `applyMoveOut()` 的同款逻辑，逐条对照：
+     *     ① `n = min(暂存架空位, MOVE_OUT_COUNT(3), 槽内张数)` —— 三者取小
+     *     ② 取 `_slots.splice(0, n)` = **槽内最靠前的 N 张**
+     *     ③ **先把架子叫出来，再让牌飞**（顺序反了会看到"牌飞向不存在的格子"）
+     *     ④ 留在槽里的牌**同步补位**（先动数据再动视图）
+     *
+     * 【边界（game-4 `propBlockReason` 的原文案）】
+     *   · 槽内空 → 「槽里还没有牌」（注意：旧实现写的是「槽里没有牌可移出」，已统一）
+     *   · 架子满 → 「暂存架已经满了」
+     * ⚠️ 这两条**必须在 `useTool` 扣库存之前**返回 false —— 否则玩家的道具白扣。
+     */
     private toolMove(): boolean {
         const board = this._board;
-        if (!board || this._slots.length === 0) {
-            toast(this.body, '槽里没有牌可移出');
+        if (!board) return false;
+
+        if (this._slots.length === 0) {
+            toast(this.body, '槽里还没有牌');
             return false;
         }
-        const slotIdx = this._slots.length - 1;
-        const tileIdx = this._slots.pop()!;
-        board.restore(tileIdx);
-
-        const nd = this._slotNodes[slotIdx];
-        if (nd?.isValid) {
-            // 飞回桌上的原位
-            const view = this._views[tileIdx];
-            const boardNode = this._boardNode;
-            if (view && boardNode) {
-                const t = board.tiles[tileIdx];
-                const target = v3(board.engineX(t), board.engineY(t), 0);
-                const from = nd.position.clone();
-                const worldFrom = nd.getWorldPosition();
-                const localFrom = boardNode.getComponent(UITransform)!.convertToNodeSpaceAR(worldFrom);
-                nd.setParent(boardNode);
-                nd.setPosition(localFrom);
-                nd.setScale(v3(Math.min(SLOT_BOX.w / this._def.w, SLOT_BOX.h / this._def.h) / this._tableScale,
-                    Math.min(SLOT_BOX.w / this._def.w, SLOT_BOX.h / this._def.h) / this._tableScale, 1));
-                tween(nd)
-                    .to(0.26, { position: target, scale: v3(1, 1, 1) }, { easing: 'quadOut' })
-                    .start();
-                this.timer(280, () => {
-                    if (nd.isValid) nd.destroy();
-                    view.resetToBoard(board.engineX(t), board.engineY(t));
-                    this.refreshAllStates();
-                });
-                void from;
-            } else {
-                nd.destroy();
-            }
+        if (this._temp.length >= PLAY.TEMP_CAPACITY) {
+            toast(this.body, '暂存架已经满了');
+            return false;
         }
-        this._slotNodes[slotIdx] = null;
+        const n = Math.min(PLAY.TEMP_CAPACITY - this._temp.length,
+            PLAY.MOVE_OUT_COUNT, this._slots.length);
+        if (n <= 0) return false;
+
+        // ③ 架子先浮出来
+        this.showTempRack();
+
+        // ④ 数据先行
+        const movingNodes = this._slotNodes.slice(0, n);
+        const keep: Node[] = [];
+        for (let i = n; i < this._slotNodes.length; i++) {
+            const nd = this._slotNodes[i];
+            if (nd?.isValid) keep.push(nd);
+        }
+        const moving = this._slots.splice(0, n);
+        const from = this._temp.length;             // 这批牌在架子里的起始格
+        for (const idx of moving) this._temp.push(idx);
+
+        // ⑤ 把"要飞走的这几张"先摘出格子。
+        //    ⚠️ 必须在 `relayoutSlots()` **之前**：它的清理循环会销毁
+        //       "不在待排队列里"的 `SlotTile`（名字前缀判定），飞走的那几张
+        //       正好不在队列里 ⇒ 晚一步就会被销毁，表现是"移出的牌凭空消失"。
+        for (let j = 0; j < n; j++) {
+            const nd = movingNodes[j];
+            if (!nd?.isValid) {
+                // 兜底：这张牌的视觉节点缺失（理论上不会发生）—— 按牌面补建一张，
+                // 否则数据里它在架子里、画面上却没有，玩家取不回它。
+                // ★ 第 47 轮：`spawnTempTile()` 建出来的**已经是架格尺寸**（自带同一个
+                //   `tempTileScale()`），所以它和下面 reparent 过来的节点现在**同基准** ——
+                //   这正是把两条路径合并到 `buildSmallTile()` 之后才成立的。
+                const nb = this.spawnTempTile(board.tiles[moving[j]].face);
+                if (nb) {
+                    nb.setPosition(this.tempCellX(from + j), 0, 0);
+                    this._tempNodes[from + j] = nb;
+                }
+                continue;
+            }
+            const world = nd.getWorldPosition();
+            nd.setParent(this._tempBar!);
+            nd.setPosition(this._tempBar!.getComponent(UITransform)!.convertToNodeSpaceAR(world));
+            this._tempNodes[from + j] = nd;
+        }
+
+        // ⑥ 槽内剩余的牌补位
+        this._pendingKeep = keep;
+        this._slotNodes = new Array<Node | null>(this._slotMax).fill(null);
+        this.relayoutSlots();
         this.refreshSlotDanger();
-        this.log(`移出：牌 #${tileIdx} 回到桌上`);
+
+        // ⑦ 视觉：飞向暂存架（抛物线由"先略微下沉再抬升"两段近似，够用且便宜）
+        // ★★ 第 47 轮：这里要的是"**相对主槽位节点的额外缩放**"，**不是**绝对尺寸系数。
+        //   旧代码直接乘 `smallTileK()` ⇒ 与节点里那层 `slotTileK()` 叠乘，
+        //   牌缩到主槽位的一半（27.6×36.7）—— 用户报的"暂存栏里面的牌太小了"就是它。
+        const k = this.tempTileScale();
+        for (let j = 0; j < n; j++) {
+            const nd = this._tempNodes[from + j];
+            if (!nd?.isValid) continue;
+            const p = nd.position.clone();
+            tween(nd)
+                .to(0.10, { position: v3(p.x, p.y + 26, 0) }, { easing: 'quadOut' })
+                .to(0.20, { position: v3(this.tempCellX(from + j), 0, 0),
+                            scale: v3(k, k, 1), angle: 0 }, { easing: 'quadIn' })
+                .start();
+        }
+
+        this.log(`移出：${n} 张 → 暂存架（架内 ${this._temp.length}/${PLAY.TEMP_CAPACITY}）`);
         return true;
     }
 
-    /** 洗牌：重排桌上未消牌的位置 */
+    /** 洗牌：重排桌上未消牌的位置（暂存架的牌一并撒回） */
     private toolShuffle(): boolean {
         const board = this._board;
         if (!board) return false;
+        // 边界（照搬 game-4 的「场上没有可洗的牌了」）：架子里的牌也算"还在牌局里"
+        if (board.remaining + this._temp.length <= 1) {
+            toast(this.body, '场上没有可洗的牌了');
+            return false;
+        }
+
+        // ★ 第 46 轮：暂存架的牌**一并撒回场上**（game-4 `applyShuffle` 第 ① 步）。
+        //   它们本来就能取回；留在架子里会让"洗完之后还是老局面"。
+        this.releaseTempToBoard();
         board.shuffle(Date.now() & 0xffff);
 
         for (let i = 0; i < board.tiles.length; i++) {
@@ -1251,6 +2181,8 @@ export class GamePage extends PageBase {
     private onWin(): void {
         if (this._over) return;
         this._over = true;
+        if (this._armedErase) this.setArmedErase(false);   // 就绪态必须随局终一起收掉
+        this.hideNudgeGlow();                              // 引导环也别留到结算层下面
         AudioService.playSfx(SFX.win, 1.0);
         Haptics.long();
         const reward = 20 + this._level * 5;
@@ -1262,6 +2194,8 @@ export class GamePage extends PageBase {
 
     private onFail(reason: string): void {
         if (this._over) return;
+        if (this._armedErase) this.setArmedErase(false);   // 就绪态必须随局终一起收掉
+        this.hideNudgeGlow();                              // 引导环也别留到结算层下面
         // 判负的原因必须留痕：弹层文案会按 reason 变，但**日志才是排障入口**
         // （命令行跑无头验收时看不到弹层，只有这行能说明"为什么判我输"）
         this.log(`判负：${reason} · 牌堆剩 ${this._board?.remaining ?? -1} · 槽内 ${this._slots.length} 张`);
@@ -1303,6 +2237,7 @@ export class GamePage extends PageBase {
             this._slotNodes[si] = null;
         }
         this._cleared += n;
+        this.nudgeReset();          // 复活直消 N 张 = 有进展 → "卡住"秒表归零
         AudioService.playSfx(SFX.revive, 1.0);
         Haptics.medium();
         toast(this.body, `${title}槽内直消 ${n} 张 —— 继续挑战`);
@@ -1375,11 +2310,21 @@ export class GamePage extends PageBase {
         let cur = RESULT.PAD_TOP;
 
         // ④ 吉祥物位
+        //  ★ 第 47 轮：**按胜/负换形象**（用户拍板）。
+        //    胜 → `SPLASH_MASCOT`（双臂张开的迎接姿势）
+        //    负 → `GAME_MASCOT_FAIL`（懊恼不甘 · 抱头，方案 C）
+        //  ⚠️ 两者画幅必须一致（960×875 / 1.0971），否则 `aspectW` 反算出的高度
+        //     与上面 `cardH` 里那项 `RESULT.MASCOT_H` 会对不上（**不报错**，
+        //     表现是卡底留白多一截或少一截）。换图前先复量宽高比。
         cur += RESULT.MASCOT_MT;
         const mascotY = -(cur + RESULT.MASCOT_H / 2);
+        const mascotPath = win ? ASSET.SPLASH_MASCOT : ASSET.GAME_MASCOT_FAIL;
         const mascot = createSprite(card, 'Mascot', {
-            path: ASSET.SPLASH_MASCOT, aspectW: RESULT.MASCOT_W, y: mascotY,
+            path: mascotPath, aspectW: RESULT.MASCOT_W, y: mascotY,
         });
+        // 把用的哪张写进节点名后缀 ⇒ 无头验收能**按名字**断言是新的那张，
+        // 而不是靠"看着像"（素材路径本身不上屏，运行期没有别的可读痕迹）。
+        mascot.name = win ? 'Mascot' : 'MascotFail';
         // ★★ 浮动动效**必须先算出绝对目标 y 再插值**。
         //   tween 的 `position` 是**绝对坐标**，不是"相对当前值" —— 旧代码写成
         //   `{ position: v3(0, 12, 0) }` ⇒ 吉祥物被直接**拽到卡顶**（实测中心 356.3，
@@ -1580,7 +2525,13 @@ export class GamePage extends PageBase {
         AudioService.playSfx(SFX.win, 0.6);
     }
 
-    /** 失败原因 → 副标题文案（照抄视觉稿口径：「还剩 5 张 · 槽位已满」） */
+    /**
+     * 失败原因 → 副标题文案（照抄视觉稿口径：「还剩 5 张 · 槽位已满」）。
+     *
+     * ⚠️ 第 47 轮起 `boardEmptySlotsLeft` **已无产出点**（牌堆清空一律判胜，见
+     *   `checkBoardEmpty`）。这一支保留作**兜底**：万一将来又新增一条判负路径
+     *   却忘了在这里配文案，至少不会掉进"槽位已满"这个错误口径。
+     */
     private failDesc(reason: string): string {
         const left = this._board?.remaining ?? 0;
         const why = reason === 'timeout' ? '时间到'
@@ -1817,11 +2768,23 @@ export class GamePage extends PageBase {
         this._ruleTapCb = null;
     }
 
-    /** 道具不足 → 看广告补 1 个（**只进本局道具栏**，与赠礼同规） */
+    /**
+     * 道具不够 → 「**看广告 / 分享**」二选一，换来的道具**立刻生效**。
+     *
+     * ★ 第 46 轮改造（用户拍板）：
+     *   ① **保留**"骰子赠礼给库存、库存空了才走这里"的机制（不改成 game-4 的无库存）；
+     *   ② 但看完之后**不再补 1 个进库存** —— 而是**立马使用、产生效果**
+     *      （game-4 `onPropTap` 正是这个流程：过门禁 → 直接 `applyProp(id)`）；
+     *   ③ 新增「分享给好友」这条路（game-4 的 `RewardGate` 里两者就是并列的）。
+     *
+     * 【为什么不补库存】补库存的话玩家还得再点一次道具键 —— 中间那一步是纯摩擦，
+     *   而"我刚看完广告，东西应该立刻到手"才是本能预期。
+     */
     private openAd(id: string): void {
         if (!this._topLayer) return;
         if (this._topLayer.getChildByName('AdPanel')?.isValid) return;
         this._paused = true;
+        this.hideNudgeGlow();                 // 引导环先收掉，别压在弹层上
 
         const vs = this.visible();
         const layer = createNode('AdPanel', this._topLayer, { w: 1, h: 1 });
@@ -1830,29 +2793,35 @@ export class GamePage extends PageBase {
         const { g: sg } = createGraphicsNode('Scrim', layer, { w: vs.width, h: vs.height });
         fillRoundRect(sg, 0, 0, vs.width * 1.4, vs.height * 1.4, 0, '#000000', 214);
 
-        const card = createNode('AdCard', layer, { w: 560, h: 520 });
-        const { g: cg } = createGraphicsNode('Bg', card, { w: 560, h: 520 });
-        fillRoundRect(cg, 0, 0, 560, 520, 40, 'rgba(9,18,13,0.98)', 255);
-        strokeRoundRect(cg, 0, 0, 560, 520, 40, 'rgba(246,196,69,0.30)', 2.5, 255);
+        // ⚠️ 卡高 520 → **600**：多出来的 80 是给「分享给好友」那颗按钮的。
+        //    改这里必须同步改下面每个 y —— 卡片是**居中**的，y 一错就会戳出卡外。
+        const CW = 560, CH = 600;
+        const card = createNode('AdCard', layer, { w: CW, h: CH });
+        const { g: cg } = createGraphicsNode('Bg', card, { w: CW, h: CH });
+        fillRoundRect(cg, 0, 0, CW, CH, 40, 'rgba(9,18,13,0.98)', 255);
+        strokeRoundRect(cg, 0, 0, CW, CH, 40, 'rgba(246,196,69,0.30)', 2.5, 255);
 
-        createLabel(card, '补充道具', {
-            fontSize: 38, color: COLOR.CREAM, bold: true, serif: true, w: 520, h: 48, y: 200,
+        const tname = TOOL_META[id as keyof typeof TOOL_META].name;
+        createLabel(card, '获取道具', {
+            fontSize: 38, color: COLOR.CREAM, bold: true, serif: true, w: 520, h: 48, y: 248,
         });
-        createSprite(card, 'Icon', { path: TOOL_ICON[id as keyof typeof TOOL_ICON], aspectW: 110, y: 96 });
-        createLabel(card, `${TOOL_META[id as keyof typeof TOOL_META].name} ×1`, {
-            fontSize: 30, color: COLOR.GOLD_HI, bold: true, w: 520, h: 40, y: 16,
+        createSprite(card, 'Icon', { path: TOOL_ICON[id as keyof typeof TOOL_ICON], aspectW: 96, y: 152 });
+        createLabel(card, `${tname} ×1`, {
+            fontSize: 30, color: COLOR.GOLD_HI, bold: true, w: 520, h: 40, y: 78,
         });
 
-        // 进度条
-        const bar = createNode('Bar', card, { w: 400, h: 16, y: -44 });
+        // 路线 A：看广告 —— 进度条自己跑满
+        const bar = createNode('Bar', card, { w: 400, h: 16, y: 24 });
         const bg = bar.addComponent(GraphicsCtor);
         const secLabel = createLabel(card, '5', {
-            fontSize: 24, color: COLOR.CREAM_MUTE, w: 520, h: 30, y: -84,
+            fontSize: 24, color: COLOR.CREAM_MUTE, w: 520, h: 30, y: -12,
         });
-        createLabel(card, '仅限本局使用 · 不累计、不跨局', {
-            fontSize: 20, color: COLOR.CREAM_MUTE, w: 520, h: 28, y: -126,
+        // 路线 B：分享 —— 立即到手（与广告**并列**出现在这一屏，合规要求）
+        this.panelButton(card, -92, '分享给好友', 'jade', () => this.closeAd(id, true, 'share'));
+        createLabel(card, '看广告满 5 秒，或分享给好友 —— 到手即用', {
+            fontSize: 20, color: COLOR.CREAM_MUTE, w: 540, h: 28, y: -160,
         });
-        this.panelButton(card, -196, '跳过', 'ghost', () => this.closeAd(id, false));
+        this.panelButton(card, -224, '跳过', 'ghost', () => this.closeAd(id, false));
 
         // 5 秒进度（用 timers 驱动，状态不依赖 tween 回调）
         const AD_SEC = 5;
@@ -1864,7 +2833,7 @@ export class GamePage extends PageBase {
         const step = (): void => {
             if (!layer.isValid) return;
             left -= 0.1;
-            if (left <= 0) { this.closeAd(id, true); return; }
+            if (left <= 0) { this.closeAd(id, true, 'ad'); return; }
             paint();
             if (secLabel.isValid) secLabel.string = String(Math.ceil(left));
             this.timer(100, step);
@@ -1874,7 +2843,13 @@ export class GamePage extends PageBase {
         MotionFx.fadeTo(layer.getComponent(UIOpacity), 255, 0.22);
     }
 
-    private closeAd(id: string, grant: boolean): void {
+    /**
+     * 关闭广告卡。`grant = true` ⇒ **立刻执行该道具**（而不是补 1 个进库存）。
+     *
+     * ⚠️ 回到主流程之前**必须复查**：这 5 秒里局面可能已经变了
+     *   （超时判负 / 页面被销毁 / 槽被别处清空）—— game-4 的同款注释。
+     */
+    private closeAd(id: string, grant: boolean, via: 'ad' | 'share' = 'ad'): void {
         const l = this._topLayer?.getChildByName('AdPanel');
         this._paused = false;
         if (l?.isValid) {
@@ -1883,14 +2858,36 @@ export class GamePage extends PageBase {
             const dead = l;
             this.timer(240, () => { if (dead.isValid) dead.destroy(); });
         }
-        if (grant) {
-            const run = currentRun();
-            if (run) {
-                run.items[id as keyof typeof run.items] = (run.items[id as keyof typeof run.items] ?? 0) + 1;
-            }
-            this.refreshTools();
-            toast(this.body, `获得 ${TOOL_META[id as keyof typeof TOOL_META].name} ×1 —— 仅限本局使用`);
+        if (!grant) return;
+        if (!this.node.isValid || this._over) return;
+
+        const reason = this.propBlockReason(id);
+        if (reason) {
+            toast(this.body, reason);
+            return;
         }
+
+        const tname = TOOL_META[id as keyof typeof TOOL_META].name;
+        // ★ 这条路径**不扣库存**（道具从来没进过库存）——
+        //   与 `useTool` 的唯一差别就是这一点，效果完全同源（都走 `applyTool`）。
+        if (id === TOOL.ERASE) {
+            // 「消除」是两段式的：这里只负责把它推进就绪态，抛给玩家的提示由 armErase 发。
+            // ⚠️ 传 `false` —— 这一次是靠广告/分享换来的，**没进过库存**，
+            //   真正消掉那张牌时不得再扣一次（见 `_eraseFromStock`）。
+            if (this.armErase(false)) {
+                AudioService.playSfx(SFX.toolUse, 1.0);
+                Haptics.medium();
+            }
+            this.nudgeReset();
+            return;
+        }
+        if (!this.applyTool(id)) return;
+
+        AudioService.playSfx(SFX.toolUse, 1.0);
+        Haptics.medium();
+        this.refreshTools();
+        toast(this.body, `${via === 'share' ? '分享成功' : '看完广告'} · ${tname} 已生效`);
+        this.nudgeReset();
     }
 
     /** 碰 / 吃 飘字（第 5 节爽点：大字 + 缩放冲击） */
@@ -1924,6 +2921,7 @@ export class GamePage extends PageBase {
         this.refreshTools();
         this.refreshAllStates();
         this.startTimer();
+        this.startNudge();          // ★ 第 46 轮：卡住提示心跳（含开局宽限）
         // 预加载音效（本局要用的）
         AudioService.preloadAll([SFX.tilePick, SFX.peng, SFX.chi, SFX.slotWarn, SFX.toolUse, SFX.shuffle, SFX.revive]);
         this.installDebugBridge();
@@ -2017,6 +3015,194 @@ export class GamePage extends PageBase {
              * 不会出现在 `pickables()` 里）。
              */
             slotFaces: () => this._slots.map((i) => faceLabel(this._board?.tiles[i].face ?? 0)),
+            /**
+             * ★ 第 46 轮：槽内小牌的**屏幕坐标**（左上原点、设计 px，与 `pickables()` 同口径）。
+             *
+             * 【为什么要它】「消除」改成两段式之后，无头验收必须先点道具键、**再点槽内一张牌**。
+             *   槽内牌不是牌堆节点（在 `_slotCells` 下、且被 `slotBar` 的坐标链影响），
+             *   用 `pickables()` 那套拿不到它们。没有这个接口，就**无法自证**
+             *   "选中槽内一张 → 强制消掉"这条链路真的通。
+             */
+            slotPickables: () => {
+                const vs = viewportSize();
+                const out: Array<{ i: number; face: string; x: number; y: number }> = [];
+                this._slotNodes.forEach((n, i) => {
+                    if (!n?.isValid) return;
+                    const w = n.getWorldPosition();
+                    out.push({
+                        i,
+                        face: faceLabel(this._board?.tiles[this._slots[i]]?.face ?? 0),
+                        x: Math.round(w.x),
+                        y: Math.round(vs.height - w.y),
+                    });
+                });
+                return out;
+            },
+            /** 「消除」是否处于就绪态（断言用） */
+            armed: () => this._armedErase,
+            /** 这一次就绪态是否消耗库存（广告/分享换来的 = false）—— 断言用 */
+            eraseFromStock: () => this._eraseFromStock,
+            /**
+             * **本局道具库存快照**（`currentRun().items`）。
+             *
+             * 【为什么必须有】"库存空了才看广告"这条链路要能被断言 ——
+             *   只看 UI 上的角标数字是**不够**的：角标画的是 `run.items[id]`，
+             *   但它不告诉你"广告得来的那一次到底扣没扣"。
+             *   第 46 轮修的正是这个 bug（凭空虚扣）⇒ 断言必须是**库存本身**。
+             */
+            runItems: () => {
+                const run = currentRun();
+                return run ? { ...run.items } : null;
+            },
+            /**
+             * ⚠️ **仅调试用**：给本局道具栏补货。
+             *
+             * 【为什么需要】骰子赠礼只给 1 个、且和值随机 ⇒ "有库存"这条路径
+             *   在无头验收里**无法确定性复现**（要靠篡改 `Math.random` 才凑得出和值，
+             *   那还会污染页面其它随机）。有了它，两条路径（库存 / 广告）都能
+             *   在同一局里按需构造、逐条断言。
+             * ⚠️ 它只动 `currentRun().items`，**不写存档** —— 本局限定的护栏不受影响。
+             */
+            grantRunItem: (id: string, n = 1) => {
+                const run = currentRun();
+                if (!run) return false;
+                const k = id as keyof typeof run.items;
+                run.items[k] = (run.items[k] ?? 0) + n;
+                this.refreshTools();
+                return true;
+            },
+            /** 暂存架内容（断言「移出」真的搬进了临时三槽、且架子显形） */
+            temp: () => ({
+                count: this._temp.length,
+                faces: this._temp.map((i) => faceLabel(this._board?.tiles[i].face ?? 0)),
+                visible: !!this._tempBar?.active,
+                cap: PLAY.TEMP_CAPACITY,
+            }),
+            /**
+             * 暂存架里每张牌的**屏幕坐标**（左上原点、设计 px，与 `pickables()` 同口径）。
+             *
+             * ⚠️ 【为什么不能靠节点名找】「移出」是把**槽内的牌节点原样 reparent** 到架子上
+             *   （见 `toolMove` 第 ⑤ 步），所以它们仍叫 `SlotTile0/1/2`，
+             *   **不叫** `TempTile`（只有兜底补建的那张才叫 `TempTile`）。
+             *   按名字找 ⇒ 找不到，且会误判成"架子里没牌"。
+             */
+            tempPickables: () => {
+                const vs = viewportSize();
+                const out: Array<{ i: number; face: string; x: number; y: number }> = [];
+                this._tempNodes.forEach((n, i) => {
+                    if (!n?.isValid) return;
+                    const w = n.getWorldPosition();
+                    out.push({
+                        i,
+                        face: faceLabel(this._board?.tiles[this._temp[i]]?.face ?? 0),
+                        x: Math.round(w.x),
+                        y: Math.round(vs.height - w.y),
+                    });
+                });
+                return out;
+            },
+            /**
+             * **逐张牌的覆盖 / 层号 / 所属段 / 是否可点** —— 断言需求⑤「段外也能点」用。
+             *
+             * 【为什么不能只看 `pickables().length` 变大】张数变多可能是任何原因
+             *   （覆盖模型改了、阈值改了…）。要证明的是**特定那一张**"整张露在外面
+             *   却因为是下一段而点不动"的牌现在能点了 ⇒ 必须拿到 `cover` 与 `seg`。
+             */
+            tileDiag: () => {
+                const b = this._board;
+                if (!b) return [];
+                const segs = this._def.segs ?? [];
+                return b.tiles.map((t) => {
+                    let seg = -1;
+                    for (let s = 0; s < segs.length; s++) {
+                        if (t.z >= segs[s].lo && t.z < segs[s].hi) { seg = s; break; }
+                    }
+                    return {
+                        id: t.id, z: t.z, seg, alive: t.alive,
+                        cover: Math.round(t.cover * 1000) / 1000,
+                        pick: t.alive && t.cover < PLAY.COVER_TH,
+                    };
+                });
+            },
+            /** 当前档位参数（断言需求⑥"难度参数真的接在运行期上"） */
+            diffCfg: () => ({
+                enabled: DIFF.ENABLED, block: DIFF.BLOCK,
+                effBlock: diffBlockOf(this._level),
+                perLevel: { ...DIFF.PER_LEVEL }, seed: DIFF.SEED,
+            }),
+            /**
+             * **关卡表原样牌面 vs 当前实际牌面**（断言难度置换真的生效）。
+             * 只做逐位比对 ⇒ `same === true` 就说明置换**根本没跑**。
+             */
+            faceDiff: () => {
+                const b = this._board;
+                if (!b) return null;
+                const base = this._def.f;
+                let n = 0;
+                for (let i = 0; i < base.length; i++) if (b.tiles[i].face !== base[i]) n++;
+                return { total: base.length, changed: n, same: n === 0 };
+            },
+            /**
+             * ★ 第 46 轮：**卡住提示**的当前状态（断言用）。
+             * `idle` 的单位是秒，开局宽限期内是**负数**（见 `CFG.NUDGE.START_GRACE`）。
+             */
+            nudge: () => ({
+                idle: this._nudgeIdle,
+                cool: this._nudgeCool,
+                shown: this._nudgeShown,
+                glowId: this._nudgeGlowId,
+            }),
+            /**
+             * **直接触发一次提示**（跳过 3 秒等待）—— 供无头验收用。
+             *
+             * 【为什么需要它】3 秒 + 开局宽限 6 秒 = 约 9 秒才能看到提示，
+             *   而截一次游戏页要反复起停无头浏览器；更要命的是**判据不唯一**
+             *   （"没出现"到底是 bug 还是没等够，说不清）。
+             *   有了它，"挂环 → 点环 → 道具生效"这条链路的每一条断言都能**确定性复现**。
+             * ⚠️ 它走的是与 `tickNudge()` **同一个** `showNudge()`，不是旁路。
+             * @returns 被推荐的道具 id（一个都不能用时返回 null）
+             */
+            forceNudge: () => {
+                const id = this.pickNudgeProp();
+                if (!id) return null;
+                this._nudgeShown = true;
+                this._nudgeCool = NUDGE.COOLDOWN;
+                this.showNudge(id);
+                return id;
+            },
+            /**
+             * 引导**命中盒**的屏幕坐标（左上原点、设计 px，与 `pickables()` 同口径）。
+             *
+             * ⚠️ 派发真实鼠标事件前**必须**过 `designToCss()`（设计 px ≠ CSS px，
+             *   见本文件 `pickables()` 的长注释）；这里同时给出**键本身**的中心，
+             *   因为点键永远有效，而命中盒是刻意放大过的（含环与 ▼）。
+             */
+            nudgeHit: () => {
+                const id = this._nudgeGlowId;
+                const hit = this._nudgeGlow?.getChildByName('NudgeHit');
+                if (!id || !hit?.isValid) return null;
+                const vs = viewportSize();
+                const w = hit.getWorldPosition();
+                const ui = hit.getComponent(UITransform);
+                const cell = this._toolCells[TOOL_ORDER.indexOf(id)];
+                const cw = cell?.getWorldPosition();
+                return {
+                    id,
+                    x: Math.round(w.x),
+                    y: Math.round(vs.height - w.y),
+                    w: Math.round(ui?.contentSize.width ?? 0),
+                    h: Math.round(ui?.contentSize.height ?? 0),
+                    cellX: Math.round(cw?.x ?? 0),
+                    cellY: Math.round(vs.height - (cw?.y ?? 0)),
+                };
+            },
+            /** 等价于手指点中槽内第 i 张（走**同一个** `onSlotNodeTap`，不是旁路） */
+            tapSlot: (i: number) => {
+                const n = this._slotNodes[i];
+                if (!n?.isValid) return false;
+                this.onSlotNodeTap(n);
+                return true;
+            },
             /**
              * ⚠️ **仅调试用**：直接把局面推到结算弹层，用于量结算层版式。
              *

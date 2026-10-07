@@ -1,0 +1,96 @@
+{
+  "model": "u2net",
+  "ref": {
+    "canvas": [
+      960,
+      875
+    ],
+    "bbox": [
+      4,
+      4,
+      957,
+      871
+    ],
+    "subj": [
+      953,
+      867
+    ],
+    "h_ratio": 0.9909,
+    "bottom_gap": 4,
+    "hull_gap": 0.3582,
+    "top_jump": 200,
+    "corner": 0.0
+  },
+  "old_C": {
+    "canvas": [
+      960,
+      875
+    ],
+    "bbox": [
+      164,
+      4,
+      795,
+      871
+    ],
+    "subj": [
+      631,
+      867
+    ],
+    "h_ratio": 0.9909,
+    "bottom_gap": 4,
+    "hull_gap": 0.1576,
+    "top_jump": 129,
+    "corner": 0.0
+  },
+  "new_C": {
+    "canvas": [
+      960,
+      875
+    ],
+    "bbox": [
+      164,
+      4,
+      795,
+      871
+    ],
+    "subj": [
+      631,
+      867
+    ],
+    "h_ratio": 0.9909,
+    "bottom_gap": 4,
+    "hull_gap": 0.1514,
+    "top_jump": 127,
+    "corner": 0.0
+  },
+  "raw_subj": [
+    710,
+    975
+  ],
+  "out_subj": [
+    631,
+    867
+  ],
+  "edge_color": {
+    "n": 13195,
+    "pre_err": 34.63,
+    "now_err": 1.95
+  },
+  "method_diff": {
+    "missed_px": 8582,
+    "over_px": 6080,
+    "missed_core_px": 5326,
+    "over_core_px": 88,
+    "missed_ratio": 0.0187,
+    "over_ratio": 0.0133,
+    "missed_core_ratio": 0.0116,
+    "over_core_ratio": 0.0002
+  },
+  "judge": {
+    "scale_ok": true,
+    "corner_ok": true,
+    "edge_ok": true,
+    "diff_ok": true,
+    "neg_ok": true
+  }
+}

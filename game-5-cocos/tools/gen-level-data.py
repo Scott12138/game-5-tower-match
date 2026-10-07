@@ -51,6 +51,22 @@ def main():
             fenc.append(SUIT[s] * 10 + int(n))
 
         segs = [{'lo': s['lo'], 'hi': s['hi'], 'n': s['n']} for s in L['segs']]
+        # ★ 第 46 轮：把生成器的**清序**（solveOrder）一并带进工程 —— 难度置换要用它。
+        #  【为什么不能"运行时重算"】它在 Python 侧是 `greedy_peel(tiles, open_first, phases)`
+        #    的结果，依赖分段的相位推进与 0.18 口径的可点判定。照着重写一遍就一定会有偏差：
+        #    实测（未带 solveOrder 时）自己算的清序算出的"同组连续度"只有 23%，
+        #    而真值应是 100% —— 名次错了，置换就是在空转（难度旋钮失效且不报错）。
+        #    直接内嵌真值 ⇒ 零漂移风险。
+        so = [int(i) for i in L['solveOrder']]
+        assert sorted(so) == list(range(L['nTotal'])), \
+            'L%d solveOrder 不是 0..n-1 的排列' % L['lv']
+        # 交叉校验：生成器确实"每 3 张连续位填同一种牌面"（难度置换要打散的就是这个结构）
+        fenc_pre = [SUIT[s] * 10 + int(n) for s, n in faces]
+        intact = sum(1 for k in range(0, len(so), 3)
+                     if fenc_pre[so[k]] == fenc_pre[so[k + 1]] == fenc_pre[so[k + 2]])
+        assert intact == len(so) // 3, \
+            'L%d 只有 %d/%d 组同面（期望全部同面）' % (L['lv'], intact, len(so) // 3)
+
         out_levels.append({
             'lv': L['lv'],
             'n': L['nTotal'],
@@ -60,6 +76,7 @@ def main():
             'segs': segs,
             't': flat,
             'f': fenc,
+            'so': so,
         })
         total_tiles += L['nTotal']
 
@@ -79,6 +96,7 @@ def main():
     w(' * 编码口径（为压体积，全部走整数扁平数组）：')
     w(' *   t: 每 4 个一组 = [x*wu*1000, y*wu*1000, 层号 z, rot 0=竖/1=横(90°)]')
     w(' *   f: 每张一个 = suit*10 + num（wan=0 / tiao=1 / tong=2）')
+    w(' *   so: 清序（生成器 `greedy_peel` 的输出）—— 每 3 张连续位**同一种牌面**')
     w(' *   x,y 是 **wu 单位**（牌宽倍数，原点 = 安全区中心），乘 1000 取整，精度 0.001 wu')
     w(' */')
     w('')
@@ -108,6 +126,16 @@ def main():
     w('    t: number[];')
     w('    /** 扁平牌面：suit*10 + num × n */')
     w('    f: number[];')
+    w('    /**')
+    w('     * ★ 第 46 轮：**清序** —— 生成器 `greedy_peel()` 的输出，是 0..n-1 的一个排列。')
+    w('     *')
+    w('     * 【语义】`so[k]` = "顺手的打法"里第 k 个被消掉的牌下标。')
+    w('     * 【不变量】每连续 3 位 `so[3k..3k+2]` 对应的牌面**必然相同**（生成器就这么填的）。')
+    w('     * 【用途】**难度置换**（`core/Difficulty.ts`）按它给每张牌算名次：难度参数把名次')
+    w('     *   切成连续块、只在块内洗牌面 ⇒ 打散"顺手就是一组"的结构。')
+    w('     * ⚠️ 它**不是唯一解**，也不参与可点判定；只用来定位"哪三张是一组"。')
+    w('     */')
+    w('    so: number[];')
     w('}')
     w('')
     w('/** 本作固定数值（来自 levels.json 的 meta，工程侧照抄） */')
@@ -138,7 +166,8 @@ def main():
         w('    { lv: %d, n: %d, layers: %d, w: %d, h: %d, segs: [%s],' % (
             L['lv'], L['n'], L['layers'], L['w'], L['h'], segs))
         w('      t: [%s],' % ','.join(str(v) for v in L['t']))
-        w('      f: [%s] },' % ','.join(str(v) for v in L['f']))
+        w('      f: [%s],' % ','.join(str(v) for v in L['f']))
+        w('      so: [%s] },' % ','.join(str(v) for v in L['so']))
     w('];')
     w('')
     w('/** 牌面编码 → 花色名（与 TileData 的 SUITS 对应） */')

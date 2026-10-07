@@ -1,18 +1,18 @@
 {
   "size": {
-    "total": 10153373,
+    "total": 12381532,
     "packages": [
       {
         "name": "TOTAL",
-        "size": 10153373
+        "size": 12381532
       },
       {
         "name": "main",
-        "size": 3900110
+        "size": 3927123
       },
       {
         "name": "/subpackages/game/",
-        "size": 4510212
+        "size": 6685122
       },
       {
         "name": "/subpackages/home/",
@@ -24,7 +24,7 @@
       },
       {
         "name": "/subpackages/main/",
-        "size": 178429
+        "size": 204665
       }
     ]
   }

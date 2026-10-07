@@ -1,0 +1,90 @@
+{
+  "canvas": [
+    960,
+    875
+  ],
+  "ref": {
+    "bbox": [
+      4,
+      4,
+      957,
+      871
+    ],
+    "subj_w": 953,
+    "subj_h": 867,
+    "h_ratio": 0.9909,
+    "bottom_gap": 4,
+    "red_px": 109329
+  },
+  "variants": [
+    {
+      "key": "A",
+      "cn": "委屈巴巴（含泪）",
+      "file": "fail-A.png",
+      "raw": [
+        660,
+        998
+      ],
+      "raw_aspect": 0.6613,
+      "out_bbox": [
+        194,
+        4,
+        767,
+        871
+      ],
+      "out_subj": [
+        573,
+        867
+      ],
+      "h_ratio": 0.9909,
+      "bottom_gap": 4,
+      "red_px": 84258
+    },
+    {
+      "key": "B",
+      "cn": "垂头丧气（叹气）",
+      "file": "fail-B.png",
+      "raw": [
+        707,
+        924
+      ],
+      "raw_aspect": 0.7652,
+      "out_bbox": [
+        148,
+        4,
+        811,
+        871
+      ],
+      "out_subj": [
+        663,
+        867
+      ],
+      "h_ratio": 0.9909,
+      "bottom_gap": 4,
+      "red_px": 82338
+    },
+    {
+      "key": "C",
+      "cn": "懊恼不甘（抱头）",
+      "file": "fail-C.png",
+      "raw": [
+        715,
+        982
+      ],
+      "raw_aspect": 0.7281,
+      "out_bbox": [
+        164,
+        4,
+        795,
+        871
+      ],
+      "out_subj": [
+        631,
+        867
+      ],
+      "h_ratio": 0.9909,
+      "bottom_gap": 4,
+      "red_px": 93809
+    }
+  ]
+}

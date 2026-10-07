@@ -25,6 +25,8 @@ FILES = [
     ('LevelData.ts', os.path.join(SRC, 'core', 'LevelData.ts')),
     ('TileData.ts', os.path.join(SRC, 'core', 'TileData.ts')),
     ('MatchRule.ts', os.path.join(SRC, 'core', 'MatchRule.ts')),
+    # ★ 难度置换 —— Board.ts 现在 import 它（第 46 轮需求⑥），必须一起平铺
+    ('Difficulty.ts', os.path.join(SRC, 'core', 'Difficulty.ts')),
     ('Board.ts', os.path.join(SRC, 'core', 'Board.ts')),
 ]
 

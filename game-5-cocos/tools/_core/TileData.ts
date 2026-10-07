@@ -70,6 +70,24 @@ export function spritePath(code: FaceCode): string {
     return `tiles/${f.suit}/${f.suit}${f.num}`;
 }
 
+/**
+ * **被压态**贴图路径（灰阶版，第 45 轮方案 C）。
+ *
+ * 【为什么另存一套灰阶贴图，而不是运行时调色】
+ *  Cocos 的 `Sprite.color` 只会**逐通道乘法**——能压暗、**不能降饱和**：
+ *  红墨 (190,60,50) ×0.66 得 (125,40,33)，饱和度照样 0.74，红还是红。
+ *  3.8.8 也没有内置的 gray-sprite 材质（`effects/for2d/` 只有
+ *  spine / sprite / sprite-renderer）。所以灰阶在**离线**算好：
+ *  生成脚本 `tools/r45c-gray-tiles.py`，口径 = 方案页 C 的
+ *  `grayscale(.9) brightness(.66) contrast(.95)`；实测整图饱和 0.302 → 0.038。
+ *
+ *  文件名后缀 `_dead`，与源图同目录同 bundle（`tiles/` → Bundle `game`），
+ *  所以 `bundleNameOf()` 的路由规则不用动。
+ */
+export function deadSpritePath(code: FaceCode): string {
+    return `${spritePath(code)}_dead`;
+}
+
 /** 牌面中文名（**只用于日志**，不上屏 —— 沿用 game-4 的用词纪律） */
 export function faceLabel(code: FaceCode): string {
     const f = decode(code);

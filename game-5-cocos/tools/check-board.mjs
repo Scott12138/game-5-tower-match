@@ -62,10 +62,31 @@ ok(totalTiles === 2877, `总张数应为 2877，实得 ${totalTiles}`);
 console.log(`  张数合计 ${totalTiles} · 牌库 ${fullDeck().length} 种`);
 
 // ══════════ B 组 · 覆盖判定与生成器逐关对账 ══════════
-
-console.log('\n══ B 组 · 覆盖判定对账（TS vs levels.json）══');
+//
+// ★★ 第 46 轮起**本组的期望变了**（用户拍板的需求⑤），先说清楚再断言：
+//   运行期可点口径 = 只看覆盖 + `COVER_TH` **0.30**（原 0.18）+ **取消段限制**；
+//   而 `levels.json` 的 `nLive` / `openLive` 是**生成期**按 0.18 + 段内算出来的。
+//   ⇒ 逐值相等**不可能再成立**，这是**预期内的分叉**，不是 bug。
+//   （第 46 轮的正面证据在 `tools/_r46-layering-verify.mjs`，4/4 绿。）
+//
+//   ⚠️ 但**不能**因此把这组删掉 —— 那就把"覆盖模型坏掉"这类真回归一起放走了。
+//   改成一条**方向性**断言（比"相等"更有信息量）：
+//       「运行期可点数 **必须 ≥ 生成期记录值**」
+//   理由：阈值抬高只会让更多牌可点；取消段限制只会放宽，不会收紧。
+//   出现"更少"⇒ 覆盖/坐标真的坏了，那才是要抓的。
+console.log('\n══ B 组 · 覆盖判定对账（TS vs levels.json · 方向性）══');
 const detail = [];
 let liveSum = 0;
+let bDiff = 0, bWorse = 0;
+
+/** B 组专用判定：只要求 `now >= ref`，并把差值记成信息（不刷屏） */
+function okGe(now, ref, msg) {
+    if (now === ref) { pass++; return; }
+    bDiff++;
+    if (now < ref) { fail++; bWorse++; bad.push(msg); console.log('  ❌ ' + msg); return; }
+    pass++;
+}
+
 for (let i = 0; i < 30; i++) {
     const L = LEVELS[i];
     const ref = RAW.levels[i];
@@ -75,7 +96,8 @@ for (let i = 0; i < 30; i++) {
     const all = b.tiles.filter(t => t.alive && t.cover < PLAY.COVER_TH).length;
     const strict = b.tiles.filter(t => t.alive && t.cover <= 1e-9).length;
 
-    ok(all === ref.nLive, `L${L.lv} 整关可点 ${all} ≠ levels.json ${ref.nLive}`);
+    okGe(all, ref.nLive, `L${L.lv} 整关可点 ${all} **少于** levels.json ${ref.nLive}（覆盖模型疑似坏了）`);
+    // 「严格可点」（cover == 0）与阈值无关 ⇒ 这条仍然是**逐值相等**的真对账
     ok(strict === ref.nStrict, `L${L.lv} 严格可点 ${strict} ≠ levels.json ${ref.nStrict}`);
 
     // 逐段：把更上段全部清空后，本段开局可点
@@ -87,8 +109,8 @@ for (let i = 0; i < 30; i++) {
         const segLive = bb.pickable().length;
         // ⚠️ 对账基准必须取自**原始** levels.json（ref.segs）—— 精简结构只留 lo/hi/n，
         //    没有 openLive，写成 L.segs[s].openLive 会恒为 undefined（本脚本踩过一次）
-        ok(segLive === ref.segs[s].openLive,
-            `L${L.lv} 段${s} 可点 ${segLive} ≠ levels.json ${ref.segs[s].openLive}`);
+        okGe(segLive, ref.segs[s].openLive,
+            `L${L.lv} 段${s} 可点 ${segLive} **少于** levels.json ${ref.segs[s].openLive}`);
     }
 
     const tl = timeLimitOf(i, L.n);
@@ -96,10 +118,12 @@ for (let i = 0; i < 30; i++) {
     detail.push(`L${String(L.lv).padStart(2)} ${String(L.n).padStart(3)}张 ${L.layers}层 ${L.segs.length}段 ` +
         `可点 ${String(all).padStart(2)} 限时 ${tl ? String(tl).padStart(3) + 's' : '  — '}`);
 }
+console.log(`  ℹ️ 与 levels.json 有差值 ${bDiff} 处 · 其中"更少"（真回归）${bWorse} 处`);
+console.log(`     差值来源 = 第 46 轮把 COVER_TH 0.18→0.30 且取消段限制（用户拍板的需求⑤）`);
 console.log('  ' + detail.slice(0, 10).join('\n  '));
 console.log('  …');
 console.log('  ' + detail.slice(-5).join('\n  '));
-console.log(`  开局可点合计 ${liveSum} 张（levels.json 汇总为 532）`);
+console.log(`  开局可点合计 ${liveSum} 张（levels.json 汇总为 532 · 仅作参考基准）`);
 ok(liveSum === 532, `开局可点合计 ${liveSum} ≠ 532`);
 
 // ══════════ C 组 · 匹配规则 ══════════
