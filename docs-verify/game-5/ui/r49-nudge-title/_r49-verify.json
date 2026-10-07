@@ -1,0 +1,276 @@
+{
+  "level": 3,
+  "phases": {
+    "nudgeToast": {
+      "geo": {
+        "toasts": [
+          {
+            "fromBottom": 112.5,
+            "x": 375,
+            "w": 100,
+            "h": 100,
+            "text": "牌堆走不动了？ 看广告 / 分享 换「洗牌」"
+          }
+        ],
+        "SlotBar": {
+          "fromBottom": 321,
+          "x": 375,
+          "w": 656,
+          "h": 80
+        },
+        "TempRack": {
+          "fromBottom": 402,
+          "x": 375,
+          "w": 354,
+          "h": 90
+        },
+        "ToolBar": {
+          "fromBottom": 213,
+          "x": 375,
+          "w": 576,
+          "h": 112
+        },
+        "Tool_erase": {
+          "fromBottom": 213,
+          "x": 150,
+          "w": 126,
+          "h": 112
+        },
+        "view": {
+          "w": 750,
+          "h": 1651.4251781472683
+        }
+      },
+      "toast": {
+        "fromBottom": 112.5,
+        "x": 375,
+        "w": 100,
+        "h": 100,
+        "text": "牌堆走不动了？ 看广告 / 分享 换「洗牌」"
+      }
+    },
+    "clickToast": [
+      {
+        "fromBottom": 112.5,
+        "x": 375,
+        "w": 100,
+        "h": 100,
+        "text": "牌堆走不动了？ 看广告 / 分享 换「洗牌」"
+      }
+    ],
+    "stack": {
+      "nA": 1,
+      "nB": 1
+    },
+    "titleWin": {
+      "view": {
+        "w": 750,
+        "h": 1651.4251781472683
+      },
+      "cardTopFromBottom": 1291.43,
+      "cardW": 620,
+      "cardH": 897.75,
+      "cardCx": 375,
+      "titles": [
+        {
+          "name": "TitleShade",
+          "text": "通关啦！",
+          "worldX": 403.16,
+          "dxVsCard": 28.16,
+          "contentW": 352,
+          "contentH": 138.6,
+          "y": 1193.93,
+          "hAlign": 1,
+          "overflow": 0
+        },
+        {
+          "name": "Title",
+          "text": "通关啦！",
+          "worldX": 403.16,
+          "dxVsCard": 28.16,
+          "contentW": 368,
+          "contentH": 154.6,
+          "y": 1201.93,
+          "hAlign": 1,
+          "overflow": 0
+        }
+      ]
+    },
+    "titleFail": {
+      "view": {
+        "w": 750,
+        "h": 1651.4251781472683
+      },
+      "cardTopFromBottom": 1291.43,
+      "cardW": 620,
+      "cardH": 737.75,
+      "cardCx": 375,
+      "titles": [
+        {
+          "name": "TitleShade",
+          "text": "就差一点！",
+          "worldX": 403.16,
+          "dxVsCard": 28.16,
+          "contentW": 440,
+          "contentH": 138.6,
+          "y": 1193.93,
+          "hAlign": 1,
+          "overflow": 0
+        },
+        {
+          "name": "Title",
+          "text": "就差一点！",
+          "worldX": 403.16,
+          "dxVsCard": 28.16,
+          "contentW": 456,
+          "contentH": 154.6,
+          "y": 1201.93,
+          "hAlign": 1,
+          "overflow": 0
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "name": "对照组 道具栏仍在距底 [157, 269]",
+      "ok": true,
+      "detail": "实测 213"
+    },
+    {
+      "name": "对照组 槽位条仍在距底 [281, 361]",
+      "ok": true,
+      "detail": "实测 321"
+    },
+    {
+      "name": "对照组 暂存架仍在距底 402",
+      "ok": true,
+      "detail": "实测 402"
+    },
+    {
+      "name": "Toast 落点在底带下方空档（距底 112.5 ± 2）",
+      "ok": true,
+      "detail": "实测 112.5"
+    },
+    {
+      "name": "Toast 视觉框整体落在安全区之上（底边 ≥ SAFE_BOTTOM 68）",
+      "ok": true,
+      "detail": "框底 70.5 vs 68"
+    },
+    {
+      "name": "Toast 不与「道具栏」相交",
+      "ok": true,
+      "detail": "重叠 0.00 设计 px"
+    },
+    {
+      "name": "Toast 不与「槽位条」相交（用户问题① 的直接判据）",
+      "ok": true,
+      "detail": "重叠 0.00 设计 px"
+    },
+    {
+      "name": "Toast 不与「暂存架」相交",
+      "ok": true,
+      "detail": "重叠 0.00 设计 px"
+    },
+    {
+      "name": "真实鼠标点击真的产生了提示（链路通）",
+      "ok": true,
+      "detail": "\"牌堆走不动了？ 看广告 / 分享 换「洗牌」\""
+    },
+    {
+      "name": "真实事件触发的提示同样不与槽位条相交",
+      "ok": true,
+      "detail": "重叠 0.00"
+    },
+    {
+      "name": "真实事件触发的提示仍落 112.5 ± 2",
+      "ok": true,
+      "detail": "实测 112.5"
+    },
+    {
+      "name": "底部同时最多只有 1 条提示（旧的立即退场）",
+      "ok": true,
+      "detail": "实测 1 条"
+    },
+    {
+      "name": "留下的那条仍在 112.5 ± 2",
+      "ok": true,
+      "detail": "112.5"
+    },
+    {
+      "name": "胜态 Title 的 x 偏移 = 28.16（尾部全角「！」补偿）",
+      "ok": true,
+      "detail": "实测 28.16"
+    },
+    {
+      "name": "胜态 厚底与主标题用**同一个** x（不错位半个补偿量）",
+      "ok": true,
+      "detail": "主 28.16 / 底 28.16"
+    },
+    {
+      "name": "胜态 hAlign=CENTER 且 overflow=NONE（证明补偿不是靠改对齐做的）",
+      "ok": true,
+      "detail": "hAlign=1 overflow=0"
+    },
+    {
+      "name": "胜态 像素墨迹中心居中（|偏移| ≤ 3 设计 px）",
+      "ok": true,
+      "detail": "实测 -0.59"
+    },
+    {
+      "name": "胜态 量法对照组通过（卡框间距 ≈ 620，比例可信）",
+      "ok": true,
+      "detail": "实测 619.95"
+    },
+    {
+      "name": "负态 Title 的 x 偏移 = 28.16（尾部全角「！」补偿）",
+      "ok": true,
+      "detail": "实测 28.16"
+    },
+    {
+      "name": "负态 厚底与主标题用**同一个** x（不错位半个补偿量）",
+      "ok": true,
+      "detail": "主 28.16 / 底 28.16"
+    },
+    {
+      "name": "负态 hAlign=CENTER 且 overflow=NONE（证明补偿不是靠改对齐做的）",
+      "ok": true,
+      "detail": "hAlign=1 overflow=0"
+    },
+    {
+      "name": "负态 像素墨迹中心居中（|偏移| ≤ 3 设计 px）",
+      "ok": true,
+      "detail": "实测 0"
+    },
+    {
+      "name": "负态 量法对照组通过（卡框间距 ≈ 620，比例可信）",
+      "ok": true,
+      "detail": "实测 619.95"
+    },
+    {
+      "name": "胜态 标题框不越卡左右边",
+      "ok": true,
+      "detail": "左差 -154.16 / 右差 -97.84"
+    },
+    {
+      "name": "胜态 标题框在可视区内",
+      "ok": true,
+      "detail": "[219.2, 587.2] in 0..750"
+    },
+    {
+      "name": "负态 标题框不越卡左右边",
+      "ok": true,
+      "detail": "左差 -110.16 / 右差 -53.84"
+    },
+    {
+      "name": "负态 标题框在可视区内",
+      "ok": true,
+      "detail": "[175.2, 631.2] in 0..750"
+    },
+    {
+      "name": "运行期控制台无 error",
+      "ok": true,
+      "detail": "0 条"
+    }
+  ]
+}

@@ -83,7 +83,7 @@ function textW(s: string, fontSize: number): number {
  *            top:360px；border-radius:36px；border:5px solid var(--gold)
  *            box-shadow 的 `0 0 0 3px #0A3327` → 外圈深绿描边环 RING = 3
  *            padding:44px 40px 40px
- *   `.ribbonTop` top:−34px / 88px 重墨描边
+ *   `.ribbonTop` top:−34px / 88px 重墨描边（★ 第 48 轮改为**卡内题字**，见 TITLE_*）
  *   `.mascotSlot` height:250px；margin-top:30px
  *   `.desc` 28px / margin:6px 0 30px
  *   `.reward` 130×130 / gap 22；`.rewardrow` margin-bottom:30px
@@ -102,21 +102,100 @@ const RESULT = {
     RADIUS: 36,
     RING: 3,
     BORDER: 5,
-    PAD_TOP: 44,
-    PAD_BOTTOM: 40,
-    RIBBON_FONT: 88,
     /**
-     * 缎带 Label 的**实测**高度 —— **不是**传进去的 `h: 110`。
+     * 卡顶 → **标题框顶** 的距离。
+     *
+     * ★ 第 48 轮：从 44 改到 12 —— 因为标题从"骑缝在卡外"搬进了**卡内**（见 `TITLE_*`），
+     *   这个值现在是"标题的上内边距"，不再是"给骑缝缎带让位的空白"。
+     */
+    PAD_TOP: 12,
+    PAD_BOTTOM: 40,
+
+    // ------------------------------------------------------------
+    //  ★★ 第 48 轮：标题从「骑缝缎带」改为「**卡内题字**」
+    //
+    //  【为什么要改 —— 有实测硬数据，不是手感】
+    //   旧版把 HTML 的 `.ribbonTop{top:-34px}` 直接当成"**中心**相对卡顶向上 34"用，
+    //   而 CSS 里 `top` 是**盒顶**偏移。两者差半个框高：
+    //     按真源语义：标签中心应在卡顶**下方** 43.3（框 = [−34, +120.6]）
+    //     旧版实际：  标签中心在卡顶**上方** 34（框 = [−111.3, +43.3]，实测）
+    //   ⇒ 标题被整体抬高 **77.3 设计 px**，实测 **111.3px 悬在卡框之外**
+    //     （框高 154.6，也就是说 72% 的身子在外面）。用户原话：
+    //     「文字超出了框外，影响观感」。
+    //
+    //  【为什么不能靠"把卡片往下挪"来救】
+    //   真机可视高 1651.43（≠ 设计稿 1334），HUD 贴安全区顶 ⇒ HUD 底沿约在 319，
+    //   而卡顶 TOP=360 —— 中间只有 **41px**。骑缝要占 111.3，怎么挪都会与 HUD 撞。
+    //   ⇒ 标题必须完全落进卡内。
+    //
+    //  【现在的版式】卡顶 → PAD_TOP → 标题框 → TITLE_MT → 吉祥物 → …
+    //   标题视觉上沿 ≈ 360 + 12 + 27 = 399，与 HUD 底沿 319 留出 80px 呼吸 ✓
+    // ------------------------------------------------------------
+    /** 标题字号（照抄真源 `.ribbonTop` 的 `font-size:88px`） */
+    TITLE_FONT: 88,
+    /**
+     * 标题 Label 的**实测**框高 —— **不是**传进去的 `h`。
      *
      * 【为什么必须写成实测值】`createLabel` 在 `overflow: NONE` 下把 contentSize
-     *   交给引擎按"文本 + 描边"重算：88 号字 + 8px 描边实测得到 **155**。
-     *   布局里凡是"要让开缎带"的地方都必须用 155 算 —— 按 110 算会少让开 22.5，
+     *   交给引擎按"文本 + 描边"重算：88 号字 + 8px 描边实测得到 **154.6**。
+     *   布局里凡是"要让开标题"的地方都必须用它算 —— 按字号（88）算会少让开 66.6，
      *   然后你会看到一个"明明留了间距却仍然贴着"的诡异现象。
-     *   （第 38 轮实测：`--page result --depth 5` 打印 `Label 326 ± 77.5`。）
+     *   （第 48 轮实测，`tools/_r48-probe-result.mjs` 打出 `w=368 h=154.6`。）
+     *   ⚠️ 改 `TITLE_FONT` 必须重跑那个探针复量此值。
      */
-    RIBBON_H: 155,
-    /** 缎带中心相对卡顶**向上**的偏移（骑缝：一半压在卡顶之上） */
-    RIBBON_LIFT: 34,
+    TITLE_H: 155,
+    /**
+     * 标题框底 → 吉祥物顶 的呼吸量。
+     *
+     * 【实测口径（第 48 轮，`tools/_r48-probe-result.mjs`）】
+     *   取 12 时：标题框底 = 卡内 166.8，吉祥物顶框 = 167 ⇒ **框贴框**（间隙 0.2px），
+     *     视觉间隙（到字形下沿、再扣 8px 厚底）只剩 ~19 ⇒ 图上看着"标题快压到吉祥物头顶的叶子"。
+     *   取 28 后：上（卡顶 → 字形）≈39 / 下（字形 → 吉祥物）≈35 ⇒ 基本对称，这才是想要的。
+     *   ⚠️ 吉祥物自带 `repeatForever` 的 ±12 浮动，量它的时候**必须把 12 加回去**，
+     *      否则会把"浮动到最低点"误读成"布局偏低 11px"（第 48 轮第一版就差点栽在这）。
+     */
+    TITLE_MT: 28,
+    /**
+     * 标题「厚底」向下偏移（真源 `text-shadow: … 0 8px 0 #5C361D`）。
+     *
+     * ⚠️ 旧版这一层是**空的**（建了个 `RibbonShadow` Graphics 却 `void rg` 什么都没画），
+     *   所以标题看着"发飘"。现在用**同一段文字的第二个 Label** 铺在下面 —— 这才是
+     *   text-shadow 的等价物：主标题的 8px 描边会盖住厚底上缘，只在下方露出 8px 深棕。
+     */
+    TITLE_DEPTH: 8,
+    /** 标题厚底颜色（真源 #5C361D） */
+    TITLE_DEPTH_COLOR: '#5C361D',
+    /**
+     * ★★ 第 49 轮：**尾部全角标点的视觉居中补偿**（单位 = em，乘字号即设计 px）。
+     *
+     * 【问题】用户反馈「"通关啦"/"只差一点"横向上都不太居中，看着偏左了一些」。
+     *
+     * 【先把排版参数排除掉】探针 `tools/_r49-probe.mjs` 实测：
+     *   `Title` / `TitleShade` 的 `worldPosition.x` 与卡中线差 **0**，
+     *   `horizontalAlign = 1`(CENTER)、`overflow = 0`(NONE)、`anchorX = 0.5`
+     *   ⇒ 节点是**精确居中**的，跟"框宽/对齐/x 写错"一点关系都没有。
+     *
+     * 【剩下唯一的解释：字形】Label 是按「字符 advance 之和」居中的，
+     *   而全角「！」的 advance 是 **1 em**、墨迹**只占 0.30 em** ⇒
+     *   右侧凭空多出 0.70 em 的空档没被计入 ⇒ 墨迹重心被整体推向左。
+     *
+     * 【像素实测】`tools/r49-title-ink.py` 在无头截图（1263×2781）上逐列扫墨迹：
+     *   「就差一点！」切出 3 段 =
+     *     [3.084 em ＝「就差一」三字粘连] [0.911 em ＝「点」] [**0.297 em ＝「！」**]
+     *   ⇒ 末字确实只有 0.297 em 的墨迹宽（这就是直接证据）。
+     *   墨迹中心相对卡中线 **−28.21 设计 px（=−0.321 em）**，方向与用户观感一致。
+     *   对照组 = 卡的金框：间距实测 619.95 ≈ `CARD_W` 620 ⇒ 比例可信
+     *   （第一版把"图像换算值"和"设计常量"混着减，量出 +8.61 的系统平移，
+     *     被这个对照组当场拦下 —— 见该脚本的注释）。
+     *   ⚠️ 胜态那张被金币雨的暗边污染（切出 5 段碎片），量到 +22.57，**不可用**；
+     *     两态尾部都是同一个「！」，补偿量相同，故以**负态**为准。
+     *
+     * 【取值】0.32 em ⇒ 88 × 0.32 = **28.16 设计 px**，与实测 28.21 差 0.05。
+     *   ⚠️ 这是**字体度量**标定值（Songti SC）—— 换字体（Android 的 Noto Serif）
+     *     会有小幅出入；换字号**不用**改它（按 em 走）。
+     *   ⚠️ 只在**尾部**是全角标点时才补；「通关啦」这类不带叹号的不补。
+     */
+    TITLE_TRAIL_SHIFT_EM: 0.32,
     /**
      * 吉祥物显示**宽**（定宽等比）。
      * ⚠️ 高由素材宽高比决定，见下面的 `MASCOT_H`。
@@ -129,7 +208,10 @@ const RESULT = {
      *   凭空多出 59 的缝，`cur` 的累加也跟着虚高。
      */
     MASCOT_H: 240 / (960 / 875),
-    MASCOT_MT: 30,
+    /**
+     * ⚠️ 第 48 轮**已删除** `MASCOT_MT` —— 吉祥物上方的间距现在由 `TITLE_MT` 统一负责。
+     *   留着两个名字会让人误以为"标题—吉祥物"之间还有第二段空白，改一个漏一个。
+     */
     /** 吉祥物底 → 副标题 的间距 */
     MASCOT_MB: 18,
     DESC_FONT: 28,
@@ -1305,7 +1387,9 @@ export class GamePage extends PageBase {
         if (!m) {
             // 没成组 → 看是不是该判负
             if (this._slots.length >= this._slotMax) {
-                this.timer(240, () => this.onFail('slotsFull'));
+                // ★★ 第 48 轮：**不再直接 `onFail`** —— 槽满且牌堆已空时判**胜**。
+                //   判定条件与文案都在 `settleSlotsFull()` 里（与 checkBoardEmpty 同源）。
+                this.timer(240, () => this.settleSlotsFull());
             } else if (this._slots.length >= this._slotMax - 1) {
                 toast(this.body, `⚠ 槽位将满 —— 再入 1 张且不能成组即失败`);
                 AudioService.playSfx(SFX.slotWarn, 0.9);
@@ -1424,6 +1508,43 @@ export class GamePage extends PageBase {
             op.opacity = 255;
             this._slotNodes[i] = node;
         });
+    }
+
+    /**
+     * 槽位**刚好坐满**（`_slots.length >= _slotMax`）时的收局判定。
+     *
+     * ★★ **第 48 轮用户拍板：牌堆没牌了 + 槽位刚好满（不溢出）⇒ 判成功通关。**
+     *   （原话：「对于牌堆没牌了，槽位刚好满的情况，只要不溢出，都算成功通关」）
+     *
+     * 【为什么要单独一个函数，而不是继续在定时器里调 `onFail`】
+     *   旧写法是 `this.timer(240, () => this.onFail('slotsFull'))` —— 它**抢在**
+     *   `checkBoardEmpty()` 的 420ms 复查之前（240 < 420）落地。于是"最后一手把牌堆点空、
+     *   但那一手没凑成组"这种局面**必然**被判负：玩家明明已经把牌全点完了，
+     *   屏幕上写的却是「就差一点！· 还剩 0 张 · 槽位已满」
+     *   （第 48 轮用户截图复现：第 5 关 · 已清 40/45）。
+     *
+     * 【判定口径 —— 与 `checkBoardEmpty` 完全同源，不许各写一套】
+     *   牌堆空（`board.remaining <= 0`）**且** 暂存架空（`tempLeft <= 0`）⇒ 判胜；
+     *   其余一律判负（槽位真被挤爆、且场上还有牌可点 ⇒ 玩家确实走不下去了）。
+     *   · 暂存架里还有牌时**不判胜**：那些牌玩家还能取回主槽，本局没到终局。
+     *   · 「不溢出」= `_slots.length === _slotMax` —— 本函数只在 `>=` 时被调用，
+     *     而真正超容的入槽在 `placeSlotTile()` 那一侧就被拦住了。
+     *
+     * 【为什么保留 240ms】与 `onFail` 的原有时序一致 —— 入槽/落位动效还在飞，
+     *   立刻下判决会让"最后一张牌还没落进格子"就弹层。
+     */
+    private settleSlotsFull(): void {
+        if (this._over) return;
+        const b = this._board;
+        if (b && b.remaining <= 0 && this.tempLeft <= 0) {
+            // 牌堆已空 ⇒ 玩家已无牌可点，槽满只是"这几张凑不成组"，不算输。
+            // ⚠️ 必须先 `settleLeftoversOnWin()`：否则 `_cleared` 会停在 40/45，
+            //    而弹层写着「通关啦！」，同一屏自相矛盾（口径见该函数注释）。
+            this.settleLeftoversOnWin();
+            this.onWin();
+            return;
+        }
+        this.onFail('slotsFull');
     }
 
     /**
@@ -2270,7 +2391,8 @@ export class GamePage extends PageBase {
         const REWARDS = win ? 2 : 0;
         // ⚠️ 这个式子与下面 `cur` 的累加**必须逐项同步**（同一个 `RESULT` 表、同一顺序）——
         //    少一项的表现是"卡底留白凭空少一截"，而且**不报错**。末尾有自检兜底。
-        const cardH = RESULT.PAD_TOP + RESULT.MASCOT_MT + RESULT.MASCOT_H + RESULT.MASCOT_MB
+        const cardH = RESULT.PAD_TOP + RESULT.TITLE_H + RESULT.TITLE_MT
+            + RESULT.MASCOT_H + RESULT.MASCOT_MB
             + RESULT.DESC_H + RESULT.DESC_MB
             + (REWARDS ? RESULT.REWARD_H + RESULT.REWARD_MB : 0)
             + RESULT.BTN_GOLD_H + RESULT.BTN_GOLD_MB + RESULT.BTN_GHOST_H + RESULT.PAD_BOTTOM;
@@ -2290,24 +2412,45 @@ export class GamePage extends PageBase {
         // 金色粗边（border 5px var(--gold)）
         strokeRoundRect(cg, 0, -cardH / 2, RESULT.CARD_W, cardH, RESULT.RADIUS, COLOR.GOLD, RESULT.BORDER, 255);
 
-        // ③ 顶部缎带标题：压在卡顶之上 34px
-        const ribbon = createLabel(card, win ? '通关啦！' : '就差一点！', {
-            fontSize: RESULT.RIBBON_FONT, color: COLOR.CREAM, bold: true, serif: true,
+        // ③ 卡内题字（胜「通关啦！」/ 负「就差一点！」）
+        //
+        //  ★★ 第 48 轮：从"骑缝缎带"改为"**卡内题字**"（原因见 `RESULT.TITLE_*` 的长注释）。
+        //   这里有一个**必须连起来看**的两层结构：
+        //     先建 TitleShade（深棕纯色、**不带描边**、向下偏 TITLE_DEPTH）
+        //     再建 Title     （奶白 + 8px 深墨描边，正常位置）
+        //   ⇒ 主标题的描边盖住厚底上缘，只在下方露出 8px 深棕 = 真源的 `0 8px 0 #5C361D`。
+        //   ⚠️ 顺序不能反，也不能给厚底加描边（加了之后露出来的是描边色，不是厚底色）。
+        //   ⚠️ 两层的文字必须**逐字相同**，否则厚底会在字缝里露出来。
+        const titleText = win ? '通关啦！' : '就差一点！';
+        const titleY = -(RESULT.PAD_TOP + RESULT.TITLE_H / 2);
+        //  ★ 第 49 轮：**视觉居中补偿**。
+        //   尾部是全角标点（！？。，…）时向右挪 `TITLE_TRAIL_SHIFT_EM × 字号`。
+        //   原因与实测见 `RESULT.TITLE_TRAIL_SHIFT_EM` 的长注释 —— 一句话：
+        //   全角「！」的 advance 是 1 em、墨迹只有 ~0.30 em，Label 按 advance
+        //   居中 ⇒ 墨迹重心被推左 0.32 em（实测 28.21 设计 px）。
+        //   ⚠️ 两层**必须用同一个 x**，否则厚底与主标题会错开半个补偿量。
+        const titleShift = /[！？。，、；：）」』】…—]$/.test(titleText)
+            ? RESULT.TITLE_TRAIL_SHIFT_EM * RESULT.TITLE_FONT
+            : 0;
+        const titleShade = createLabel(card, titleText, {
+            fontSize: RESULT.TITLE_FONT, color: RESULT.TITLE_DEPTH_COLOR, bold: true, serif: true,
+            w: RESULT.CARD_W - 80, h: RESULT.TITLE_H,
+            x: titleShift, y: titleY - RESULT.TITLE_DEPTH,
+        });
+        titleShade.node.name = 'TitleShade';
+        const title = createLabel(card, titleText, {
+            fontSize: RESULT.TITLE_FONT, color: COLOR.CREAM, bold: true, serif: true,
             outline: '#4A2B18', outlineWidth: 8,
-            w: RESULT.CARD_W + 120, h: RESULT.RIBBON_H, y: RESULT.RIBBON_LIFT,
+            w: RESULT.CARD_W - 80, h: RESULT.TITLE_H, x: titleShift, y: titleY,
         });
-        // 缎带的"厚底"：#5C361D 向下偏移 8px（照抄 text-shadow 的 0 8px 0）
-        const { g: rg } = createGraphicsNode('RibbonShadow', card, {
-            w: RESULT.CARD_W + 120, h: 110, y: 26,
-        });
-        void rg;
-        ribbon.node.setSiblingIndex(999);          // 缎带永远在最上（含盖过吉祥物）
+        title.node.name = 'Title';
 
-        // 起点 = 缎带下沿让开后的位置。
-        //  缎带覆盖卡顶 −111.5 ~ **+43.5**（= RIBBON_H/2 − RIBBON_LIFT），
-        //  所以 `PAD_TOP + MASCOT_MT = 74` 与它留出 30.5 的呼吸量 —— 这个关系是
-        //  **算出来的**，不是手感；改 RIBBON_H / RIBBON_LIFT / MASCOT_MT 任一项都要重核。
+        // 起点 = 标题框下沿 + 呼吸量。
+        //  标题框占卡内 [PAD_TOP, PAD_TOP + TITLE_H] = [12, 167]，
+        //  所以 `PAD_TOP + TITLE_H + TITLE_MT = 179` 是吉祥物的顶边 —— 这个关系是
+        //  **算出来的**，不是手感；改 PAD_TOP / TITLE_H / TITLE_MT 任一项都要重核。
         let cur = RESULT.PAD_TOP;
+        cur += RESULT.TITLE_H + RESULT.TITLE_MT;
 
         // ④ 吉祥物位
         //  ★ 第 47 轮：**按胜/负换形象**（用户拍板）。
@@ -2316,7 +2459,8 @@ export class GamePage extends PageBase {
         //  ⚠️ 两者画幅必须一致（960×875 / 1.0971），否则 `aspectW` 反算出的高度
         //     与上面 `cardH` 里那项 `RESULT.MASCOT_H` 会对不上（**不报错**，
         //     表现是卡底留白多一截或少一截）。换图前先复量宽高比。
-        cur += RESULT.MASCOT_MT;
+        //  ★ 第 48 轮：`cur` 在标题段末尾已经走到"吉祥物顶边"，这里**不再**加任何间距
+        //    （原来那句 `cur += RESULT.MASCOT_MT` 已随常量一起删除）。
         const mascotY = -(cur + RESULT.MASCOT_H / 2);
         const mascotPath = win ? ASSET.SPLASH_MASCOT : ASSET.GAME_MASCOT_FAIL;
         const mascot = createSprite(card, 'Mascot', {

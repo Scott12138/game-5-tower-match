@@ -22,6 +22,7 @@ import {
 } from 'cc';
 
 import { COLOR, FONT, GAME, MOTION, SAFE_BOTTOM, SAFE_TOP, SKIN } from '../CFG';
+import { Layout } from './Layout';
 import { EASE, MotionFx, TAG } from './MotionFx';
 import { hex2color } from './Palette';
 
@@ -1191,8 +1192,49 @@ export function drawProgressBar(
 const _toastStack: Node[] = [];
 
 /**
- * 屏幕中下方弹一条会自动消失的提示（墨绿胶囊 + 金字）。
- * 多条同时出现时自动向上错开，不会叠在一起。
+ * ★★ 第 49 轮：轻提示的**纵向落点**（距屏幕底边的设计 px）。
+ *
+ * 【为什么不是"屏幕高度 30%"】旧写法 `y: -vs.height * 0.30` 在真机
+ *   （可视高 1651.43）算出距底 **330.3**，而**槽位条正好占距底 [281, 361]** ⇒
+ *   提示条整条压在槽位上。用户截图红圈那处「看广告的提示正好盖住了槽位」，
+ *   实测 Toast 中心 330.29、视觉高 84 ⇒ 占 [288.3, 372.3]，与槽位条**完全重合**。
+ *
+ * 【新落点 = 页面里唯一的空档】底带从下往上依次是
+ *   道具栏 [157, 269] · 槽位条 [281, 361] · 暂存架 [367, 437]，
+ *   而 Home Indicator 安全区是 [0, 68] ⇒ **只剩 [68, 157] 这条 89 高的横带没人用**。
+ *   取它的中点 = `(SAFE_BOTTOM + BOT.PAD) / 2 = (68 + 157) / 2 = 112.5`。
+ *   胶囊视觉高 84 ⇒ 占距底 [70.5, 154.5]：上不压道具栏、下不进 Home Indicator。
+ *
+ * ⚠️ 余量只有 **2.5 设计 px**（≈ 4.2 物理 px）—— 这是"89 的带放 84 的盒"的
+ *   数学必然，不是手感问题。**别再给 toast 加高**；要加高必须先动
+ *   `Layout.BOT.PAD`（道具栏整体上移）或压缩胶囊高度。
+ * ⚠️ 这里用 game 页道具栏的位置定标；home / splash 页底部本就空到 452 以上，
+ *   落在这里同样安全（toast 放屏幕最下方对任何页面都不挡内容）。
+ */
+const TOAST_FROM_BOTTOM = (SAFE_BOTTOM + Layout.BOT.PAD) / 2;
+
+/**
+ * 让一条提示**立即退场**（淡出 + 销毁 + 移出栈）。
+ *
+ * 【为什么需要】底带下方的空档只有一条胶囊的位置（见 `TOAST_FROM_BOTTOM`），
+ *   旧的"向上错开 h+12=88"堆叠会让第 2 条落到距底 200.5 —— 正好压在
+ *   道具栏 [157, 269] 上。所以底部落点下**同一时刻只保留最新一条**。
+ *   这不是删功能：轻提示本来就是"最新的一条最重要"，旧的那条已经在读秒消失。
+ */
+function retireToast(node: Node): void {
+    const i = _toastStack.indexOf(node);
+    if (i >= 0) _toastStack.splice(i, 1);
+    if (!node.isValid) return;
+    const op = node.getComponent(UIOpacity);
+    if (!op) { node.destroy(); return; }
+    tween(op).to(0.12, { opacity: 0 }).start();
+    MotionFx.after(200, () => { if (node.isValid) node.destroy(); });
+}
+
+/**
+ * 屏幕下方弹一条会自动消失的提示（墨绿胶囊 + 金字）。
+ *
+ * 落点见 `TOAST_FROM_BOTTOM`（★ 第 49 轮从"屏高 30%"挪到底带下方的空档）。
  */
 export function toast(parent: Node, text: string, duration = 1.5): void {
     const vs = view.getVisibleSize();
@@ -1200,7 +1242,7 @@ export function toast(parent: Node, text: string, duration = 1.5): void {
     const w = Math.min(vs.width - 80, Math.max(280, estTextWidth(text, fontSize) + 72));
     const h = 76;
 
-    const node = createNode('Toast', parent, { x: 0, y: -vs.height * 0.30 });
+    const node = createNode('Toast', parent, { x: 0, y: Layout.botY(TOAST_FROM_BOTTOM) });
     const opacity = node.addComponent(UIOpacity);
     opacity.opacity = 0;
 
@@ -1211,13 +1253,10 @@ export function toast(parent: Node, text: string, duration = 1.5): void {
 
     createLabel(node, text, { fontSize, color: COLOR.CREAM, bold: true, w: w - 40, h });
 
-    // 已有提示先上移一格
-    for (const old of _toastStack) {
-        if (old.isValid) old.setPosition(old.position.x, old.position.y + h + 12);
-    }
+    // ★ 第 49 轮：底部空档只够一条 ⇒ 旧条**直接退场**，不再向上堆叠（原因见 retireToast）
+    for (const old of _toastStack.slice()) retireToast(old);
     _toastStack.push(node);
 
-    const drop = _toastStack.length;
     tween(opacity)
         .to(0.16, { opacity: 255 })
         .delay(duration)
@@ -1228,16 +1267,8 @@ export function toast(parent: Node, text: string, duration = 1.5): void {
     MotionFx.after((0.16 + duration + 0.24) * 1000 + 40, () => {
         const i = _toastStack.indexOf(node);
         if (i >= 0) _toastStack.splice(i, 1);
-        for (const o of _toastStack) {
-            if (o.isValid) o.setPosition(o.position.x, o.position.y - h - 12);
-        }
         if (node.isValid) node.destroy();
     });
-
-    if (drop > 4) {
-        // 防御：极端情况下别让提示堆到屏幕外
-        console.log('[UIFactory] toast 堆积过多');
-    }
 }
 
 const WRAP_HAIR = 'rgba(246,196,69,0.18)';

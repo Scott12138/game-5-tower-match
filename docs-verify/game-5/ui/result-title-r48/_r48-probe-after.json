@@ -1,0 +1,635 @@
+{
+  "level": 10,
+  "phases": {
+    "win": {
+      "view": {
+        "w": 750,
+        "h": 1651.4251781472683
+      },
+      "cardTopY": 360,
+      "cardCx": 375,
+      "cardW": 620,
+      "cardH": 897.75,
+      "cardBox": {
+        "left": 65,
+        "right": 685,
+        "top": 360,
+        "bottom": 1257.75
+      },
+      "nodes": [
+        {
+          "name": "Card",
+          "depth": 0,
+          "path": "Card",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 0,
+          "w": 620,
+          "h": 897.75,
+          "box": {
+            "left": -310,
+            "right": 310,
+            "top": -448.87,
+            "bottom": 448.88
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 1,
+          "path": "Card/Bg",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 0,
+          "w": 620,
+          "h": 897.75,
+          "box": {
+            "left": -310,
+            "right": 310,
+            "top": -448.87,
+            "bottom": 448.88
+          }
+        },
+        {
+          "name": "TitleShade",
+          "depth": 1,
+          "path": "Card/TitleShade",
+          "text": "通关啦！",
+          "font": 88,
+          "fh": 110,
+          "dx": 0,
+          "dy": 97.5,
+          "w": 352,
+          "h": 138.6,
+          "box": {
+            "left": -176,
+            "right": 176,
+            "top": 28.2,
+            "bottom": 166.8
+          }
+        },
+        {
+          "name": "Title",
+          "depth": 1,
+          "path": "Card/Title",
+          "text": "通关啦！",
+          "font": 88,
+          "fh": 110,
+          "dx": 0,
+          "dy": 89.5,
+          "w": 368,
+          "h": 154.6,
+          "box": {
+            "left": -184,
+            "right": 184,
+            "top": 12.2,
+            "bottom": 166.8
+          }
+        },
+        {
+          "name": "Mascot",
+          "depth": 1,
+          "path": "Card/Mascot",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 293.28,
+          "w": 240,
+          "h": 218.75,
+          "box": {
+            "left": -120,
+            "right": 120,
+            "top": 183.9,
+            "bottom": 402.65
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 1,
+          "path": "Card/Label",
+          "text": "第 10 关 · 用时 00:00",
+          "font": 28,
+          "fh": 35,
+          "dx": 0,
+          "dy": 451.75,
+          "w": 279.44,
+          "h": 44.1,
+          "box": {
+            "left": -139.72,
+            "right": 139.72,
+            "top": 429.7,
+            "bottom": 473.8
+          }
+        },
+        {
+          "name": "Rewards",
+          "depth": 1,
+          "path": "Card/Rewards",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 566.75,
+          "w": 540,
+          "h": 130,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Reward0",
+          "depth": 2,
+          "path": "Card/Rewards/Reward0",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": -76,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": -141,
+            "right": -11,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 3,
+          "path": "Card/Rewards/Reward0/Bg",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": -76,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": -141,
+            "right": -11,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Ic",
+          "depth": 3,
+          "path": "Card/Rewards/Reward0/Ic",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": -76,
+          "dy": 544.75,
+          "w": 58,
+          "h": 53.86,
+          "box": {
+            "left": -105,
+            "right": -47,
+            "top": 517.82,
+            "bottom": 571.68
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 3,
+          "path": "Card/Rewards/Reward0/Label",
+          "text": "麻豆 ×70",
+          "font": 20,
+          "fh": 25,
+          "dx": -76,
+          "dy": 604.75,
+          "w": 91.26,
+          "h": 31.5,
+          "box": {
+            "left": -121.63,
+            "right": -30.37,
+            "top": 589,
+            "bottom": 620.5
+          }
+        },
+        {
+          "name": "Reward1",
+          "depth": 2,
+          "path": "Card/Rewards/Reward1",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 76,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": 11,
+            "right": 141,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 3,
+          "path": "Card/Rewards/Reward1/Bg",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 76,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": 11,
+            "right": 141,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Ic",
+          "depth": 3,
+          "path": "Card/Rewards/Reward1/Ic",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 76,
+          "dy": 544.75,
+          "w": 44,
+          "h": 58,
+          "box": {
+            "left": 54,
+            "right": 98,
+            "top": 515.75,
+            "bottom": 573.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 3,
+          "path": "Card/Rewards/Reward1/Label",
+          "text": "清牌 ×0",
+          "font": 20,
+          "fh": 25,
+          "dx": 76,
+          "dy": 604.75,
+          "w": 79.92,
+          "h": 31.5,
+          "box": {
+            "left": 36.04,
+            "right": 115.96,
+            "top": 589,
+            "bottom": 620.5
+          }
+        },
+        {
+          "name": "BtnNext",
+          "depth": 1,
+          "path": "Card/BtnNext",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 711.75,
+          "w": 540,
+          "h": 100,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 661.75,
+            "bottom": 761.75
+          }
+        },
+        {
+          "name": "Face",
+          "depth": 2,
+          "path": "Card/BtnNext/Face",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 711.75,
+          "w": 540,
+          "h": 100,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 661.75,
+            "bottom": 761.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 2,
+          "path": "Card/BtnNext/Label",
+          "text": "下一关",
+          "font": 40,
+          "fh": 50,
+          "dx": 0,
+          "dy": 711.75,
+          "w": 120,
+          "h": 63,
+          "box": {
+            "left": -60,
+            "right": 60,
+            "top": 680.25,
+            "bottom": 743.25
+          }
+        },
+        {
+          "name": "BtnShare",
+          "depth": 1,
+          "path": "Card/BtnShare",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 819.75,
+          "w": 540,
+          "h": 76,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 781.75,
+            "bottom": 857.75
+          }
+        },
+        {
+          "name": "Face",
+          "depth": 2,
+          "path": "Card/BtnShare/Face",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 819.75,
+          "w": 540,
+          "h": 76,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 781.75,
+            "bottom": 857.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 2,
+          "path": "Card/BtnShare/Label",
+          "text": "分享",
+          "font": 28,
+          "fh": 35,
+          "dx": 0,
+          "dy": 819.75,
+          "w": 56,
+          "h": 44.1,
+          "box": {
+            "left": -28,
+            "right": 28,
+            "top": 797.7,
+            "bottom": 841.8
+          }
+        }
+      ]
+    },
+    "fail": {
+      "view": {
+        "w": 750,
+        "h": 1651.4251781472683
+      },
+      "cardTopY": 360,
+      "cardCx": 375,
+      "cardW": 620,
+      "cardH": 737.75,
+      "cardBox": {
+        "left": 65,
+        "right": 685,
+        "top": 360,
+        "bottom": 1097.75
+      },
+      "nodes": [
+        {
+          "name": "Card",
+          "depth": 0,
+          "path": "Card",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 0,
+          "w": 620,
+          "h": 737.75,
+          "box": {
+            "left": -310,
+            "right": 310,
+            "top": -368.87,
+            "bottom": 368.88
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 1,
+          "path": "Card/Bg",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 0,
+          "w": 620,
+          "h": 737.75,
+          "box": {
+            "left": -310,
+            "right": 310,
+            "top": -368.87,
+            "bottom": 368.88
+          }
+        },
+        {
+          "name": "TitleShade",
+          "depth": 1,
+          "path": "Card/TitleShade",
+          "text": "就差一点！",
+          "font": 88,
+          "fh": 110,
+          "dx": 0,
+          "dy": 97.5,
+          "w": 440,
+          "h": 138.6,
+          "box": {
+            "left": -220,
+            "right": 220,
+            "top": 28.2,
+            "bottom": 166.8
+          }
+        },
+        {
+          "name": "Title",
+          "depth": 1,
+          "path": "Card/Title",
+          "text": "就差一点！",
+          "font": 88,
+          "fh": 110,
+          "dx": 0,
+          "dy": 89.5,
+          "w": 456,
+          "h": 154.6,
+          "box": {
+            "left": -228,
+            "right": 228,
+            "top": 12.2,
+            "bottom": 166.8
+          }
+        },
+        {
+          "name": "MascotFail",
+          "depth": 1,
+          "path": "Card/MascotFail",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 293.27,
+          "w": 240,
+          "h": 218.75,
+          "box": {
+            "left": -120,
+            "right": 120,
+            "top": 183.9,
+            "bottom": 402.65
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 1,
+          "path": "Card/Label",
+          "text": "还剩 93 张 · 槽位已满",
+          "font": 28,
+          "fh": 35,
+          "dx": 0,
+          "dy": 451.75,
+          "w": 285.71,
+          "h": 44.1,
+          "box": {
+            "left": -142.86,
+            "right": 142.86,
+            "top": 429.7,
+            "bottom": 473.8
+          }
+        },
+        {
+          "name": "BtnAdRevive",
+          "depth": 1,
+          "path": "Card/BtnAdRevive",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 551.75,
+          "w": 540,
+          "h": 100,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 501.75,
+            "bottom": 601.75
+          }
+        },
+        {
+          "name": "Face",
+          "depth": 2,
+          "path": "Card/BtnAdRevive/Face",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 551.75,
+          "w": 540,
+          "h": 100,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 501.75,
+            "bottom": 601.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 2,
+          "path": "Card/BtnAdRevive/Label",
+          "text": "看广告复活",
+          "font": 40,
+          "fh": 50,
+          "dx": 0,
+          "dy": 551.75,
+          "w": 200,
+          "h": 63,
+          "box": {
+            "left": -100,
+            "right": 100,
+            "top": 520.25,
+            "bottom": 583.25
+          }
+        },
+        {
+          "name": "BtnRetry",
+          "depth": 1,
+          "path": "Card/BtnRetry",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 659.75,
+          "w": 540,
+          "h": 76,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 621.75,
+            "bottom": 697.75
+          }
+        },
+        {
+          "name": "Face",
+          "depth": 2,
+          "path": "Card/BtnRetry/Face",
+          "text": null,
+          "font": null,
+          "fh": null,
+          "dx": 0,
+          "dy": 659.75,
+          "w": 540,
+          "h": 76,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 621.75,
+            "bottom": 697.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 2,
+          "path": "Card/BtnRetry/Label",
+          "text": "重新挑战",
+          "font": 28,
+          "fh": 35,
+          "dx": 0,
+          "dy": 659.75,
+          "w": 112,
+          "h": 44.1,
+          "box": {
+            "left": -56,
+            "right": 56,
+            "top": 637.7,
+            "bottom": 681.8
+          }
+        }
+      ]
+    }
+  }
+}

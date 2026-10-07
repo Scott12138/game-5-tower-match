@@ -1,0 +1,852 @@
+{
+  "level": 1,
+  "phases": {
+    "win": {
+      "view": {
+        "w": 750,
+        "h": 1651.4251781472683
+      },
+      "cardW": 620,
+      "cardH": 897.75,
+      "cardTop": 360,
+      "nodes": [
+        {
+          "name": "Card",
+          "depth": 0,
+          "text": null,
+          "font": null,
+          "dy": 0,
+          "w": 620,
+          "h": 897.75,
+          "box": {
+            "left": -310,
+            "right": 310,
+            "top": -448.87,
+            "bottom": 448.88
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 0,
+          "w": 620,
+          "h": 897.75,
+          "box": {
+            "left": -310,
+            "right": 310,
+            "top": -448.87,
+            "bottom": 448.88
+          }
+        },
+        {
+          "name": "TitleShade",
+          "depth": 1,
+          "text": "通关啦！",
+          "font": 88,
+          "dy": 97.5,
+          "w": 352,
+          "h": 138.6,
+          "box": {
+            "left": -176,
+            "right": 176,
+            "top": 28.2,
+            "bottom": 166.8
+          }
+        },
+        {
+          "name": "Title",
+          "depth": 1,
+          "text": "通关啦！",
+          "font": 88,
+          "dy": 89.5,
+          "w": 368,
+          "h": 154.6,
+          "box": {
+            "left": -184,
+            "right": 184,
+            "top": 12.2,
+            "bottom": 166.8
+          }
+        },
+        {
+          "name": "Mascot",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 293.28,
+          "w": 240,
+          "h": 218.75,
+          "box": {
+            "left": -120,
+            "right": 120,
+            "top": 183.91,
+            "bottom": 402.66
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 1,
+          "text": "第 1 关 · 用时 不限时",
+          "font": 28,
+          "dy": 451.75,
+          "w": 272.78,
+          "h": 44.1,
+          "box": {
+            "left": -136.39,
+            "right": 136.39,
+            "top": 429.7,
+            "bottom": 473.8
+          }
+        },
+        {
+          "name": "Rewards",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 566.75,
+          "w": 540,
+          "h": 130,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Reward0",
+          "depth": 2,
+          "text": null,
+          "font": null,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": -141,
+            "right": -11,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 3,
+          "text": null,
+          "font": null,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": -141,
+            "right": -11,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Ic",
+          "depth": 3,
+          "text": null,
+          "font": null,
+          "dy": 544.75,
+          "w": 58,
+          "h": 53.86,
+          "box": {
+            "left": -105,
+            "right": -47,
+            "top": 517.82,
+            "bottom": 571.68
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 3,
+          "text": "麻豆 ×25",
+          "font": 20,
+          "dy": 604.75,
+          "w": 92.28,
+          "h": 31.5,
+          "box": {
+            "left": -122.14,
+            "right": -29.86,
+            "top": 589,
+            "bottom": 620.5
+          }
+        },
+        {
+          "name": "Reward1",
+          "depth": 2,
+          "text": null,
+          "font": null,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": 11,
+            "right": 141,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 3,
+          "text": null,
+          "font": null,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": 11,
+            "right": 141,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Ic",
+          "depth": 3,
+          "text": null,
+          "font": null,
+          "dy": 544.75,
+          "w": 44,
+          "h": 58,
+          "box": {
+            "left": 54,
+            "right": 98,
+            "top": 515.75,
+            "bottom": 573.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 3,
+          "text": "清牌 ×0",
+          "font": 20,
+          "dy": 604.75,
+          "w": 79.92,
+          "h": 31.5,
+          "box": {
+            "left": 36.04,
+            "right": 115.96,
+            "top": 589,
+            "bottom": 620.5
+          }
+        },
+        {
+          "name": "BtnNext",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 711.75,
+          "w": 540,
+          "h": 100,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 661.75,
+            "bottom": 761.75
+          }
+        },
+        {
+          "name": "Face",
+          "depth": 2,
+          "text": null,
+          "font": null,
+          "dy": 711.75,
+          "w": 540,
+          "h": 100,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 661.75,
+            "bottom": 761.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 2,
+          "text": "下一关",
+          "font": 40,
+          "dy": 711.75,
+          "w": 120,
+          "h": 63,
+          "box": {
+            "left": -60,
+            "right": 60,
+            "top": 680.25,
+            "bottom": 743.25
+          }
+        },
+        {
+          "name": "BtnShare",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 819.75,
+          "w": 540,
+          "h": 76,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 781.75,
+            "bottom": 857.75
+          }
+        },
+        {
+          "name": "Face",
+          "depth": 2,
+          "text": null,
+          "font": null,
+          "dy": 819.75,
+          "w": 540,
+          "h": 76,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 781.75,
+            "bottom": 857.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 2,
+          "text": "分享",
+          "font": 28,
+          "dy": 819.75,
+          "w": 56,
+          "h": 44.1,
+          "box": {
+            "left": -28,
+            "right": 28,
+            "top": 797.7,
+            "bottom": 841.8
+          }
+        }
+      ]
+    },
+    "fail": {
+      "view": {
+        "w": 750,
+        "h": 1651.4251781472683
+      },
+      "cardW": 620,
+      "cardH": 737.75,
+      "cardTop": 360,
+      "nodes": [
+        {
+          "name": "Card",
+          "depth": 0,
+          "text": null,
+          "font": null,
+          "dy": 0,
+          "w": 620,
+          "h": 737.75,
+          "box": {
+            "left": -310,
+            "right": 310,
+            "top": -368.87,
+            "bottom": 368.88
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 0,
+          "w": 620,
+          "h": 737.75,
+          "box": {
+            "left": -310,
+            "right": 310,
+            "top": -368.87,
+            "bottom": 368.88
+          }
+        },
+        {
+          "name": "TitleShade",
+          "depth": 1,
+          "text": "就差一点！",
+          "font": 88,
+          "dy": 97.5,
+          "w": 440,
+          "h": 138.6,
+          "box": {
+            "left": -220,
+            "right": 220,
+            "top": 28.2,
+            "bottom": 166.8
+          }
+        },
+        {
+          "name": "Title",
+          "depth": 1,
+          "text": "就差一点！",
+          "font": 88,
+          "dy": 89.5,
+          "w": 456,
+          "h": 154.6,
+          "box": {
+            "left": -228,
+            "right": 228,
+            "top": 12.2,
+            "bottom": 166.8
+          }
+        },
+        {
+          "name": "MascotFail",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 294.91,
+          "w": 240,
+          "h": 218.75,
+          "box": {
+            "left": -120,
+            "right": 120,
+            "top": 185.53,
+            "bottom": 404.28
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 1,
+          "text": "还剩 4 张 · 槽位已满",
+          "font": 28,
+          "dy": 451.75,
+          "w": 268.69,
+          "h": 44.1,
+          "box": {
+            "left": -134.34,
+            "right": 134.34,
+            "top": 429.7,
+            "bottom": 473.8
+          }
+        },
+        {
+          "name": "BtnAdRevive",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 551.75,
+          "w": 540,
+          "h": 100,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 501.75,
+            "bottom": 601.75
+          }
+        },
+        {
+          "name": "Face",
+          "depth": 2,
+          "text": null,
+          "font": null,
+          "dy": 551.75,
+          "w": 540,
+          "h": 100,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 501.75,
+            "bottom": 601.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 2,
+          "text": "看广告复活",
+          "font": 40,
+          "dy": 551.75,
+          "w": 200,
+          "h": 63,
+          "box": {
+            "left": -100,
+            "right": 100,
+            "top": 520.25,
+            "bottom": 583.25
+          }
+        },
+        {
+          "name": "BtnRetry",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 659.75,
+          "w": 540,
+          "h": 76,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 621.75,
+            "bottom": 697.75
+          }
+        },
+        {
+          "name": "Face",
+          "depth": 2,
+          "text": null,
+          "font": null,
+          "dy": 659.75,
+          "w": 540,
+          "h": 76,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 621.75,
+            "bottom": 697.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 2,
+          "text": "重新挑战",
+          "font": 28,
+          "dy": 659.75,
+          "w": 112,
+          "h": 44.1,
+          "box": {
+            "left": -56,
+            "right": 56,
+            "top": 637.7,
+            "bottom": 681.8
+          }
+        }
+      ]
+    },
+    "emptyFullWin": {
+      "view": {
+        "w": 750,
+        "h": 1651.4251781472683
+      },
+      "cardW": 620,
+      "cardH": 897.75,
+      "cardTop": 360,
+      "nodes": [
+        {
+          "name": "Card",
+          "depth": 0,
+          "text": null,
+          "font": null,
+          "dy": 0,
+          "w": 620,
+          "h": 897.75,
+          "box": {
+            "left": -310,
+            "right": 310,
+            "top": -448.87,
+            "bottom": 448.88
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 0,
+          "w": 620,
+          "h": 897.75,
+          "box": {
+            "left": -310,
+            "right": 310,
+            "top": -448.87,
+            "bottom": 448.88
+          }
+        },
+        {
+          "name": "TitleShade",
+          "depth": 1,
+          "text": "通关啦！",
+          "font": 88,
+          "dy": 97.5,
+          "w": 352,
+          "h": 138.6,
+          "box": {
+            "left": -176,
+            "right": 176,
+            "top": 28.2,
+            "bottom": 166.8
+          }
+        },
+        {
+          "name": "Title",
+          "depth": 1,
+          "text": "通关啦！",
+          "font": 88,
+          "dy": 89.5,
+          "w": 368,
+          "h": 154.6,
+          "box": {
+            "left": -184,
+            "right": 184,
+            "top": 12.2,
+            "bottom": 166.8
+          }
+        },
+        {
+          "name": "Mascot",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 296.59,
+          "w": 240,
+          "h": 218.75,
+          "box": {
+            "left": -120,
+            "right": 120,
+            "top": 187.22,
+            "bottom": 405.97
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 1,
+          "text": "第 1 关 · 用时 不限时",
+          "font": 28,
+          "dy": 451.75,
+          "w": 272.78,
+          "h": 44.1,
+          "box": {
+            "left": -136.39,
+            "right": 136.39,
+            "top": 429.7,
+            "bottom": 473.8
+          }
+        },
+        {
+          "name": "Rewards",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 566.75,
+          "w": 540,
+          "h": 130,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Reward0",
+          "depth": 2,
+          "text": null,
+          "font": null,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": -141,
+            "right": -11,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 3,
+          "text": null,
+          "font": null,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": -141,
+            "right": -11,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Ic",
+          "depth": 3,
+          "text": null,
+          "font": null,
+          "dy": 544.75,
+          "w": 58,
+          "h": 53.86,
+          "box": {
+            "left": -105,
+            "right": -47,
+            "top": 517.82,
+            "bottom": 571.68
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 3,
+          "text": "麻豆 ×25",
+          "font": 20,
+          "dy": 604.75,
+          "w": 92.28,
+          "h": 31.5,
+          "box": {
+            "left": -122.14,
+            "right": -29.86,
+            "top": 589,
+            "bottom": 620.5
+          }
+        },
+        {
+          "name": "Reward1",
+          "depth": 2,
+          "text": null,
+          "font": null,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": 11,
+            "right": 141,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Bg",
+          "depth": 3,
+          "text": null,
+          "font": null,
+          "dy": 566.75,
+          "w": 130,
+          "h": 130,
+          "box": {
+            "left": 11,
+            "right": 141,
+            "top": 501.75,
+            "bottom": 631.75
+          }
+        },
+        {
+          "name": "Ic",
+          "depth": 3,
+          "text": null,
+          "font": null,
+          "dy": 544.75,
+          "w": 44,
+          "h": 58,
+          "box": {
+            "left": 54,
+            "right": 98,
+            "top": 515.75,
+            "bottom": 573.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 3,
+          "text": "清牌 ×12",
+          "font": 20,
+          "dy": 604.75,
+          "w": 88.32,
+          "h": 31.5,
+          "box": {
+            "left": 31.84,
+            "right": 120.16,
+            "top": 589,
+            "bottom": 620.5
+          }
+        },
+        {
+          "name": "BtnNext",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 711.75,
+          "w": 540,
+          "h": 100,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 661.75,
+            "bottom": 761.75
+          }
+        },
+        {
+          "name": "Face",
+          "depth": 2,
+          "text": null,
+          "font": null,
+          "dy": 711.75,
+          "w": 540,
+          "h": 100,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 661.75,
+            "bottom": 761.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 2,
+          "text": "下一关",
+          "font": 40,
+          "dy": 711.75,
+          "w": 120,
+          "h": 63,
+          "box": {
+            "left": -60,
+            "right": 60,
+            "top": 680.25,
+            "bottom": 743.25
+          }
+        },
+        {
+          "name": "BtnShare",
+          "depth": 1,
+          "text": null,
+          "font": null,
+          "dy": 819.75,
+          "w": 540,
+          "h": 76,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 781.75,
+            "bottom": 857.75
+          }
+        },
+        {
+          "name": "Face",
+          "depth": 2,
+          "text": null,
+          "font": null,
+          "dy": 819.75,
+          "w": 540,
+          "h": 76,
+          "box": {
+            "left": -270,
+            "right": 270,
+            "top": 781.75,
+            "bottom": 857.75
+          }
+        },
+        {
+          "name": "Label",
+          "depth": 2,
+          "text": "分享",
+          "font": 28,
+          "dy": 819.75,
+          "w": 56,
+          "h": 44.1,
+          "box": {
+            "left": -28,
+            "right": 28,
+            "top": 797.7,
+            "bottom": 841.8
+          }
+        }
+      ]
+    }
+  },
+  "judge": {
+    "pass": 48,
+    "fail": 0
+  }
+}
