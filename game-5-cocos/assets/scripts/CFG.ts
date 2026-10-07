@@ -1087,6 +1087,55 @@ export const AD_QUOTA = {
     SHOP_PER_TOOL_PER_DAY: 2,
 };
 
+// ============================================================
+//  九之四、七日签到（★ 2026-10-07 用户拍板奖励表 · 第 57 轮落码）
+// ============================================================
+//
+//  【为什么表要放 CFG】
+//    与 `AD_QUOTA` 同理：设计规则 §P1.6 那张表是"文档口径"，
+//    代码真正发的是**这里**。两处不一致时**以本文件为准**。
+//
+//  【奖励表（2026-10-07 拍板，逐日递增）】
+//    第 1 天 消除×1 · 第 2 天 移出×1 · 第 3 天 洗牌×1 · 第 4 天 加槽×1 ·
+//    第 5 天 消除+移出 各×1 · 第 6 天 洗牌+加槽 各×1 · **第 7 天 任选 1 种 ×2**
+//
+//  ⚠️ 第 7 天**不是**"四种各 +1"、也**不是**随机给 —— 玩家自己挑一件拿 2 个
+//     （`pick: true`）。选择器是二级弹层，见 `HomePage.openSignPicker()`。
+//
+//  ⚠️ 合规红线（设计规则 §P1.6 + 视觉稿设计说明④）：奖励**只出现四件套道具**，
+//     不出现"金币 / 钻石 / 代币 / 充值 / 礼包"任何字样 —— 个人主体开不了虚拟支付，
+//     签到不能变相引入第二套货币；也不得写"分享可得"（诱导分享）。
+
+export interface SignRewardItem {
+    tool: ToolKey;
+    n: number;
+}
+export interface SignDayReward {
+    /** true = 第 7 日的"任选"格（`items` 为空，由玩家当场挑） */
+    pick: boolean;
+    items: SignRewardItem[];
+}
+
+export const SIGN = {
+    /** 一轮几天（满 7 天循环回第 1 天，已领记录清空） */
+    CYCLE: 7,
+    /** 第 7 日"任选"的倍数（选了 1 种 ⇒ 拿 2 个） */
+    PICK_N: 2,
+    /**
+     * 逐日奖励。索引 0 = 第 1 天。
+     * ⚠️ 改表只改这里 —— `SaveService.claimSign()` 与渲染都从这取，不在别处硬编码。
+     */
+    DAYS: [
+        { pick: false, items: [{ tool: TOOL.ERASE, n: 1 }] },
+        { pick: false, items: [{ tool: TOOL.MOVE, n: 1 }] },
+        { pick: false, items: [{ tool: TOOL.SHUFFLE, n: 1 }] },
+        { pick: false, items: [{ tool: TOOL.ADD_SLOT, n: 1 }] },
+        { pick: false, items: [{ tool: TOOL.ERASE, n: 1 }, { tool: TOOL.MOVE, n: 1 }] },
+        { pick: false, items: [{ tool: TOOL.SHUFFLE, n: 1 }, { tool: TOOL.ADD_SLOT, n: 1 }] },
+        { pick: true, items: [] },
+    ] as SignDayReward[],
+} as const;
+
 export const SHARE = {
     /** 右上角转发菜单的标题（没有关卡上下文） */
     TITLE: `《${GAME.NAME}》这牌堆也太难了，你能一次清完吗？`,

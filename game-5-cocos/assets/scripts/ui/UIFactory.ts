@@ -143,6 +143,13 @@ export function fillVGradient(
     g: Graphics, cx: number, cy: number, w: number, h: number, r: number,
     topHex: string, bottomHex: string, steps = 32,
 ): void {
+    // ⚠️⚠️ `steps <= 0` / 非有限数 一律**回落到默认值**（第 57 轮三血案）。
+    //   默认参数**只在实参是 `undefined` 时才生效**，写 `0` 是挡不住的：
+    //   `bandedFill` 里 `band = total / 0 = Infinity` ⇒ 循环一次都不跑
+    //   ⇒ **一个像素都不画，且不报任何错**。症状是"这块元素整片透明"
+    //   （道具商城/七日签到弹层、签到格底、金色胶囊全是这么隐形的）。
+    //   一个"步数"参数永远不可能是 0 —— 所以这里直接把它当"没传"处理。
+    const n = (Number.isFinite(steps) && steps >= 2) ? Math.floor(steps) : 32;
     const top = hex2color(topHex);
     const bot = hex2color(bottomHex);
     const halfH = h / 2;
@@ -155,15 +162,15 @@ export function fillVGradient(
     // 直角矩形（`r = 0`）走老路：`roundRect` 顶点更少，且没必要采样轮廓
     if (r <= 0) {
         const y0 = cy + halfH;
-        const band = h / steps;
-        for (let i = 0; i < steps; i++) {
-            g.fillColor = colorAt(i / Math.max(1, steps - 1));
+        const band = h / n;
+        for (let i = 0; i < n; i++) {
+            g.fillColor = colorAt(i / Math.max(1, n - 1));
             roundRectPath(g, cx - w / 2, y0 - band * i - band, w, band + 0.6, 0);
             g.fill();
         }
         return;
     }
-    bandedFill(g, cx, w / 2, cy, cy + halfH, cy - halfH, steps,
+    bandedFill(g, cx, w / 2, cy, cy + halfH, cy - halfH, n,
         colorAt, (d: number): number => shapeInset(d, halfH, r));
 }
 

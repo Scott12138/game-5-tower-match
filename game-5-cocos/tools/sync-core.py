@@ -37,6 +37,18 @@ FILES = [
     ('ShareService.ts', os.path.join(SRC, 'core', 'ShareService.ts')),
     ('LoginService.ts', os.path.join(SRC, 'core', 'LoginService.ts')),
     ('RankService.ts', os.path.join(SRC, 'core', 'RankService.ts')),
+    # ★ 第 56 轮：存档也要平铺 —— 每日配额（跨天清零 / 每键独立计数）与
+    #   日期工具（`todayKey` / `dayDiff`）是**纯逻辑、可确定性复现**的，
+    #   而它们正是"签到连着几天"和"A3 每种道具 2 次/日"的地基。
+    #   ⚠️ 它同样**不 import 'cc'**（文件头写了这条纪律）。
+    ('SaveService.ts', os.path.join(SRC, 'core', 'SaveService.ts')),
+    # ★ 第 57 轮三：道具「两本账」也要平铺。
+    #   理由同上：它的要害是**纯策略**（赠礼优先 / 扣空了怎么办 / 不得虚扣），
+    #   而这正是"商城领的道具在关卡里恒为 0"那个 bug 的藏身处。
+    #   `Gift.ts` 是它依赖的那本"本局限定"账，一并铺。
+    #   ⚠️ 两者都**不 import 'cc'**。
+    ('Gift.ts', os.path.join(SRC, 'core', 'Gift.ts')),
+    ('ItemStock.ts', os.path.join(SRC, 'core', 'ItemStock.ts')),
 ]
 
 # from '...' / import '...' → 统一压平成 './<名字>.ts'

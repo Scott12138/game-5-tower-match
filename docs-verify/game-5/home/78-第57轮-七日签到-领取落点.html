@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>第57轮 · 七日签到「领取」落点</title>
+<style>
+  :root {
+    --ink:#12211A; --ink2:#3D5449; --line:#D8E2DA; --bg:#F5F7F5;
+    --bad:#8A4B3A; --good:#1B5E4A; --gold:#9A7B2E; --card:#FFFFFF;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:26px 30px 44px; background:var(--bg); color:var(--ink);
+         font:15px/1.72 -apple-system,"PingFang SC","Helvetica Neue",sans-serif; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:.01em; }
+  h2 { font-size:19px; margin:34px 0 12px; padding-left:11px;
+        border-left:4px solid var(--good); }
+  h3 { font-size:15px; margin:20px 0 8px; color:var(--ink2); }
+  .lede { color:var(--ink2); font-size:14px; margin:0 0 6px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:16px 18px; margin:12px 0 18px; }
+  .kv { display:grid; grid-template-columns:112px 1fr; gap:5px 14px; font-size:14px; }
+  .kv dt { color:var(--ink2); }
+  .kv dd { margin:0; }
+  table { width:100%; border-collapse:collapse; background:var(--card);
+           border:1px solid var(--line); border-radius:10px; overflow:hidden;
+           font-size:13.5px; }
+  th,td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--line);
+           vertical-align:top; }
+  th { background:#EDF2EE; font-weight:600; font-size:13px; }
+  tr:last-child td { border-bottom:0; }
+  td.b { color:var(--bad); }
+  td.a { color:var(--good); }
+  code { background:#EDF2EE; padding:1px 5px; border-radius:4px; font-size:12.5px;
+          font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start; }
+  /* 强制并排：上下叠会把页面顶到 5000px，而单次截图高度上限实测约 4500px
+     （超了是「静默超时」，且自检三件套照样全绿 —— 极难归因）。 */
+  .row.nowrap { flex-wrap:nowrap; }
+  .row.nowrap figure { flex:1 1 0; min-width:0; }
+  .row.nowrap .shot { width:100%; max-width:none; }
+  figure { margin:0; }
+  figcaption { font-size:12.5px; color:var(--ink2); margin-top:6px; text-align:center; }
+  .shot { display:block; height:auto; border:1px solid var(--line); border-radius:10px; }
+  .tag { display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:.04em;
+          padding:2px 9px; border-radius:999px; margin-bottom:7px; }
+  .tag.b { background:#F3E4DF; color:var(--bad); }
+  .tag.a { background:#DEEEE7; color:var(--good); }
+  .tag.g { background:#F6EFD8; color:var(--gold); }
+  ul { margin:8px 0; padding-left:20px; }
+  li { margin:4px 0; }
+  .note { background:#FFFCF2; border:1px solid #EADFB8; border-radius:10px;
+           padding:13px 16px; font-size:13.5px; }
+  .ok { color:var(--good); font-weight:700; }
+  .no { color:var(--bad); font-weight:700; }
+</style></head><body>
+
+<h1>第 57 轮 · 七日签到「领取」落点（你拍板的方案 A）</h1>
+<p class="lede">同视口取证：<code>421×927 @3</code>（= 真机 1264×2780）。全部走<b>真实构建
++ 真实鼠标</b>，没有手改源码造状态；每个状态各开一次浏览器，存档由启动前注入的种子脚本铺好。
+板上的几何数字全部是<b>从运行中的场景里量出来的</b>，不是照代码抄的。</p>
+
+<h2>一、落点：那颗「领取」胶囊到底落在哪</h2>
+
+<div class="card">
+<dl class="kv">
+  <dt>尺寸</dt><dd><code>83 × 42</code> 设计 px（金色胶囊，文本「领取」21 号加粗，字色 <code>#5C3610</code>）</dd>
+  <dt>挂在谁身上</dt><dd><b>当天那一格</b>（不是整张卡、不是整排）。第 1~6 天挂在 <code>SignCell_n</code>；
+      第 7 天那个宽格（<code>266×176</code>）也是挂它自己。</dd>
+  <dt>水平</dt><dd><b>所在格的横向中线</b>（格内 <code>x = 0</code>，与格子同心）。
+      <span class="ok">实测</span>：第 3 天 <code>x=0 · parent=SignCell_3</code>；
+      第 7 天（宽格）<code>x=0 · parent=SignCell_7</code> —— 宽格也是它自己格的中线，
+      <b>不是整排的中线</b>。</dd>
+  <dt>垂直</dt><dd><b>底边越过格底 19 设计 px</b>（格内 <code>y = -86</code>；
+      格高 176 ⇒ 格底在 <code>-88</code>，胶囊底边在 <code>-107</code>）。
+      <span class="ok">实测</span>：三个状态全部 <code>y=-86</code> · 越过 <code>19</code>。</dd>
+  <dt>为什么是 19 不是 22</dt><dd>视觉稿里写的是 <code>.claim{ bottom:-22px }</code>，
+      但那是相对格子的 <b>padding box</b> 量的，而 <code>.cell</code> 自带 <code>border:3px</code> ⇒
+      视觉上越过<b>可见外沿</b>只有 <code>22-3=19</code>。
+      引擎侧 <code>strokeRoundRect</code> 的描边<b>不吃尺寸</b>，所以必须取 19 才对得上稿子。</dd>
+  <dt>热区</dt><dd><b>两颗都注册</b>：整格 <code>126×176</code> + 胶囊本身
+      （因为胶囊有 19px 露在格沿外，只注册格子的话那 19px 点不动）。
+      胶囊是格子的子节点，事件会冒泡 ⇒ 一次点击会走到两遍，
+      靠 <code>_signBusy</code> + <code>signDayToday()</code> 双闸挡掉第二遍。</dd>
+  <dt>呼吸</dt><dd>胶囊只出现在当天那格；那一格同时有<b>暖金外发光</b>呼吸，
+      <code>1.8s</code> = 0.9 亮 + 0.9 暗。发光用<b>由外向内叠实心圆角矩形</b>（7 层，每层外扩 6）做的 ——
+      嵌套实心图形累积 alpha 必然内深外浅，正好就是外发光的方向。</dd>
+</dl>
+</div>
+
+<h2>二、三种格态各自是什么行为</h2>
+
+<table>
+  <tr><th style="width:104px">格态</th><th style="width:230px">视觉</th>
+      <th style="width:86px">可点</th><th>点下去发生什么</th></tr>
+  <tr>
+    <td><b>未到</b>（future）</td>
+    <td>整格压到 <b>52%</b> 透明（opacity 133/255）+ 暗白描边 + 文字转灰绿。<br>
+        <span class="ok">实测</span> 无勾、无呼吸光。</td>
+    <td class="no">不可点</td>
+    <td>什么都不发生（整格热区在，但状态不是 today ⇒ 直接返回）</td>
+  </tr>
+  <tr>
+    <td><b>已领</b>（done）</td>
+    <td>青玉底压暗一档 + 右下角青玉勾（直径 32，圆心落在格子右下角竖轴上）。
+        <span class="ok">实测</span> 有勾、无呼吸光、无胶囊。</td>
+    <td class="no">不可点</td>
+    <td>存档<b>逐字段不动</b>（已领的格子不可重复领 —— 这条有专门的负控断言）</td>
+  </tr>
+  <tr>
+    <td><b>当天</b>（today）</td>
+    <td>金色描边 + <b>暖金呼吸</b> + 骑边「领取」胶囊 + 日期/文案转金加粗。
+        全屏唯一在动的东西。</td>
+    <td class="a">唯一可点</td>
+    <td>立即发货：道具入库 + <code>signDate</code>=本地今天 + <code>signStreak</code> 推进 ⇒
+        <b>格子当场翻成「已领」</b>（勾出现），<b>胶囊整颗消失</b>，
+        副标题「已连签 n 天」跟着翻新，出音效 + toast「签到第 n 天 · 洗牌 ×1 已到账」，
+        格子缩放 1.12 回弹。<br>
+        <b>第 7 天例外</b>：先弹「四选一」二级弹层；<b>点取消 ⇒ 不推进进度、也不发货</b>。</td>
+  </tr>
+</table>
+
+<div class="note">
+<b>一个容易漏的点：领完之后当天没有可点目标了。</b>
+这是<b>稿 A 家族的设计本意</b>，不是缺按钮 —— 视觉稿的「稿 C · 今日已签」里，
+第 3 天转成 done、第 4 天仍是 future，<b>全稿没有任何领取元素</b>，也没有稿 B 那颗
+「签到领取 · 洗牌 ×1」大按钮。所以"今天已领"这件事只由<b>勾 + 胶囊文案</b>表达。
+领完的即时反馈靠：格子 1.12 回弹 + 音效 + toast。
+</div>
+
+<h2>三、真实构建取证（全屏，421×927 @3）</h2>
+
+<div class="row nowrap">
+  <figure><span class="tag g">00</span>
+    <img class="shot" src="round57/00-首页-今日未签-红点.png" alt="首页今日未签">
+    <figcaption>首页 · 今日未签<br>签到 / 商城各一颗红点，排行榜<b>没有</b></figcaption></figure>
+  <figure><span class="tag a">01</span>
+    <img class="shot" src="round57/01-今天可领-胶囊骑下沿.png" alt="当天可领">
+    <figcaption>当天可领 · 第 3 格<br>勾在 1/2、呼吸在 3、4 起压暗</figcaption></figure>
+  <figure><span class="tag a">02</span>
+    <img class="shot" src="round57/02-今日已领-稿C.png" alt="今日已领">
+    <figcaption>今日已领（稿 C）<br>第 3 格转勾，<b>胶囊消失</b></figcaption></figure>
+  <figure><span class="tag a">03</span>
+    <img class="shot" src="round57/03-第7日-四选一.png" alt="第7日四选一">
+    <figcaption>第 7 日 · 点胶囊<br>弹「四选一」二级层</figcaption></figure>
+  <figure><span class="tag a">04</span>
+    <img class="shot" src="round57/04-满7循环回第1天.png" alt="满7循环">
+    <figcaption>满 7 天循环<br>当天回到第 1 格，且无勾</figcaption></figure>
+</div>
+
+<h2>四、骑边特写（同机位 3 倍放大，可直接对看）</h2>
+<p class="lede">这一组是同一台机位（都对着 <code>SignCell_3</code>）裁的，
+所以"胶囊在 / 勾在 / 都没有"三张可以直接叠着比。</p>
+
+<div class="row nowrap">
+  <figure><span class="tag a">Z1 · 当天</span>
+    <img class="shot" src="round57/Z1-当天-胶囊骑边.png" alt="当天特写">
+    <figcaption>金框 + 暖金呼吸 + 胶囊骑下沿正中<br>金线从胶囊<b>背后</b>穿过 = 真的骑在沿上</figcaption></figure>
+  <figure><span class="tag a">Z2 · 已领</span>
+    <img class="shot" src="round57/Z2-已领-勾在无胶囊.png" alt="已领特写">
+    <figcaption>同一格、同一机位：金框没了、勾出现了<br><b>胶囊整颗消失</b></figcaption></figure>
+  <figure><span class="tag b">Z3 · 未到</span>
+    <img class="shot" src="round57/Z3-未到-整格压暗.png" alt="未到特写">
+    <figcaption>对照组：整格 52% 压暗、描边转暗<br>无勾、无呼吸、无胶囊</figcaption></figure>
+</div>
+
+<h2>五、本轮顺带发现并修掉的一个真 bug</h2>
+<div class="card">
+<dl class="kv">
+  <dt>症状</dt><dd>在弹层里领完之后，副标题那颗「已连签 n 天」胶囊<b>停在旧数字上</b>
+      （显示 2 天，实际已经 3 天）。</dd>
+  <dt>根因</dt><dd>那颗胶囊只在 <code>openSignIn()</code> 里算一次；
+      领奖走的是 <code>refreshSignCells()</code>，而它只重画七格、不碰副标题行。</dd>
+  <dt>改法</dt><dd>把副标题行抽成 <code>buildSignSubRow()</code>，由 <code>refreshSignCells()</code> 一并调用。
+      <b>是"整行重建"而不是"改一下 Label 的字"</b>：这一行是<b>整体居中</b>的
+      （文字被胶囊往左顶半颗胶囊宽），而胶囊宽随数字变化；另外从未签到时
+      <code>signStreakLive()=0</code> ⇒ <b>整颗胶囊不画</b>，所以还要处理"从无到有"。</dd>
+  <dt>判据</dt><dd>验收脚本新增一条：领完之后必须读到 <code>已连签 3 天</code>。</dd>
+</dl>
+</div>
+
+<h2>六、需要你拍板的一件事</h2>
+<div class="note">
+<b>满一轮后那颗胶囊该显示几天？</b><br>
+现状：<code>signStreak</code> 在引擎里是<b>"本轮已领格数"（0~7）</b>，被直接拿来当"已连签 n 天"显示。
+于是满 7 天循环回第 1 天时，胶囊显示 <b>「已连签 7 天」</b>（这是实话 —— 确实连签了 7 天），
+但<b>再领掉新的第 1 格之后会变成「已连签 1 天」</b>，数字往回跳。
+<ul>
+  <li><b>A · 保持现状</b>：含义 = "本轮进度"。简单，但 7 变成 1 会让人觉得"记录被清零了"。</li>
+  <li><b>B · 显示累计连签天数</b>：需要给存档加一个"累计连签天数"字段（跨轮累加）。最符合字面意思。</li>
+  <li><b>C · 满轮后整颗胶囊不显示数字</b>：改成「本轮已满」之类的文案，第 1 格领掉后重新从 1 起算。</li>
+</ul>
+<b>我没动</b> —— 涉及存档字段与语义，等你定。
+</div>
+
+</body></html>

@@ -1,10 +1,10 @@
 {
   "size": {
-    "total": 12402539,
+    "total": 12421176,
     "packages": [
       {
         "name": "TOTAL",
-        "size": 12402539
+        "size": 12421176
       },
       {
         "name": "main",
@@ -24,7 +24,7 @@
       },
       {
         "name": "/subpackages/main/",
-        "size": 222150
+        "size": 240787
       }
     ]
   }

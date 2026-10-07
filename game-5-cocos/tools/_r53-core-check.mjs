@@ -40,11 +40,14 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { AD, AD_QUOTA, LOGIN, SHARE } from './_core/CFG.ts';
+import { AD, AD_QUOTA, LOGIN, SHARE, TOOL } from './_core/CFG.ts';
 import { AdService } from './_core/AdService.ts';
 import { ShareService } from './_core/ShareService.ts';
 import { LoginService } from './_core/LoginService.ts';
 import { RankService, RANK_KEY } from './_core/RankService.ts';
+import { SaveService, todayKey, dayDiff } from './_core/SaveService.ts';
+import { beginRun, composeGift, currentRun } from './_core/Gift.ts';
+import { consumeItem, itemStock } from './_core/ItemStock.ts';
 
 const HERE = import.meta.dirname;
 const SRC_CORE = resolve(HERE, '..', 'assets', 'scripts', 'core');
@@ -656,6 +659,157 @@ head('E 组 · 激励视频频次上限（★ 2026-10-07 用户拍板 → 落码
     const rowA3 = ruleDoc.split('\n').find((l) => l.includes('| A3 |')) ?? '';
     ok(rowA2.includes('不限次数') && rowA3.includes('每种道具 2 次/日'),
         '★ E5 对账：设计规则「商业化点总表」A2 行含「不限次数」、A3 行含「每种道具 2 次/日」（文档与代码同步）');
+}
+
+// ============================================================
+head('F 组 · 每日配额 + 日期工具（★ 第 56 轮新增 · 签到 / A3 商城的地基）');
+// ============================================================
+//  为什么值得单开一组：这两件事**都只会"悄悄错"**——
+//    · 配额不落盘 ⇒ 杀进程重进就重置，上限形同虚设（不报错）；
+//    · 配额不按"每种道具"分键 ⇒ 领了消除就占掉洗牌的名额（也不报错）；
+//    · 跨天判定用 UTC 而非本地日期 ⇒ 深圳凌晨 0~8 点整体差一天（还是不报错）。
+//  ⇒ 每条都断言，而且**负控**（见 F6/F7：故意喂一个"昨天"的日期，确认它会清零）。
+{
+    // 装一个内存版 localStorage（Node 里本来没有；这也是练"存储不可用"的旁路）
+    const store = new Map();
+    globalThis.localStorage = {
+        getItem: (k) => (store.has(k) ? store.get(k) : null),
+        setItem: (k, v) => { store.set(k, String(v)); },
+        removeItem: (k) => { store.delete(k); },
+    };
+
+    // ---- 纯函数：日期 ----
+    ok(todayKey(new Date(2026, 9, 7)) === '2026-10-07',
+        `F1 todayKey 用**本地**日期且补零（实测 ${todayKey(new Date(2026, 9, 7))}）`);
+    // ⚠️ 这条是在钉"UTC 口径"这个坑：UTC+8 的当天 0 点，UTC 还停在前一天
+    ok(todayKey(new Date(2026, 9, 7, 0, 30)) === '2026-10-07',
+        'F2 本地凌晨 00:30 仍算**当天**（用 toISOString 会算成前一天）');
+    ok(dayDiff('2026-10-07', '2026-10-08') === 1 && dayDiff('2026-02-28', '2026-03-01') === 1,
+        'F3 dayDiff 跨日/跨月各 +1（2026 非闰年，2/28 → 3/1）');
+    ok(Number.isNaN(dayDiff('', '2026-10-07')) && Number.isNaN(dayDiff('垃圾', '2026-10-07')),
+        'F4 dayDiff 空串 / 非法串 ⇒ NaN（调用方据此当"新的一天"兜底）');
+
+    // ---- 配额：装一份"昨天已领满"的存档 ----
+    store.set('game5.save.v1', JSON.stringify({
+        level: 3, best: 2, coins: 7, plays: 1, cleared: 9,
+        inventory: { erase: 1, move: 0, shuffle: 0, addslot: 0 },
+        signDate: '2026-10-06', signStreak: 4,
+        dailyDate: '2026-10-06',
+        daily: { 'shop:erase': 2, 'shop:move': 2, 'shop:shuffle': 2, 'shop:addslot': 2 },
+    }));
+    const sv = SaveService.instance;
+    sv.load();
+    ok(sv.level === 3 && sv.count('erase') === 1,
+        'F5 老存档（含新字段）原样读回：level=3 / 消除库存=1');
+
+    // ★ 负控：昨天领满 ⇒ 今天必须从 0 开始
+    ok(sv.dailyUsed('shop:erase') === 0,
+        `★ F6 负控：昨天（2026-10-06）已领满 ⇒ 今天读出来是 **0**（实测 ${sv.dailyUsed('shop:erase')}）`);
+
+    // 上限生效
+    ok(sv.useDaily('shop:erase', 2) === true && sv.useDaily('shop:erase', 2) === true,
+        'F7 每道具 2 次：前两次放行');
+    ok(sv.useDaily('shop:erase', 2) === false && sv.dailyLeft('shop:erase', 2) === 0,
+        '★ F8 第三次必须**拒绝**且剩余为 0（这是"上限真的在生效"的判据）');
+
+    // ★ 差分：逐道具独立 —— 消除满了，别的道具**不受影响**
+    ok(sv.dailyLeft('shop:shuffle', 2) === 2 && sv.useDaily('shop:shuffle', 2) === true,
+        '★ F9 差分：消除已领满 ≠ 洗牌不能领（每道具独立计数，不是共用池子）');
+
+    // 「不限次数」的语义（A2）
+    ok(sv.dailyLeft('tool:erase', 0) === Infinity && sv.useDaily('tool:erase', 0) === true,
+        '★ F10 `max<=0` = 不限次数 ⇒ dailyLeft 为 Infinity、useDaily 永远放行（A2 口径）');
+
+    // 落盘：计数真的写进去了（否则杀进程重进就重置）
+    const persisted = JSON.parse(store.get('game5.save.v1'));
+    ok(persisted.daily?.['shop:erase'] === 2 && persisted.daily?.['shop:shuffle'] === 1,
+        `F11 配额已落盘（实测 daily=${JSON.stringify(persisted.daily)}）`);
+
+    // 反向核对：别把"存档结构"写坏了（老字段还在）
+    ok(persisted.best === 2 && persisted.signStreak === 4 && persisted.inventory.erase === 1,
+        'F12 反向核对：写回后 best / signStreak / inventory 等老字段均未被动过');
+
+    delete globalThis.localStorage;
+}
+
+// ============================================================
+head('G 组 · 道具「两本账」+ 累计连签（★ 第 57 轮三新增）');
+// ============================================================
+//  为什么单开一组：
+//   · **两本账**（本局赠礼 / 跨局库存）从来没合过 ⇒ 商城/签到领的道具
+//     在关卡里恒为 0。这种 bug 在 UI 上只是"角标数字不对"，**不报错**；
+//     而它的要害其实全在"谁先扣、扣空了怎么办"这些**纯策略**上 ⇒ 离线最合适。
+//   · **累计连签**是"只增不减"的计数器，最怕的错法是"某条分支顺手清了个零"。
+{
+    const store = new Map();
+    globalThis.localStorage = {
+        getItem: (k) => (store.has(k) ? store.get(k) : null),
+        setItem: (k, v) => { store.set(k, String(v)); },
+        removeItem: (k) => { store.delete(k); },
+    };
+    const sv = SaveService.instance;
+    const ymd = (off) => {
+        const d = new Date(); d.setDate(d.getDate() + off);
+        const p = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    };
+    /** 铺一份存档骨架（只写我们关心的字段，缺的走 migrate 兜底） */
+    const seed = (over = {}) => {
+        store.set('game5.save.v1', JSON.stringify({
+            level: 1, best: 0, inventory: { erase: 0, move: 0, shuffle: 0, addslot: 0 },
+            coins: 0, plays: 0, cleared: 0, signDate: '', signStreak: 0,
+            dailyDate: '', daily: {}, ...over,
+        }));
+        sv.load();
+    };
+
+    // ---- 两本账 ----
+    store.clear(); sv.load();
+    beginRun(1, composeGift(4, 4));                 // 和值 8 ⇒ 常规档：移出 ×1（本局赠礼）
+    ok(itemStock(TOOL.MOVE) === 1,
+        `G1 只靠本局赠礼：可用总数 = 1（实测 ${itemStock(TOOL.MOVE)}）`);
+    sv.addTool(TOOL.MOVE, 3);                        // 模拟"商城领了 3 个"
+    ok(itemStock(TOOL.MOVE) === 4,
+        `★★ G2 两本账合起来看：赠礼 1 + 跨局库存 3 = **4**（旧代码这里恒为 1 —— 就是那个 bug）`);
+
+    ok(consumeItem(TOOL.MOVE) === true && currentRun().items.move === 0 && sv.count(TOOL.MOVE) === 3,
+        `★ G3 消耗顺序：**先扣本局赠礼**（1→0），跨局库存原封不动（仍 ${sv.count(TOOL.MOVE)}）`);
+    ok(consumeItem(TOOL.MOVE) === true && sv.count(TOOL.MOVE) === 2,
+        'G4 赠礼空了才动跨局库存（3→2）—— 反过来玩家会静默吃亏');
+
+    // ★ 负控：两本账都空 ⇒ 必须返回 false 且**什么都不改**
+    const before = JSON.stringify({ run: currentRun().items, save: sv.data.inventory });
+    ok(consumeItem(TOOL.SHUFFLE) === false
+        && JSON.stringify({ run: currentRun().items, save: sv.data.inventory }) === before,
+        '★★ G5 负控：两本账都空 ⇒ `consumeItem` 返回 false 且**状态逐字段不动**（不得虚扣 / 扣成负数）');
+    ok(sv.count(TOOL.ERASE) === 0 && itemStock(TOOL.ERASE) === 0,
+        'G6 同一条链路的另一个道具：擦除 两本账都是 0，可用总数也是 0');
+
+    // ---- 累计连签（用户 2026-10-07 拍板「方案 B」）----
+    seed({ signDate: ymd(-1), signStreak: 7 });      // 昨天签过、本轮已领满 7 格
+    ok(sv.signTotalLive() === 7 && sv.signDayToday() === 1,
+        `★ G7 老存档（无 signTotal 字段）迁移：拿 signStreak 当下界 ⇒ 累计 = 7（实测 ${sv.signTotalLive()}）`);
+    ok(sv.claimSign() === 1 && sv.data.signStreak === 1 && sv.signTotalLive() === 8,
+        `★★ G8 满一轮后继续领：**本轮归 1、累计 7 → 8**（不再跳回「已连签 1 天」）`
+        + ` —— streak=${sv.data.signStreak} total=${sv.signTotalLive()}`);
+    ok(sv.claimSign() === 0 && sv.signTotalLive() === 8,
+        '★★ G9 负控：同一天再领 ⇒ 返回 0，且**累计一分不动**（重复领不能刷天数）');
+
+    seed({ signDate: ymd(-4), signStreak: 4 });      // 断了 3 天
+    ok(sv.signTotalLive() === 4,
+        `G10 断签时"已发生过"的天数不会被抹掉（读回 ${sv.signTotalLive()}）`);
+    ok(sv.claimSign() === 1 && sv.signTotalLive() === 5,
+        `★★ G11 断签 3 天后再签 ⇒ 累计继续 +1（4 → 5），**不清零、不算惩罚**`);
+
+    seed({ signStreak: 2, signTotal: 9 });
+    ok(sv.signTotalLive() === 9,
+        `G12 迁移取 max(signTotal, signStreak)：已有 9 时不被 2 覆盖（实测 ${sv.signTotalLive()}）`);
+
+    store.clear(); sv.load();
+    ok(sv.signTotalLive() === 0,
+        'G13 全新档 ⇒ 累计 0（调用方据此**整颗隐藏**胶囊，而不是显示"已连签 0 天"）');
+
+    delete globalThis.localStorage;
 }
 
 // ============================================================

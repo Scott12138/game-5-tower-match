@@ -37,11 +37,16 @@ import { AudioService } from './AudioService';
 import { Haptics } from './Haptics';
 import { SaveService } from '../core/SaveService';
 import { AdService, type AdOutcome } from '../core/AdService';
+// ★ 第 56 轮：替身广告面板抽成共用件（首页「道具商城」也要用同一块面板）。
+//   面板的 UI / 进度 / 幂等收口全在 `AdDialog.ts`，本页只管"暂停态"与"拿到结局之后干什么"。
+import { openMockAdDialog, type MockAdHandle } from './AdDialog';
 import { ShareService } from '../core/ShareService';
 import { LEVELS, type LevelDef } from '../core/LevelData';
 import { Board, makeBoard } from '../core/Board';
 import { findMatch, MATCH_LABEL, type MatchType } from '../core/MatchRule';
-import { currentRun, endRun, reviveLeft, useRevive, useRunItem } from '../core/Gift';
+import { currentRun, endRun, reviveLeft, useRevive } from '../core/Gift';
+// ★ 第 57 轮三：道具库存 = 本局赠礼 + 跨局库存，**策略在 core 里**（可离线自证）
+import { consumeItem, itemStock } from '../core/ItemStock';
 import { faceLabel, spritePath } from '../core/TileData';
 import {
     confirmDialog, createGraphicsNode, createLabel, createNode, createSprite,
@@ -324,8 +329,8 @@ export class GamePage extends PageBase {
     /**
      * ★ 这一次「消除」就绪态是不是**靠库存点开的**。
      *
-     * 决定真正消掉那张牌时要不要 `useRunItem()`：
-     *   · `true`  —— 玩家用自己的库存点开的 → 生效时扣 1
+     * 决定真正消掉那张牌时要不要 `consumeItem()`：
+     *   · `true`  —— 玩家用自己的库存点开的 → 生效时扣 1（赠礼优先，其次跨局库存）
      *   · `false` —— 走广告 / 分享拿到的那一次（从没进过库存） → **不扣**
      * 不区分的话，看完广告用掉一次消除会把玩家库存凭空减 1（甚至减成负数）。
      */
@@ -1204,10 +1209,12 @@ export class GamePage extends PageBase {
         }
     }
 
+    // ★ 道具库存 = **两本账合起来看**（本局赠礼 + 跨局库存）。
+    //   策略与推导全部在 `core/ItemStock.ts`，本页只调用 —— 那样它能离线确定性自证，
+    //   也不会被 UI 层再实现一遍（第 57 轮三的 bug 正是"只看了半本账"）。
     private refreshTools(): void {
-        const run = currentRun();
         TOOL_ORDER.forEach((id, i) => {
-            const n = run ? (run.items[id] ?? 0) : 0;
+            const n = itemStock(id);
             // ★ 第 46 轮：「消除」处于就绪态时键面转金（金 = 可交互 —— 见 setArmedErase）；
             //   "亮 / 暗" 改由 `propBlockReason()` 单一真源决定（不再自己判一遍）。
             const armed = id === TOOL.ERASE && this._armedErase;
@@ -1704,10 +1711,10 @@ export class GamePage extends PageBase {
         // ③ 换道具 → 收掉「消除」的就绪态（同一时刻只允许一个道具待命）
         if (this._armedErase) this.setArmedErase(false);
 
-        // ④ 有库存就直用；没有 → 看广告 / 分享
-        const run = currentRun();
-        const n = run ? (run.items[id as keyof typeof run.items] ?? 0) : 0;
-        if (n <= 0) { this.openAd(id); return; }
+        // ④ 有库存就直用；两本账都空 → 看广告 / 分享
+        //   ⚠️ 这里必须看 `itemStock()`（赠礼 + 跨局库存）。曾经只看 `currentRun()`，
+        //     于是商城/签到领来的道具**按了会被推去看广告** —— 明明账上有货。
+        if (itemStock(id as ToolKey) <= 0) { this.openAd(id); return; }
 
         // ⑤ ★ **「消除」两段式 —— 库存不在这里扣**（扣在 `eraseSlotAt()`）：
         //   这一步只把键推进就绪态，"点了键但没选牌"不该算用掉一次。
@@ -1721,7 +1728,7 @@ export class GamePage extends PageBase {
         }
 
         if (!this.applyTool(id)) return;
-        useRunItem(id as never);
+        consumeItem(id as ToolKey);
         this.afterToolUsed(id);
         this.nudgeReset();     // 玩家动过了 → "发呆"计时重新开始
     }
@@ -1730,7 +1737,7 @@ export class GamePage extends PageBase {
      * 执行一个道具（**不扣库存**）。
      *
      * 库存扣减刻意留给调用方，因为三条路径的规矩不同：
-     *   · 走库存（`useTool`）→ 调 `useRunItem`
+     *   · 走库存（`useTool`）→ 调 `consumeItem()`（赠礼优先、其次跨局库存）
      *   · 走广告 / 分享（`closeAd`）→ **不扣** —— 它本来就不进库存
      *   · 「消除」→ 谁都不在这儿扣，真正的扣减在 `eraseSlotAt()`（"选牌"才算用掉）
      */
@@ -2133,7 +2140,7 @@ export class GamePage extends PageBase {
 
         // ③ 真正生效之后才扣库存 —— **且只在"这次就绪态是靠自己库存点开的"时才扣**。
         //   走广告 / 分享拿到的那一次从没进过库存，扣了就是凭空虚扣玩家一个道具。
-        if (fromStock) useRunItem(TOOL.ERASE as never);
+        if (fromStock) consumeItem(TOOL.ERASE);
         this.refreshTools();
 
         this.timer(320, () => {
@@ -3016,8 +3023,8 @@ export class GamePage extends PageBase {
     //  【为什么 `abort` / `fail` 一律不发】见 `AdService` 文件头：这是判据不是体验 ——
     //    "关掉了也算数"会让"看广告"这个行为失去意义。
 
-    /** 替身广告面板的结算函数（null = 没有面板开着）；配 `settleAdPanel()` 用 */
-    private _adPanelResolve: ((o: AdOutcome) => void) | null = null;
+    /** 正在开着的替身广告面板（null = 没开）；配 `settleAdPanel()` 用 */
+    private _mockAd: MockAdHandle | null = null;
     /** 广告流程进行中（含替身面板）—— 连点保护；`AdService` 自己也有一次保护 */
     private _adBusy = false;
 
@@ -3032,9 +3039,11 @@ export class GamePage extends PageBase {
     /**
      * 替身广告面板（mock 模式专用）。
      *
-     * ⚠️ 界面上**如实标了「演示用 · 当前尚未接入广告位」** ——
-     *   这不是"假装有广告"，而是"没有广告位时让链路可走完"的替身。
-     *   一旦 `CFG.AD.REAL_ENABLED` 打开且配了 adUnitId，这块面板**根本不会被走到**。
+     * ★ 第 56 轮：面板本体抽到 **`ui/AdDialog.ts`** —— 首页「道具商城」要用**同一块**面板，
+     *   各写一份的代价是两处会慢慢长得不一样（秒数 / 文案 / 进度条 / 幂等收口）。
+     *   本页只留两件"只有本页才有"的事：
+     *     ① 播之前把 `_paused` 置上、引导环收掉；
+     *     ② 拿到结局后复位 `_paused`（**少一次复位就是整页卡死** —— T08 的核心判据）。
      */
     private openMockAdPanel(ui: { title: string; icon?: string; sub: string; seconds: number }): Promise<AdOutcome> {
         const top = this._topLayer;
@@ -3045,83 +3054,30 @@ export class GamePage extends PageBase {
         this._paused = true;
         this.hideNudgeGlow();                 // 引导环先收掉，别压在弹层上
 
-        const vs = this.visible();
-        const layer = createNode('AdPanel', top, { w: 1, h: 1 });
-        layer.addComponent(UIOpacity).opacity = 0;
-
-        const { g: sg } = createGraphicsNode('Scrim', layer, { w: vs.width, h: vs.height });
-        fillRoundRect(sg, 0, 0, vs.width * 1.4, vs.height * 1.4, 0, '#000000', 214);
-
-        // ⚠️ 卡高 600 → **520**：旧版多出来的 80 是给「分享给好友」那颗按钮的，
-        //    该按钮已按合规口径删除 ⇒ 一并收回。改这里必须同步改下面每个 y
-        //    （卡片是**居中**的，y 一错就会戳出卡外，且不会有任何报错）。
-        const CW = 560, CH = 520;
-        const card = createNode('AdCard', layer, { w: CW, h: CH });
-        const { g: cg } = createGraphicsNode('Bg', card, { w: CW, h: CH });
-        fillRoundRect(cg, 0, 0, CW, CH, 40, 'rgba(9,18,13,0.98)', 255);
-        strokeRoundRect(cg, 0, 0, CW, CH, 40, 'rgba(246,196,69,0.30)', 2.5, 255);
-
-        createLabel(card, ui.title, {
-            fontSize: 38, color: COLOR.CREAM, bold: true, serif: true, w: 520, h: 48, y: 208,
-        });
-        if (ui.icon) createSprite(card, 'Icon', { path: ui.icon, aspectW: 96, y: 112 });
-        createLabel(card, ui.sub, {
-            fontSize: 30, color: COLOR.GOLD_HI, bold: true, w: 520, h: 40, y: ui.icon ? 38 : 96,
-        });
-
-        const bar = createNode('Bar', card, { w: 400, h: 16, y: -16 });
-        const bg = bar.addComponent(GraphicsCtor);
-        const secLabel = createLabel(card, String(ui.seconds), {
-            fontSize: 24, color: COLOR.CREAM_MUTE, w: 520, h: 30, y: -52,
-        });
-        createLabel(card, '演示用 · 当前尚未接入广告位', {
-            fontSize: 20, color: COLOR.CREAM_MUTE, w: 540, h: 28, y: -110,
-        });
-        this.panelButton(card, -190, '跳过', 'ghost', () => this.settleAdPanel('abort'));
-
-        MotionFx.fadeTo(layer.getComponent(UIOpacity), 255, 0.22);
-
         return new Promise<AdOutcome>((resolve) => {
-            this._adPanelResolve = resolve;
-            const total = Math.max(1, ui.seconds);
-            let left = total;
-            // 进度由 `timers` 驱动，状态不依赖 tween 回调（同旧版，理由不变）
-            const paint = (): void => {
-                drawProgressBar(bg, 1 - left / total, 400, 16, 8, 'rgba(255,247,230,0.12)', COLOR.GOLD_HI, COLOR.GOLD);
-            };
-            paint();
-            const step = (): void => {
-                if (!layer.isValid) { this.settleAdPanel('fail'); return; }
-                left -= 0.1;
-                if (left <= 0) { this.settleAdPanel('end'); return; }
-                paint();
-                if (secLabel.isValid) secLabel.string = String(Math.ceil(left));
-                this.timer(100, step);
-            };
-            this.timer(100, step);
+            this._mockAd = openMockAdDialog({
+                parent: top,
+                name: 'AdPanel',
+                ui,
+                schedule: (ms, cb) => this.timer(ms, cb),
+                onSettle: (o) => {
+                    this._mockAd = null;
+                    this._paused = false;      // ★ 必须复位，否则整页卡死
+                    resolve(o);
+                },
+            });
         });
     }
 
     /**
-     * 关闭替身广告面板并结算。**无论从哪条路来都只结算一次**（幂等）。
+     * 关闭替身广告面板并结算。**无论从哪条路来都只结算一次**（幂等）——
+     * 现在这一步由 `AdDialog` 的 `settle()` 负责，本方法只是**转发**。
      *
-     * ⚠️ `_paused = false` 必须在这里做 —— 少一次复位就是**整页卡死**
+     * ⚠️ `_paused = false` 走 `openMockAdPanel` 的 `onSettle` —— 少一次复位就是**整页卡死**
      *   （所有触摸都被 `_paused` 挡住，玩家只能杀进程）。这条是 T08 的核心判据。
      */
     private settleAdPanel(outcome: AdOutcome): void {
-        const r = this._adPanelResolve;
-        if (!r) return;                        // 没面板开着 ⇒ 幂等返回
-        this._adPanelResolve = null;
-
-        this._paused = false;
-        const l = this._topLayer?.getChildByName('AdPanel');
-        if (l?.isValid) {
-            const op = l.getComponent(UIOpacity)!;
-            MotionFx.fadeTo(op, 0, 0.2);
-            const dead = l;
-            this.timer(240, () => { if (dead.isValid) dead.destroy(); });
-        }
-        r(outcome);
+        this._mockAd?.settle(outcome);
     }
 
     /**
@@ -3357,6 +3313,23 @@ export class GamePage extends PageBase {
                 const run = currentRun();
                 return run ? { ...run.items } : null;
             },
+            /**
+             * **道具可用总数快照** = 本局赠礼 + 跨局库存（`itemStock()` 逐个取）。
+             *
+             * 【为什么要与 `runItems` 分开留两个接口】第 57 轮三的 bug 正是
+             *   "角标只画了半本账"。只留 `runItems` 的话，断言会**跟着代码一起错**
+             *   （判据 8：现状即期望）—— 必须有一个"玩家真正能用的总数"可断言。
+             */
+            stock: () => {
+                const out: Record<string, number> = {};
+                for (const id of TOOL_ORDER) out[id] = itemStock(id);
+                return out;
+            },
+            /**
+             * **跨局库存快照**（`SaveService.inventory`，商城 / 签到那本账）。
+             * 与 `runItems` 一起才能把"消耗的是哪一本账"验清楚（赠礼优先）。
+             */
+            saveStock: () => ({ ...SaveService.instance.data.inventory }),
             /**
              * ⚠️ **仅调试用**：给本局道具栏补货。
              *

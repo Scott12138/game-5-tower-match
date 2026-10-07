@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>game-5 · 道具商城 · 视觉稿 v1（待拍板）</title>
+<title>game-5 · 道具商城 · 视觉稿 v2（第 56 轮 · 已验收通过）</title>
 <style>
 /* ============================================================
    设计令牌 —— 全量沿用《六页视觉稿 v2 · 墨绿典藏》，**不引入任何新色**。
@@ -59,14 +59,16 @@ body{
   text-shadow:3px 0 0 var(--ink),-3px 0 0 var(--ink),0 3px 0 var(--ink),0 -3px 0 var(--ink),
     2px 2px 0 var(--ink),-2px -2px 0 var(--ink),0 8px 0 #5C361D,0 14px 20px rgba(0,0,0,.5)}
 
-/* 说明行：文案 + 今日剩余次数的玉质刻度点 */
+/* 说明行：纯文案（★ v2：刻度点已按用户拍板删除） */
 .shopSub{display:flex;align-items:center;justify-content:center;gap:18px;
   margin:8px 0 30px;font-size:26px;color:var(--cream-dim);letter-spacing:2px}
-.pips{display:flex;gap:12px}
-.pips i{width:26px;height:26px;border-radius:50%;
-  background:radial-gradient(circle at 34% 30%,var(--gold-hi),var(--gold) 62%,var(--gold-deep));
-  border:2.5px solid #8A5A10;box-shadow:0 3px 6px rgba(0,0,0,.4),inset 0 2px 3px rgba(255,255,255,.65)}
-.pips i.off{background:#0D2C22;border-color:rgba(255,255,255,.28);box-shadow:inset 0 2px 4px rgba(0,0,0,.5)}
+
+/* ★ v2 新增：行尾操作列 = 按钮 + 一行剩余次数文字 */
+/*  为什么把"还剩几次"放到**每行自己**：A3 的口径是「每种道具 2 次/日」，
+    不是"总共 2 次" ⇒ 一个全局计数器在语义上就是错的（领了消除会占掉洗牌的名额）。*/
+.rowAct{display:flex;flex-direction:column;align-items:center;gap:8px;flex:none;width:190px}
+.rowLeft{font-size:21px;color:var(--cream-dim);letter-spacing:1px;white-space:nowrap}
+.rowLeft.off{color:#8FA79A}
 
 /* ============ 道具行 ============ */
 .shopRow{display:flex;align-items:center;gap:20px;height:142px;padding:0 22px;
@@ -109,7 +111,7 @@ body{
 <body>
 
 <div class="hd">
-  <h1>game-5 · 首页左列「道具商城」<em>视觉稿 v1 · 待拍板</em></h1>
+  <h1>game-5 · 首页左列「道具商城」<em>视觉稿 v2 · 已验收通过（第 56 轮）</em></h1>
   <p>
     六页视觉稿里没有这一页 —— 本稿是新增的第 ⑦ 个弹层。画布 <b>750×1334 设计值 1:1</b>，坐标可直接抄进 Cocos 工程。
     设计令牌 <b>全量沿用「墨绿典藏」，不引入任何新色</b>；道具图标用的是<b>已定稿</b>的 <code>icon_tool_*.png</code> 四件套真图。
@@ -120,6 +122,7 @@ body{
     <span class="chip">圆角 36px</span>
     <span class="chip">行高 142 · 间距 16</span>
     <span class="chip">弹层 626 宽 · top 250</span>
+    <span class="chip">每件 2 次/日 · 行内文字计数</span>
   </div>
 </div>
 
@@ -127,15 +130,14 @@ body{
 
 <!-- 稿 A · 常态 -->
 <div class="wrap">
-  <div class="cap">稿 A · 常态<small>今日 3 次未用，四件都可领</small></div>
+  <div class="cap">稿 A · 常态<small>每件各 2 次未用，四件都可领</small></div>
   <div class="frame"><div class="screen" id="shopA">
     <div class="felt"></div>
     <div class="dim"></div>
     <div class="shopmodal">
       <div class="shopTitle">道具商城</div>
       <div class="shopSub">
-        <span>看广告免费领 · 今日还可</span>
-        <span class="pips"><i></i><i></i><i></i></span>
+        <span>看广告免费领</span>
       </div>
 
       <div class="shopRow">
@@ -144,7 +146,7 @@ body{
           <div class="rowName">消除</div>
           <div class="rowStock">当前持有 <b>2</b></div>
         </div>
-        <div class="btnLite">免费领</div>
+        <div class="rowAct"><div class="btnLite">免费领</div><div class="rowLeft">今日还可 2 次</div></div>
       </div>
 
       <div class="shopRow">
@@ -153,7 +155,7 @@ body{
           <div class="rowName">移出</div>
           <div class="rowStock">当前持有 <b>0</b></div>
         </div>
-        <div class="btnLite">免费领</div>
+        <div class="rowAct"><div class="btnLite">免费领</div><div class="rowLeft">今日还可 2 次</div></div>
       </div>
 
       <div class="shopRow">
@@ -162,7 +164,7 @@ body{
           <div class="rowName">洗牌</div>
           <div class="rowStock">当前持有 <b>1</b></div>
         </div>
-        <div class="btnLite">免费领</div>
+        <div class="rowAct"><div class="btnLite">免费领</div><div class="rowLeft">今日还可 2 次</div></div>
       </div>
 
       <div class="shopRow">
@@ -171,7 +173,7 @@ body{
           <div class="rowName">加槽</div>
           <div class="rowStock">当前持有 <b>0</b></div>
         </div>
-        <div class="btnLite">免费领</div>
+        <div class="rowAct"><div class="btnLite">免费领</div><div class="rowLeft">今日还可 2 次</div></div>
       </div>
 
       <div class="shopClose">关闭</div>
@@ -179,17 +181,16 @@ body{
   </div></div>
 </div>
 
-<!-- 稿 B · 冷却态 -->
+<!-- 稿 B · 冷却态（★ 逐件独立 —— 这是新口径最该看的一屏） -->
 <div class="wrap">
-  <div class="cap">稿 B · 冷却态<small>今日 3 次用完</small></div>
+  <div class="cap">稿 B · 冷却态（逐件独立）<small>消除领满 2 次，其余三件照样能领</small></div>
   <div class="frame"><div class="screen" id="shopB">
     <div class="felt"></div>
     <div class="dim"></div>
     <div class="shopmodal">
       <div class="shopTitle">道具商城</div>
       <div class="shopSub">
-        <span>今日次数已用完 · 明天再来</span>
-        <span class="pips"><i class="off"></i><i class="off"></i><i class="off"></i></span>
+        <span>看广告免费领</span>
       </div>
 
       <div class="shopRow">
@@ -198,7 +199,7 @@ body{
           <div class="rowName">消除</div>
           <div class="rowStock">当前持有 <b>3</b></div>
         </div>
-        <div class="btnLite cool">明日再来</div>
+        <div class="rowAct"><div class="btnLite cool">明日再来</div><div class="rowLeft off">今日已领完</div></div>
       </div>
 
       <div class="shopRow">
@@ -207,7 +208,7 @@ body{
           <div class="rowName">移出</div>
           <div class="rowStock">当前持有 <b>1</b></div>
         </div>
-        <div class="btnLite cool">明日再来</div>
+        <div class="rowAct"><div class="btnLite">免费领</div><div class="rowLeft">今日还可 1 次</div></div>
       </div>
 
       <div class="shopRow">
@@ -216,7 +217,7 @@ body{
           <div class="rowName">洗牌</div>
           <div class="rowStock">当前持有 <b>2</b></div>
         </div>
-        <div class="btnLite cool">明日再来</div>
+        <div class="rowAct"><div class="btnLite">免费领</div><div class="rowLeft">今日还可 2 次</div></div>
       </div>
 
       <div class="shopRow">
@@ -225,7 +226,7 @@ body{
           <div class="rowName">加槽</div>
           <div class="rowStock">当前持有 <b>1</b></div>
         </div>
-        <div class="btnLite cool">明日再来</div>
+        <div class="rowAct"><div class="btnLite">免费领</div><div class="rowLeft">今日还可 2 次</div></div>
       </div>
 
       <div class="shopClose">关闭</div>
@@ -245,16 +246,18 @@ body{
     <li>下面留了「四宫格」这条路 —— 若你要更饱满的观感，我改一版给你比。</li>
   </ul>
 
-  <h3>② 「今日还可 n」用刻度点，不用「3/3」</h3>
+  <h3>② ★ v2 改动：「今日还可 n」改用<b>纯文字</b>（刻度点已删）</h3>
   <ul>
-    <li>3 个玉质点是本稿唯一的记忆点：<b>领一次灭一个</b>，一眼看出还剩几次，也不用读数字。</li>
-    <li>点灭之后仍是"看得见的坑"，比把 1/3 换成 0/3 更直观。</li>
+    <li><b>v1 画的是"顶部 3 个玉质刻度点"</b>，那对应的是旧口径「总的 3 次/日」。</li>
+    <li><b>第 56 轮口径改成「每种道具 2 次/日」</b> ⇒ 一个全局计数器在语义上就是错的：
+      「消除」领满不该占掉「洗牌」的名额。所以计数<b>下沉到每一行</b>。</li>
+    <li>你已拍板：<b>不用刻度点，用纯文字「今日还可 n 次」</b> —— 每行一行小字，不占横向空间、也不会出现"2 个点"看起来比"3 个点"寒酸的问题。</li>
   </ul>
 
-  <h3>③ 用完次数时按钮<b>变暗禁用</b>，不是藏起来</h3>
+  <h3>③ 某件领满时<b>只暗这一行</b>，其余行照旧</h3>
   <ul>
-    <li>藏起来玩家会以为"商城坏了 / 功能没了"；变暗 + 文案「明日再来」才是"今天到此为止，明天还来"。</li>
-    <li>稿 B 就是这个态 —— 请连它一起看，别看稿 A 就拍。</li>
+    <li>按钮变暗 + 文案「明日再来」，行内小字变「今日已领完」——<b>不是藏起来</b>（藏起来会被当成"商城坏了"）。</li>
+    <li><b>稿 B 是逐件独立的</b>：只把「消除」打到冷却，其余三件仍可领。这一屏最能说明新口径 —— 请连它一起看，别看稿 A 就拍。</li>
   </ul>
 
   <h3>④ 文案口径（合规，不能改）</h3>
@@ -263,10 +266,13 @@ body{
     <li>页面里<b>不出现</b>任何"充值 / 内购 / 代币 / 钻石"字样 —— 个人主体开不了虚拟支付，商城只有"看广告"这一条路。</li>
   </ul>
 
-  <h3>⑤ 还需要你拍板的两个口径（写在稿上，等你定）</h3>
+  <h3>⑤ 口径已定（第 56 轮 · 用户拍板）</h3>
   <ul>
-    <li><b>频次怎么算</b>：设计规则写的是「与局内共用每日频次计数」，但总表里 A2（局内换道具）是"<b>每道具 1 次/日</b>"、A3（本商城）是"<b>3 次/日</b>"。这两个数不能同时成立，除非明确"共用的是同一个池子"。→ <b>待你定</b>。</li>
-    <li><b>每日多少次</b>：本稿按 <b>3 次/日</b> 出（总表建议值）。若要改成 5 次，只需改刻度点个数，版式不动。</li>
+    <li><b>频次</b>：A2 局内换道具 <b>不限次数</b>；A3 本商城 <b>每种道具 2 次/日</b>。
+      ⇒ 旧文档那句「局内与商城共用每日频次计数」<b>已作废</b>（一个不限、一个限量，共用一个池子讲不通）。</li>
+    <li><b>代码唯一真源</b>：<code>CFG.AD_QUOTA.SHOP_PER_TOOL_PER_DAY = 2</code>（计数键 = 道具名，四件套 ⇒ 单日最多 8 次）。
+      本稿与它不一致时<b>以代码为准</b>。</li>
+    <li>本页已<b>验收通过</b>；接下来是把它实装进 Cocos（<code>T14</code>）。</li>
   </ul>
 </div>
 

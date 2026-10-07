@@ -15,19 +15,25 @@
  * ============================================================
  */
 
-import { Graphics, Node, SubContextView, UIOpacity, UITransform, _decorator, tween, v3 } from 'cc';
+import { Graphics, Label, Node, SubContextView, Tween, UIOpacity, UITransform, _decorator, tween, v3 } from 'cc';
 
-import { ASSET, BTN_PRIMARY, COLOR, DEVICE, FIT, GAME, HOME_FN, PAGE } from '../CFG';
+import {
+    AD, AD_QUOTA, ASSET, BTN_PRIMARY, COLOR, DEVICE, FIT, GAME, HOME_FN, PAGE, SFX, SIGN,
+    TOOL_ICON, TOOL_META, TOOL_ORDER, type ToolKey,
+} from '../CFG';
 import { PageBase } from './PageBase';
 import { MotionFx } from './MotionFx';
 import { AudioService } from './AudioService';
 import { SaveService } from '../core/SaveService';
 import { RankService } from '../core/RankService';
 import { ShareService } from '../core/ShareService';
+import { AdService, type AdOutcome } from '../core/AdService';
+// 替身广告面板（与主玩页**同一块** —— 见 `ui/AdDialog.ts` 文件头「为什么要有它」）
+import { openMockAdDialog } from './AdDialog';
 import {
     confirmDialog, createCoverSprite, createGraphicsNode, createLabel, createNode, createScrim,
-    createSprite, fillRadialGlowE, fillRays, fillRoundRect, fillSoftBeam, fillVGradient, fitY,
-    fromBottom, fromTop, strokeRoundRect, toast,
+    createSprite, estTextWidth, fillCircle, fillRadialGlowE, fillRays, fillRoundRect, fillSoftBeam,
+    fillVGradient, fitY, fromBottom, fromTop, strokeCircle, strokeRoundRect, toast,
 } from './UIFactory';
 import { hex2color } from './Palette';
 import { Haptics } from './Haptics';
@@ -129,6 +135,303 @@ const RANK_TOP_PAD = 12;
 const RANK_BAR_H = 130;
 /** 卡宽 = 画布宽 + 左右各 12 */
 const RANK_CARD_W = RANK_ODC_W + 24;
+
+// ------------------------------------------------------------
+//  道具商城弹层几何（★ 第 56 轮 · T14）
+// ------------------------------------------------------------
+//  逐项照 `game-5-道具商城-视觉稿-v1.html` 的 `.shopmodal / .shopRow / .btnLite`
+//  （设计稿 750×1334 值，1:1 可直接抄）。该稿第 56 轮已按用户拍板改过一版：
+//  **「今日剩余」删掉刻度点、改成行内纯文字**（口径 = 每种道具 2 次/日）。
+//
+//  ★ 卡高**不写死**，由下面这些数推出来 —— 改任何一段间距它都会自动跟着变。
+//    写死高度的下场是"改了行高，底部那条边戳出卡外，而截图之外看不出来"。
+const SHOP_CARD_W = 626;
+const SHOP_PAD_X = 40;
+/** 行宽 = 卡宽 − 左右内边距（= 546） */
+const SHOP_ROW_W = SHOP_CARD_W - SHOP_PAD_X * 2;
+const SHOP_ROW_H = 142;
+const SHOP_ROW_GAP = 16;
+const SHOP_ROW_R = 22;
+const SHOP_ROW_PAD_X = 22;
+const SHOP_ROW_ICON = 96;
+/** 图标 → 文字列 的横向间隙 */
+const SHOP_ROW_GAP_ICON = 20;
+/** 行尾「按钮 + 剩余次数文字」这一列的总宽 */
+const SHOP_ACT_W = 190;
+const SHOP_BTN_W = 190;
+const SHOP_BTN_H = 78;
+const SHOP_NAME_FS = 30;
+const SHOP_STOCK_FS = 22;
+const SHOP_LEFT_FS = 21;
+const SHOP_SUB_FS = 26;
+const SHOP_TITLE_FS = 74;
+const SHOP_TOP_PAD = 56;
+const SHOP_SUB_GAP_TOP = 8;
+const SHOP_SUB_H = 34;
+const SHOP_SUB_GAP_BOTTOM = 30;
+const SHOP_CLOSE_H = 84;
+const SHOP_CLOSE_GAP = 24;
+const SHOP_BOTTOM_PAD = 36;
+const SHOP_CARD_H = SHOP_TOP_PAD + SHOP_SUB_GAP_TOP + SHOP_SUB_H + SHOP_SUB_GAP_BOTTOM
+    + SHOP_ROW_H * 4 + SHOP_ROW_GAP * 3 + SHOP_CLOSE_GAP + SHOP_CLOSE_H + SHOP_BOTTOM_PAD;
+
+/**
+ * 画行尾那颗小号金按钮（常态 / 冷却态两态）。
+ *
+ * ⚠️ 冷却态是**变暗禁用**，不是把按钮藏起来 —— 藏起来玩家会以为"商城坏了 / 功能没了"。
+ *    这条与设计说明③是同一句；两态共用同一个 Graphics，所以必须 `clear()` 后重画，
+ *    只改颜色不 clear 会把两种状态叠在一起（而且看着只是"有点脏"，很难归因）。
+ */
+function paintShopButton(g: Graphics, cool: boolean): void {
+    g.clear();
+    const W = SHOP_BTN_W, H = SHOP_BTN_H, r = H / 2;
+    if (cool) {
+        fillRoundRect(g, 0, -6, W, H, r, '#16211B', 255);
+        fillVGradient(g, 0, 0, W, H, r, '#3A4A42', '#25332C', 18);
+        strokeRoundRect(g, 0, 0, W, H, r, '#1A2620', 3, 255);
+    } else {
+        fillRoundRect(g, 0, -6, W, H, r, '#9A6A15', 255);
+        fillVGradient(g, 0, 0, W, H, r, '#FFE08A', '#E8A92E', 18);
+        strokeRoundRect(g, 0, 0, W, H, r, '#8A5A10', 3, 255);
+    }
+}
+// ------------------------------------------------------------
+//  七日签到弹层几何（★ 第 57 轮 · T11）
+// ------------------------------------------------------------
+//  逐值照 `game-5-七日签到-视觉稿-v1.html` 的 `.signmodal / .cells / .cell / .claim`
+//  （设计稿 750×1334 值，1:1 可直接抄）。该稿第 57 轮出稿，用户拍板取 **稿 A**。
+//
+//  ★★ **稿 A = 「领取」胶囊骑在当天格子的下沿**（格子自己就是按钮），
+//     不是底部另起一颗大按钮（那是稿 B，已弃）。见下面 `SIGN_CLAIM_*` 的落点说明。
+//
+//  ★ 卡高**不写死**，由各段推出来（与道具商城同一手法）：写死高度的下场是
+//    "改了行距、底部那条边戳出卡外，而截图之外看不出来"。
+const SIGN_CARD_W = 626;
+const SIGN_PAD_X = 40;
+/** 内容宽 = 卡宽 − 左右内边距 = **546** */
+const SIGN_GRID_W = SIGN_CARD_W - SIGN_PAD_X * 2;
+const SIGN_TOP_PAD = 56;
+const SIGN_SUB_GAP_TOP = 8;
+/**
+ * 副标题行高。
+ * ⚠️ 取 **39** 而不是商城那个 34 —— 39 是视觉稿里 `.signSub` 的**实测渲染高**
+ *   （26 号字的行框）。用 39 推出来的卡高正好是 **663**，与稿子逐像素一致；
+ *   若照抄商城的 34，卡会矮 5px —— 而这一点**截图上看不出来**，只有对账才暴露。
+ */
+const SIGN_SUB_H = 39;
+const SIGN_SUB_GAP_BOTTOM = 30;
+
+const SIGN_CELL_W = 126;
+const SIGN_CELL_H = 176;
+const SIGN_CELL_R = 22;
+const SIGN_CELL_GAP_X = 14;
+const SIGN_CELL_GAP_Y = 34;
+/** 第 7 日的宽格 = 下排剩多少占多少（546 − 2×(126+14) = **266**） */
+const SIGN_WIDE_W = 266;
+
+/** 距格顶 `d` 的元素**中心** → 格内 y（格锚点 0.5,0.5 ⇒ 格中心 y = 0） */
+function cellY(centerFromTop: number): number { return SIGN_CELL_H / 2 - centerFromTop; }
+
+// ---- 格内竖向节奏（全部来自视觉稿**实测**，不是从 CSS 硬推）----
+//  ⚠️ `.ic` 在稿里写的是 `height:80`，但实测渲染只有 **68**（flex 竖向挤压）；
+//     这里的 68 是"眼睛看到的那个数"。照 80 排会让图标整体高 12px，
+//     而 4+3 网格里格子是紧的，这 12px 会顶到名称行。
+const SIGN_DAY_Y = cellY(33);        // 「第 N 天」中心距格顶 19+28/2 = 33
+const SIGN_IC_Y = cellY(89);         // 图标中心距格顶 55+68/2 = 89
+const SIGN_NAME_Y = cellY(139);      // 名称中心距格顶 123+32/2 = 139（= 格底往上 21+16）
+const SIGN_TICK_Y = cellY(164);      // 青玉勾中心距格顶 148+32/2 = 164
+
+// ---- ★★ 「领取」胶囊：用户拍板的**稿 A 落点**，这里是它的唯一真源 ----
+const SIGN_CLAIM_W = 83;
+const SIGN_CLAIM_H = 42;
+/** 胶囊底边**越过格底**多少（设计 px） */
+const SIGN_CLAIM_DROP = 19;
+/**
+ * ★★ 为什么是 **19** 而不是视觉稿 CSS 里写的 `bottom:-22px`：
+ *     那 22 是相对 `.cell` 的 **padding box** 量的，而 `.cell` 自带 `border:3px`
+ *     ⇒ 视觉上越过**可见外沿**只有 22 − 3 = **19**。
+ *     引擎这边我们用 `strokeRoundRect` 画格框（**描边不吃尺寸**，没有 border box 那一层），
+ *     所以必须取 19 才和稿子逐像素一致。
+ *     ⚠️ 若照抄 22：胶囊整体往下挪 3px，单看"也没啥"，
+ *       但它与下一行格顶的余量会被吃掉 3px —— 属于**累积型**偏差，越改越偏。
+ */
+const SIGN_CLAIM_Y = -SIGN_CELL_H / 2 - SIGN_CLAIM_DROP + SIGN_CLAIM_H / 2;   // −86
+/** 青玉勾的水平偏移（稿实测：勾心在格心右侧 51） */
+const SIGN_TICK_X = 51;
+
+const SIGN_DAY_FS = 20;
+const SIGN_DAY_H = 28;
+const SIGN_IC_SINGLE = 68;
+const SIGN_IC_DUO = 46;
+const SIGN_IC_DUO_GAP = 4;
+const SIGN_NAME_FS = 21;
+const SIGN_NAME_FS_WIDE = 24;
+const SIGN_NAME_H = 32;
+const SIGN_FUTURE_OPACITY = 133;     // 「未到」整格压到 52%（= 133/255）
+
+const SIGN_CLOSE_H = 84;
+const SIGN_CLOSE_GAP = 24;
+/** 关闭键左右各内缩 30（稿：`margin:24px 30px 0`） */
+const SIGN_CLOSE_INSET = 30;
+const SIGN_CLOSE_W = SIGN_GRID_W - SIGN_CLOSE_INSET * 2;
+const SIGN_BOTTOM_PAD = 36;
+const SIGN_TITLE_FS = 74;
+const SIGN_TITLE_H = 100;
+/** 标题框中心比卡顶边**低** 7.5（稿实测 `top:-44` + 高 103 ⇒ 中心在卡顶下 7.5） */
+const SIGN_TITLE_DROP = 8;
+
+/** 两行网格净高 = 176×2 + 34 = **386**（多出一行会变成 596 —— 验收脚本就靠这个数抓换行） */
+const SIGN_GRID_H = SIGN_CELL_H * 2 + SIGN_CELL_GAP_Y;
+/** 推导式卡高 ⇒ **663**（与视觉稿逐像素一致，见 `tools/_r57-signcard-check.mjs`） */
+const SIGN_CARD_H = SIGN_TOP_PAD + SIGN_SUB_GAP_TOP + SIGN_SUB_H + SIGN_SUB_GAP_BOTTOM
+    + SIGN_GRID_H + SIGN_CLOSE_GAP + SIGN_CLOSE_H + SIGN_BOTTOM_PAD;
+
+// ---- 第 7 日「四选一」选择器（稿 D）----
+const SIGN_PICK_W = 550;
+const SIGN_PICK_PAD_X = 34;
+const SIGN_PICK_GRID_W = SIGN_PICK_W - SIGN_PICK_PAD_X * 2;   // 482
+const SIGN_PICK_TOP_PAD = 56;
+const SIGN_PICK_SUB_GAP_TOP = 2;
+const SIGN_PICK_SUB_H = 33;
+const SIGN_PICK_SUB_GAP_BOTTOM = 24;
+const SIGN_PICK_CARD_W = 224;
+const SIGN_PICK_CARD_H = 196;
+const SIGN_PICK_CARD_R = 22;
+const SIGN_PICK_GAP = 16;
+const SIGN_PICK_ICON = 76;
+const SIGN_PICK_NAME_FS = 26;
+const SIGN_PICK_TITLE_FS = 60;
+const SIGN_PICK_CARD_H_TOTAL =
+    SIGN_PICK_TOP_PAD + SIGN_PICK_SUB_GAP_TOP + SIGN_PICK_SUB_H + SIGN_PICK_SUB_GAP_BOTTOM
+    + SIGN_PICK_CARD_H * 2 + SIGN_PICK_GAP + SIGN_CLOSE_GAP + SIGN_CLOSE_H + 34;   // 665
+
+/** 副标题文案（**固定**，设计规则 §P1.6 ④：不出现"金币/礼包/分享"字样） */
+const SIGN_SUB_TEXT = '连续签到 7 天，天天有道具';
+const SIGN_SUB_FS = 26;
+/** 连签胶囊（副标题右侧那颗） */
+const SIGN_CHIP_H = 38;
+const SIGN_CHIP_GAP = 14;
+const SIGN_CHIP_FS = 22;
+const SIGN_CHIP_PAD_X = 14;
+
+/** 格子的三种态 */
+type SignCellState = 'done' | 'today' | 'future';
+
+/**
+ * 重画一格的"脸"（三态各一套配色，逐值照视觉稿的 `.cell / .cell.done / .cell.today`）。
+ *
+ * ⚠️ 三态**共用同一个 Graphics**，所以必须 `clear()` 后重画 ——
+ *   只改颜色不 clear 会把两种态叠在一起，而画面看着只是"有点脏 / 颜色深了一档"，
+ *   极难归因（道具商城的冷却态踩过同一个坑）。
+ */
+function paintSignCell(g: Graphics, w: number, h: number, st: SignCellState): void {
+    g.clear();
+    if (st === 'today') {
+        fillVGradient(g, 0, 0, w, h, SIGN_CELL_R, '#2A6E51', '#174E3B', 20);
+        strokeRoundRect(g, 0, 0, w, h, SIGN_CELL_R, COLOR.GOLD, 3, 255);
+    } else if (st === 'done') {
+        fillVGradient(g, 0, 0, w, h, SIGN_CELL_R, '#174E3B', '#0F382A', 20);
+        strokeRoundRect(g, 0, 0, w, h, SIGN_CELL_R, '#3BA97D', 3, 166);   // rgba(59,169,125,.65)
+    } else {
+        fillVGradient(g, 0, 0, w, h, SIGN_CELL_R, '#1E6049', '#144534', 20);
+        strokeRoundRect(g, 0, 0, w, h, SIGN_CELL_R, '#FFFFFF', 3, 36);    // rgba(255,255,255,.14)
+    }
+}
+
+/**
+ * 当天格子的「暖金呼吸」外发光。**呼吸由调用方 tween 这颗节点的 opacity 驱动**，
+ * 这里只管画一层静态的光。
+ *
+ * 【为什么用"由外向内叠实心圆角矩形"是对的方向】
+ *   实心嵌套图形的累积 alpha **必然内深外浅** —— 这与"暗角"的需求方向相反
+ *   （见 `UIFactory.fillVignette` 的留档：暗角**原理上**不能用嵌套实心图形做），
+ *   但**恰好就是外发光要的方向**：贴着格子最亮、往外渐隐。
+ *   而且中间那块会被**不透明的格子脸**盖住，所以实心不会弄脏格内。
+ */
+function paintSignGlow(g: Graphics, w: number, h: number): void {
+    g.clear();
+    for (let i = 6; i >= 0; i--) {
+        const d = i * 6;
+        fillRoundRect(g, 0, 0, w + d * 2, h + d * 2, SIGN_CELL_R + d, COLOR.GOLD, 15);
+    }
+}
+
+/**
+ * 已领格子的青玉勾（稿：32 直径，深色环 3px，白色对勾 19）。
+ * ⚠️ 描边与填充**必须分两个 Graphics**（`fill()/stroke()` 作用于整条路径，
+ *   混在一个节点里会把圆环也描一遍 / 把对勾填成实心）。
+ */
+function paintSignTickFace(g: Graphics): void {
+    g.clear();
+    fillCircle(g, 0, 0, 19, '#0B2017', 230);        // 稿：box-shadow 0 0 0 3px rgba(11,32,23,.9)
+    fillCircle(g, 0, 0, 16, '#3BA97D', 255);       // 稿 --jade（比 CFG.COLOR.JADE 亮一档，照稿取）
+}
+
+/** 勾本身（稿 SVG `M4 10.6 l4.2 4.2 L16 5.4`，20×20 viewBox 渲染到 19 ⇒ ×0.95） */
+function paintSignTickMark(g: Graphics): void {
+    g.clear();
+    g.lineWidth = 3.2;
+    g.lineCap = Graphics.LineCap.ROUND;
+    g.lineJoin = Graphics.LineJoin.ROUND;
+    g.strokeColor = hex2color('#0B2017');
+    g.moveTo(-5.7, -0.6);
+    g.lineTo(-1.7, -4.6);
+    g.lineTo(5.7, 4.4);
+    g.stroke();
+}
+
+/**
+ * 「领取」胶囊的脸（金渐变 + 下沿厚度 + 深金描边），逐值照视觉稿 `.claim`。
+ * ⚠️ 稿 A 里 `.claim` 是**唯一的可交互落点**，所以它的热区必须单独注册 ——
+ *   胶囊有一半在格子**外面**，只注册格子的话那半颗点不动。
+ */
+function paintSignClaim(g: Graphics): void {
+    g.clear();
+    const W = SIGN_CLAIM_W, H = SIGN_CLAIM_H, r = H / 2;
+    fillRoundRect(g, 0, -4, W, H, r, '#9A6A15', 255);            // 稿：0 4px 0 #9A6A15
+    fillVGradient(g, 0, 0, W, H, r, '#FFE08A', '#E8A92E', 14);
+    strokeRoundRect(g, 0, 0, W, H, r, '#8A5A10', 3, 255);
+}
+
+/** 网格列心（相对网格中心）：4 格时 63−273 = −210 / −70 / +70 / +210 */
+function signColX(i: number): number {
+    return -SIGN_GRID_W / 2 + SIGN_CELL_W / 2 + i * (SIGN_CELL_W + SIGN_CELL_GAP_X);
+}
+/** 网格行心（相对网格中心）：上排 +105 / 下排 −105 */
+function signRowY(r: number): number {
+    return SIGN_GRID_H / 2 - SIGN_CELL_H / 2 - r * (SIGN_CELL_H + SIGN_CELL_GAP_Y);
+}
+/** 第 7 日宽格的横向中心：从第 3 列左缘起、占满到网格右缘（266 宽 ⇒ 中心 +140） */
+function signWideX(): number {
+    return -SIGN_GRID_W / 2 + 2 * (SIGN_CELL_W + SIGN_CELL_GAP_X) + SIGN_WIDE_W / 2;
+}
+
+/** 一格底部那行奖励文案（逐字照稿：`消除 ×1` / `各 ×1` / `任选 1 种 × 2`） */
+function signRewardText(day: number): string {
+    const r = SIGN.DAYS[day - 1];
+    if (r.pick) return `任选 1 种 × ${SIGN.PICK_N}`;
+    if (r.items.length === 1) return `${TOOL_META[r.items[0].tool].name} ×${r.items[0].n}`;
+    return `各 ×${r.items[0].n}`;
+}
+
+/** 一格签到格的引用（重画三态时要用到全部这些件） */
+interface SignCellRef {
+    day: number;
+    node: Node;
+    face: Graphics;
+    /** 当天才显示的暖金呼吸光（`glowOp` 用来做呼吸 tween） */
+    glow: Node | null;
+    glowOp: UIOpacity | null;
+    /** 已领才显示的青玉勾 */
+    tick: Node | null;
+    /** 当天才显示的「领取」胶囊 */
+    claim: Node | null;
+    dayLabel: Label;
+    nameLabel: Label;
+    op: UIOpacity;
+}
+
+
 /** 内容左右边距 → 行宽 = DW − 2×PAD = 654；四行共用同一个左缘与右缘 */
 const SHEET_PAD = 48;
 const SHEET_ROW_W = DW - SHEET_PAD * 2;
@@ -507,14 +810,49 @@ export class HomePage extends PageBase {
             });
             this.tapable(item, () => {
                 Haptics.light();
-                // ★ 第 53 轮（T17）：**排行榜**入口接线。其余两个留批次 3。
-                // ★ 第 55 轮（T15）：**好友邀战**入口接线。签到 / 商城仍留批次 3。
+                // ★ 第 53 轮（T17）：**排行榜**入口接线。
+                // ★ 第 55 轮（T15）：**好友邀战**入口接线。
+                // ★ 第 56 轮（T14）：**道具商城**入口接线。
+                // ★ 第 57 轮（T13）：**七日签到**入口接线 ⇒ **四枚功能键全部接通**，
+                //   下面那行兜底 `敬请期待` 到此为止是**不可达**的（留着以防将来加第 5 枚）。
                 if (fn.id === 'rank') { this.openRank(); return; }
                 if (fn.id === 'invite') { this.openInvite(); return; }
-                toast(this.body, `${fn.label} 敬请期待`);
+                if (fn.id === 'shop') { this.openShop(); return; }
+                if (fn.id === 'signin') { this.openSignIn(); return; }
+                // ⚠️ 这行**已经不可达**（四键全部接通，TS 会把 `fn` 收窄成 `never`）。
+                //    留着是为了"将来加第 5 枚功能键"时**不会静默无反应** ——
+                //    所以显式断言回原始元素类型，换掉被收窄的 `never`。
+                toast(this.body, `${(fn as (typeof HOME_FN)[number]).label} 敬请期待`);
             });
+
+            // ---- 「今日可领」红点（★ 第 57 轮 · T13b · 稿 E 规格）----
+            //  直径 26 / 圆心落在图标右上角**顶点**（right、top 各偏 −13）⇒ 半内半外；
+            //  朱红填充 + 象牙白描边 3（深绿底上没这圈白会糊成一团）+ 红色外发光。
+            //  ⚠️ 只有「有每日重置次数」的两个入口才配红点（签到 / 商城）；
+            //     排行榜与邀战没有每日限额，给它们加就是**永远亮着的假红点** ——
+            //     而玩家学会忽略红点之后，签到那个**真红点**也一起被忽略。
+            if (fn.id === 'signin' || fn.id === 'shop') {
+                const dot = createNode(`FnDot_${fn.id}`, item, {
+                    w: 26, h: 26, x: FN_ICON / 2 - 13, y: FN_ICON / 2 - 13,
+                });
+                const { g: dg } = createGraphicsNode('Face', dot, { w: 26, h: 26 });
+                // 外发光用两层低 alpha 大圆近似（稿：红 · 半径 10 · 亮度 .85）
+                fillCircle(dg, 0, 0, 18, COLOR.RED, 38);
+                fillCircle(dg, 0, 0, 15, COLOR.RED, 120);
+                // ⚠️ 稿里 `.dot` 是 `26×26 + border:3px` 且 `box-sizing:border-box`
+                //   ⇒ 那圈象牙白是**画在 26 里面**的：红心直径 20、白环占掉外侧 3。
+                fillCircle(dg, 0, 0, 10, COLOR.RED, 255);
+                // 描边**必须另起一个 Graphics** —— `fill()/stroke()` 作用于整条路径，
+                // 同节点里 stroke 会把上面三颗发光圆也描一圈。
+                const { g: rg } = createGraphicsNode('Ring', dot, { w: 26, h: 26 });
+                strokeCircle(rg, 0, 0, 11.5, COLOR.CREAM, 3, 255);
+                dot.active = false;
+                this._fnDots[fn.id] = dot;
+            }
             this.settleIn(item, 0.62);
         });
+        // 红点状态要在四枚都建完之后统一刷一次（顺带把"商城今天还剩几次"算进去）
+        this.refreshFnDots();
     }
 
     // ---- 关卡进度 ----
@@ -866,6 +1204,673 @@ export class HomePage extends PageBase {
         }
         const ok = svc.share(Math.max(1, SaveService.instance.best), 'invite');
         console.log(`[HomePage] 邀战入口：已拉起分享=${ok}`);
+    }
+
+    // ========================================================
+    //  道具商城（★ 第 56 轮新增 · T14）
+    // ========================================================
+    //
+    //  【口径 —— 代码唯一真源 `CFG.AD_QUOTA`（2026-10-07 用户拍板）】
+    //    · A3 本商城 = **每种道具 2 次/日**（计数键带道具名，四件套 ⇒ 单日最多 8 次）；
+    //    · A2 局内「＋」= **不限次数** —— 与本页**各自记账**。
+    //    ⚠️ 设计规则旧版那句「局内与商城**共用每日频次计数**」已作废：
+    //       一个不限、一个限量，共用一个池子在语义上讲不通。
+    //
+    //  【为什么计数必须落盘（不能只放内存）】
+    //    玩家会「领 1 次 → 杀掉小游戏 → 重进 → 再领 1 次」。纯内存计数**当场清零**，
+    //    上限形同虚设，而且**不报错**。所以走 `SaveService` 的每日配额
+    //    （带日期键、读时惰性清零，见 `SaveService.rollDaily()`）。
+    //
+    //  【★ 顺序：先播广告拿到 `end`，再扣配额 + 发货】
+    //    `AdService` 三种结局里只有 `end` 算"看完了"，`abort` / `fail` 一律**不发**。
+    //    反过来先扣次数再播广告 ⇒ 玩家跳过广告也白扣，而且不会有任何报错。
+
+    private _shopLayer: Node | null = null;
+    /** 广告播放中（连点保护；`AdService` 自己也有一次保护） */
+    private _shopBusy = false;
+    /** 每行的可刷新件（领到道具后要重画按钮 + 改两行文字） */
+    private _shopRows: { key: ToolKey; g: Graphics; btnText: Label; left: Label }[] = [];
+
+    private openShop(): void {
+        if (this._shopLayer?.isValid) return;
+
+        const layer = createNode('ShopLayer', this.body, { w: 1, h: 1 });
+        this._shopLayer = layer;
+        layer.addComponent(UIOpacity).opacity = 0;
+        createScrim(layer, 190, () => this.closeShop());
+
+        const card = createNode('ShopCard', layer, { w: SHOP_CARD_W, h: SHOP_CARD_H });
+        const half = SHOP_CARD_H / 2;
+        const { g } = createGraphicsNode('Bg', card, { w: SHOP_CARD_W, h: SHOP_CARD_H });
+        // 外圈深绿描边（视觉稿里的 `box-shadow: 0 0 0 3px #0A3327`）→ 玉质渐变 → 金线 5px
+        strokeRoundRect(g, 0, 0, SHOP_CARD_W + 6, SHOP_CARD_H + 6, 39, '#0A3327', 3, 255);
+        fillVGradient(g, 0, 0, SHOP_CARD_W, SHOP_CARD_H, 36, '#1B6047', '#123F30', 36);
+        strokeRoundRect(g, 0, 0, SHOP_CARD_W, SHOP_CARD_H, 36, COLOR.GOLD, 5, 255);
+
+        // 标题骑在弹层上沿（与结算弹层 ribbonTop 同一手法；中心正落在卡顶边上）
+        createLabel(card, '道具商城', {
+            fontSize: SHOP_TITLE_FS, bold: true, serif: true, color: COLOR.CREAM,
+            w: SHOP_CARD_W, h: 92, y: half, outline: '#4A2B18', outlineWidth: 3,
+        });
+
+        const subY = half - SHOP_TOP_PAD - SHOP_SUB_GAP_TOP - SHOP_SUB_H / 2;
+        createLabel(card, '看广告免费领', {
+            fontSize: SHOP_SUB_FS, color: COLOR.CREAM_DIM, w: SHOP_CARD_W, h: SHOP_SUB_H, y: subY,
+        });
+
+        // ---- 四行道具 ----
+        //  y 由「卡顶 → 依次下推」算出来，不写死：改行高/间距，四行与关闭键一起跟着走
+        const rowTop = half - SHOP_TOP_PAD - SHOP_SUB_GAP_TOP - SHOP_SUB_H - SHOP_SUB_GAP_BOTTOM;
+        this._shopRows = [];
+        TOOL_ORDER.forEach((key, i) => {
+            const cy = rowTop - i * (SHOP_ROW_H + SHOP_ROW_GAP) - SHOP_ROW_H / 2;
+            const row = createNode(`ShopRow_${key}`, card, { w: SHOP_ROW_W, h: SHOP_ROW_H, y: cy });
+            const { g: rg } = createGraphicsNode('Face', row, { w: SHOP_ROW_W, h: SHOP_ROW_H });
+            fillVGradient(rg, 0, 0, SHOP_ROW_W, SHOP_ROW_H, SHOP_ROW_R, '#1E6049', '#144534', 24);
+            strokeRoundRect(rg, 0, 0, SHOP_ROW_W, SHOP_ROW_H, SHOP_ROW_R, 'rgba(255,255,255,0.3)', 3, 255);
+
+            const iconX = -SHOP_ROW_W / 2 + SHOP_ROW_PAD_X + SHOP_ROW_ICON / 2;
+            createSprite(row, 'Icon', { path: TOOL_ICON[key], aspectW: SHOP_ROW_ICON, x: iconX });
+
+            const textX = -SHOP_ROW_W / 2 + SHOP_ROW_PAD_X + SHOP_ROW_ICON + SHOP_ROW_GAP_ICON;
+            const meta = TOOL_META[key];
+            createLabel(row, meta.name, {
+                fontSize: SHOP_NAME_FS, bold: true, color: COLOR.CREAM,
+                alignLeft: true, w: SHOP_ACT_W, h: 38, x: textX, y: 16,
+            });
+            // 「当前持有 n」——数量是**跨局库存**（与局内赠礼那套账分开）
+            createLabel(row, `当前持有 ${SaveService.instance.count(key)}`, {
+                fontSize: SHOP_STOCK_FS, color: COLOR.CREAM_DIM,
+                alignLeft: true, w: SHOP_ACT_W, h: 30, x: textX, y: -18,
+            });
+
+            // 行尾操作列：按钮在上、「今日还可 n 次」在下（★ 用户拍板：不用刻度点）
+            //
+            // ⚠️ 节点名**必须带道具名**（`ShopBtn_erase` 而不是 `Btn`）：
+            //    `__g5t.find(name)` 返回**深度优先的第一个同名节点**，
+            //    四行都叫 `Btn` 的话，验收脚本点"第二行"时实际点到的永远是第一行 ——
+            //    而"逐件独立计数"正好要靠点不同行来验，会直接验不出来。
+            const actX = SHOP_ROW_W / 2 - SHOP_ROW_PAD_X - SHOP_ACT_W / 2;
+            const btn = createNode(`ShopBtn_${key}`, row, { w: SHOP_BTN_W, h: SHOP_BTN_H, x: actX, y: 17 });
+            const { g: bg } = createGraphicsNode('Face', btn, { w: SHOP_BTN_W, h: SHOP_BTN_H });
+            const btnText = createLabel(btn, '免费领', {
+                fontSize: 26, bold: true, color: '#5C3610', w: SHOP_BTN_W - 20, h: SHOP_BTN_H,
+            });
+            const left = createLabel(row, `今日还可 ${AD_QUOTA.SHOP_PER_TOOL_PER_DAY} 次`, {
+                fontSize: SHOP_LEFT_FS, color: COLOR.CREAM_DIM, w: SHOP_ACT_W, h: 26, x: actX, y: -43,
+            });
+            left.node.name = `ShopLeft_${key}`;
+            this.tapable(btn, () => this.claimShopTool(key));
+
+            this._shopRows.push({ key, g: bg, btnText, left });
+        });
+
+        // ---- 关闭 ----
+        const closeW = SHOP_CARD_W - 60;
+        const close = createNode('ShopClose', card, { w: closeW, h: SHOP_CLOSE_H, y: -half + SHOP_BOTTOM_PAD + SHOP_CLOSE_H / 2 });
+        const { g: cg } = createGraphicsNode('Face', close, { w: closeW, h: SHOP_CLOSE_H });
+        fillRoundRect(cg, 0, 0, closeW, SHOP_CLOSE_H, SHOP_CLOSE_H / 2, 'rgba(0,0,0,0.18)', 255);
+        strokeRoundRect(cg, 0, 0, closeW, SHOP_CLOSE_H, SHOP_CLOSE_H / 2, 'rgba(255,247,230,0.55)', 3, 255);
+        createLabel(close, '关闭', { fontSize: 28, bold: true, color: COLOR.CREAM, w: closeW, h: 40 });
+        this.tapable(close, () => this.closeShop());
+
+        this.refreshShopRows();
+        MotionFx.fadeTo(layer.getComponent(UIOpacity)!, 255, 0.22);
+        const st = this._shopRows.map((r) => `${r.key}:${SaveService.instance.dailyLeft(`shop:${r.key}`, AD_QUOTA.SHOP_PER_TOOL_PER_DAY)}`);
+        console.log(`[HomePage] 道具商城已打开（每件上限 ${AD_QUOTA.SHOP_PER_TOOL_PER_DAY}/日 · 剩余 ${st.join(' ')}）`);
+    }
+
+    private closeShop(): void {
+        const l = this._shopLayer;
+        this._shopLayer = null;
+        this._shopRows = [];
+        if (!l?.isValid) return;
+        const op = l.getComponent(UIOpacity)!;
+        MotionFx.fadeTo(op, 0, 0.2);
+        this.timers.add(240, () => { if (l.isValid) l.destroy(); });
+    }
+
+    /** 按当前配额把四行刷成常态 / 冷却态（★ 逐件独立 —— 一件领满不影响其余三件） */
+    private refreshShopRows(): void {
+        const sv = SaveService.instance;
+        const max = AD_QUOTA.SHOP_PER_TOOL_PER_DAY;
+        for (const r of this._shopRows) {
+            const left = sv.dailyLeft(`shop:${r.key}`, max);
+            const can = left > 0;
+            paintShopButton(r.g, !can);
+            r.btnText.string = can ? '免费领' : '明日再来';
+            r.btnText.color = hex2color(can ? '#5C3610' : '#8FA79A');
+            r.left.string = can ? `今日还可 ${left} 次` : '今日已领完';
+            r.left.color = hex2color(can ? COLOR.CREAM_DIM : '#8FA79A');
+        }
+    }
+
+    /**
+     * 点「免费领」：播一次广告 → **只有 `end` 才**扣配额 + 发货。
+     * 广告从哪来与主玩页走同一条判断（`AdService.modeOf`），替身面板也是**同一块**。
+     */
+    private claimShopTool(key: ToolKey): void {
+        if (this._shopBusy) return;
+        const sv = SaveService.instance;
+        const max = AD_QUOTA.SHOP_PER_TOOL_PER_DAY;
+        if (sv.dailyLeft(`shop:${key}`, max) <= 0) {
+            toast(this.body, '今日已领完，明天再来');
+            console.log(`[HomePage] 商城：${key} 今日已领满（${max} 次）`);
+            return;
+        }
+        this._shopBusy = true;
+        const meta = TOOL_META[key];
+        Haptics.light();
+
+        const play = (): Promise<AdOutcome> => {
+            if (AdService.instance.modeOf('tool') === 'real') return AdService.instance.play('tool');
+            const layer = this._shopLayer;
+            if (!layer?.isValid) return Promise.resolve('fail');
+            if (layer.getChildByName('ShopAdPanel')?.isValid) return Promise.resolve('fail');
+            return new Promise<AdOutcome>((resolve) => {
+                openMockAdDialog({
+                    parent: layer,
+                    name: 'ShopAdPanel',
+                    ui: {
+                        title: '获取道具', icon: TOOL_ICON[key],
+                        sub: `▸ ${meta.name} ×1`, seconds: AD.MOCK_SECONDS,
+                    },
+                    schedule: (ms, cb) => this.timers.add(ms, cb),
+                    onSettle: resolve,
+                });
+            });
+        };
+
+        void play().then((o) => {
+            this._shopBusy = false;
+            if (!this._shopLayer?.isValid) return;          // 页面已关：什么都不做
+            if (o !== 'end') {
+                // ★ abort / fail 一律**不发**；`fail` 额外如实提示一次（与主玩页同口径）
+                if (o === 'fail') toast(this.body, '广告暂时拉不到，稍后再试');
+                console.log(`[HomePage] 商城：广告结局 ${o} ⇒ 不发道具、不扣次数`);
+                return;
+            }
+            // ★ 顺序：拿到 `end` 之后才扣配额（反过来会"扣了次数却没拿到东西"）
+            if (!sv.useDaily(`shop:${key}`, max)) { toast(this.body, '今日已领完，明天再来'); return; }
+            sv.addTool(key, 1);
+            AudioService.playSfx(SFX.toolUse);
+            toast(this.body, `${meta.name} ×1 已到账`);
+            this.refreshShopRows();
+            console.log(`[HomePage] 商城：发放 ${key} ×1 ⇒ 库存 ${sv.count(key)}，今日剩余 ${sv.dailyLeft(`shop:${key}`, max)}`);
+        });
+    }
+
+    // ========================================================
+    //  七日签到（★ 第 57 轮新增 · T11 界面 + T12 逻辑 + T13 入口）
+    // ========================================================
+    //
+    //  ★★【落点 —— 用户 2026-10-07 拍板 = 视觉稿「稿 A」】
+    //    「领取」= 一颗 **83×42 的金色胶囊**，骑在**当天格子**的下沿正中：
+    //      · 水平：**所在格的水平中线**（第 7 日的宽格也是它自己的中线，不是整排中线）
+    //      · 垂直：胶囊**底边越过格底 19 设计 px**（格内 y = −86，胶囊中心离格底 2px）
+    //      · 热区：**整格 126×176** 与**胶囊本身**都注册 ⇒ 点格子、点胶囊都能领
+    //    为什么不用底部大按钮（稿 B，已弃）：签到页的主信息是"我签了几天"，
+    //    格子本身有呼吸金框就已经在说"点我"；再叠一颗大按钮会让这一屏出现
+    //    **两个"看起来是主按钮"的东西**（底部本来还有一颗「关闭」）。
+    //
+    //  ★【三种格态 —— 稿 A/B/C 三张图合起来就是全部状态】
+    //    future 未到 ：整格 52% 透明 + 暗白描边 + 灰绿文字        —— **不可点**
+    //    done   已领 ：青玉底 + 压暗 + 右下角青玉勾（32，半出格沿） —— **不可点**
+    //    today  当天 ：暖金呼吸（1.8s 循环）+ 金框 + **骑边领取胶囊** —— **唯一可点**
+    //    ⚠️ **今天领完之后，当天格子直接翻成 done、胶囊消失**，界面上**不再有可点目标**。
+    //       稿 A 家族**没有**稿 C 那颗"今日已签到 · 明天再来"大按钮（那是稿 B 家族的件）。
+    //       所以领取的即时反馈靠三样：格子"叮"一下（缩放到 1.12 再回弹）+ 音效 + toast。
+    //
+    //  ★【口径真源】奖励表 = `CFG.SIGN.DAYS`；日期 / 连签判定 = `SaveService.signDayToday()`
+    //    等四个方法。本文件**不自己算日期**，一律问 `SaveService`。
+
+    private _signLayer: Node | null = null;
+    private _signCells: SignCellRef[] = [];
+    /** 第 7 日「四选一」二级弹层（同一时间最多一层） */
+    private _signPick: Node | null = null;
+    /** 二级遮罩（**必须单独留引用**：它和一级遮罩同名，按名字找会拿错） */
+    private _signPickDim: Node | null = null;
+    /** 领取流程进行中（含等选择器）—— 挡住"胶囊与格子都收到同一次触摸"造成的重复领取 */
+    private _signBusy = false;
+
+    /** 首页功能键上的「今日可领」红点（T13b）：`signin` / `shop` 各一颗 */
+    private _fnDots: Record<string, Node> = {};
+
+    /** 签到卡的根节点（重建副标题行时要往它身上挂节点） */
+    private _signCard: Node | null = null;
+    /** 副标题行的两个节点（文字 + 胶囊）—— 值变了就整行重建，所以留着引用好销毁 */
+    private _signSubNodes: Node[] = [];
+    /** 上一次重建副标题行时用的连签数（`null` = 还没建过） */
+    private _signSubStreak: number | null = null;
+
+    private openSignIn(): void {
+        if (this._signLayer?.isValid) return;
+
+        const layer = createNode('SignLayer', this.body, { w: 1, h: 1 });
+        this._signLayer = layer;
+        layer.addComponent(UIOpacity).opacity = 0;
+        createScrim(layer, 190, () => this.closeSignIn());
+
+        // ⚠️ 弹层**不接 `fitY`** —— 它是浮在全屏之上的模态，居中于**可视区**才是对的；
+        //    `fitY` 那套是给"随首页内容一起纵向重映射"的元素的（见 CFG.FIT 注释）。
+        //    道具商城 / 排行榜 / 设置抽屉三处也是这么办的，口径一致。
+        const card = createNode('SignCard', layer, { w: SIGN_CARD_W, h: SIGN_CARD_H });
+        this._signCard = card;
+        const half = SIGN_CARD_H / 2;
+        const { g } = createGraphicsNode('Bg', card, { w: SIGN_CARD_W, h: SIGN_CARD_H });
+        strokeRoundRect(g, 0, 0, SIGN_CARD_W + 6, SIGN_CARD_H + 6, 39, '#0A3327', 3, 255);
+        fillVGradient(g, 0, 0, SIGN_CARD_W, SIGN_CARD_H, 36, '#1B6047', '#123F30', 36);
+        strokeRoundRect(g, 0, 0, SIGN_CARD_W, SIGN_CARD_H, 36, COLOR.GOLD, 5, 255);
+
+        createLabel(card, '七日签到', {
+            fontSize: SIGN_TITLE_FS, bold: true, serif: true, color: COLOR.CREAM,
+            w: SIGN_CARD_W, h: SIGN_TITLE_H, y: half - SIGN_TITLE_DROP,
+            outline: '#4A2B18', outlineWidth: 3,
+        });
+
+        // ---- 副标题 + 「已连签 n 天」胶囊：**同一行整体居中** ----
+        //  图标稿里那一行是"文字 + 行内胶囊"一起居中的，所以文字**不在卡的横向中线上**，
+        //  而是被胶囊往左顶了半颗胶囊宽 —— 手写死坐标会错，这里按文字实际估宽算。
+        this.buildSignSubRow(card);
+
+        // ---- 七格日历（4 + 3 两行）----
+        const gridCy = half - (SIGN_TOP_PAD + SIGN_SUB_GAP_TOP + SIGN_SUB_H + SIGN_SUB_GAP_BOTTOM + SIGN_GRID_H / 2);
+        const grid = createNode('SignCells', card, { w: SIGN_GRID_W, h: SIGN_GRID_H, y: gridCy });
+
+        this._signCells = [];
+        for (let day = 1; day <= SIGN.CYCLE; day++) {
+            const wide = day === SIGN.CYCLE;
+            const w = wide ? SIGN_WIDE_W : SIGN_CELL_W;
+            const col = (day - 1) % 4;
+            const row = Math.floor((day - 1) / 4);
+            const cell = createNode(`SignCell_${day}`, grid, {
+                w, h: SIGN_CELL_H,
+                x: wide ? signWideX() : signColX(col),
+                y: signRowY(row),
+            });
+            const op = cell.addComponent(UIOpacity);
+            const ref: SignCellRef = {
+                day, node: cell, face: null as unknown as Graphics,
+                glow: null, glowOp: null, tick: null, claim: null,
+                dayLabel: null as unknown as Label, nameLabel: null as unknown as Label, op,
+            };
+
+            // ① 呼吸光（**必须先建**：同父同层里"先建的排在下面"，这样它才在格子脸的背后）
+            const glow = createNode(`SignGlow_${day}`, cell, { w, h: SIGN_CELL_H });
+            paintSignGlow(glow.addComponent(Graphics), w, SIGN_CELL_H);
+            glow.addComponent(UIOpacity).opacity = 150;
+            ref.glow = glow;
+            ref.glowOp = glow.getComponent(UIOpacity)!;
+
+            // ② 格子脸
+            const { g: face } = createGraphicsNode('Face', cell, { w, h: SIGN_CELL_H });
+            ref.face = face;
+
+            // ③ 第 N 天 / 图标 / 名称
+            //  ⚠️ 两个 Label 都要**改名**（`createLabel` 默认一律叫 `Label`）：
+            //     `__g5t.find()` 只给"深度优先第一个同名"，七格里全是 `Label` 时
+            //     想读"第 3 格那行字"读到的永远是第 1 格 —— 断言会假红且归因错。
+            ref.dayLabel = createLabel(cell, `第 ${day} 天`, {
+                fontSize: SIGN_DAY_FS, color: COLOR.CREAM_DIM, w: w + 40, h: SIGN_DAY_H, y: SIGN_DAY_Y,
+            });
+            ref.dayLabel.node.name = `SignDay_${day}`;
+            this.buildSignCellIcon(cell, day);
+            ref.nameLabel = createLabel(cell, signRewardText(day), {
+                fontSize: wide ? SIGN_NAME_FS_WIDE : SIGN_NAME_FS, color: COLOR.CREAM,
+                w: w + 60, h: SIGN_NAME_H, y: SIGN_NAME_Y,
+            });
+            ref.nameLabel.node.name = `SignName_${day}`;
+
+            // ④ 青玉勾（已领才有；32 直径，圆心落在格子右下角 ⇒ 半内半外）
+            const tick = createNode(`SignTick_${day}`, cell, { w: 32, h: 32, x: SIGN_TICK_X, y: SIGN_TICK_Y });
+            paintSignTickFace(tick.addComponent(Graphics));
+            const { g: mark } = createGraphicsNode('Mark', tick, { w: 19, h: 19 });
+            paintSignTickMark(mark);
+            ref.tick = tick;
+
+            // ⑤ 「领取」胶囊（当天才有；热区**单独注册**，否则越出格子的那 19px 点不动）
+            //  ⚠️ 只有一颗会同时可见（当天那格），所以它不需要带天数后缀的名字。
+            const claim = createNode('SignClaim', cell, { w: SIGN_CLAIM_W, h: SIGN_CLAIM_H, y: SIGN_CLAIM_Y });
+            paintSignClaim(claim.addComponent(Graphics));
+            createLabel(claim, '领取', {
+                fontSize: 21, bold: true, color: '#5C3610', w: SIGN_CLAIM_W, h: SIGN_CLAIM_H,
+            });
+            ref.claim = claim;
+
+            // ⚠️ 整格 + 胶囊都注册，两颗都调**同一个** `claimSignToday`。
+            //    胶囊是格子的子节点，事件会**冒泡** ⇒ 一次点击会走到两遍；
+            //    靠 `claimSignToday` 里的 `_signBusy` + `signDayToday()` 双闸挡掉第二遍。
+            this.tapable(cell, () => this.claimSignToday(day), true);
+            this.tapable(claim, () => this.claimSignToday(day));
+
+            this._signCells.push(ref);
+        }
+
+        // ---- 关闭 ----
+        const close = createNode('SignClose', card, {
+            w: SIGN_CLOSE_W, h: SIGN_CLOSE_H,
+            y: -half + SIGN_BOTTOM_PAD + SIGN_CLOSE_H / 2,
+        });
+        const { g: cg2 } = createGraphicsNode('Face', close, { w: SIGN_CLOSE_W, h: SIGN_CLOSE_H });
+        fillRoundRect(cg2, 0, 0, SIGN_CLOSE_W, SIGN_CLOSE_H, SIGN_CLOSE_H / 2, 'rgba(0,0,0,0.18)', 255);
+        strokeRoundRect(cg2, 0, 0, SIGN_CLOSE_W, SIGN_CLOSE_H, SIGN_CLOSE_H / 2, 'rgba(255,247,230,0.55)', 3, 255);
+        createLabel(close, '关闭', { fontSize: 28, bold: true, color: COLOR.CREAM, w: SIGN_CLOSE_W, h: 40 });
+        this.tapable(close, () => this.closeSignIn());
+
+        this.refreshSignCells();
+        MotionFx.fadeTo(layer.getComponent(UIOpacity)!, 255, 0.22);
+        console.log(`[HomePage] 七日签到已打开（今天该领第 ${SaveService.instance.signDayToday()} 格 · 已领 ${SaveService.instance.signClaimed()} 格 · 累计连签 ${SaveService.instance.signTotalLive()} 天）`);
+    }
+
+    /**
+     * 建（或按需重建）副标题那一行：`连续签到 7 天，天天有道具` + 「已连签 n 天」胶囊。
+     *
+     * ── 为什么是"重建"而不是"改一下 Label 的字"────────────────
+     *  ① 这一行是**整体居中**的：文字被胶囊往左顶半颗胶囊宽。
+     *     胶囊宽随数字变化（"已连签 9 天" ≠ "已连签 10 天"）⇒ 只改字会让整行偏移。
+     *  ② 从未签过时 `signTotalLive()` = 0 ⇒ **整颗胶囊不画**
+     *     （显示"已连签 0 天"像在说"你什么都没做到"）。所以还要处理"从无到有"。
+     *  整行只有两个节点，拆了重画最省事也最不容易错。
+     *
+     * ⚠️ **必须在 `refreshSignCells()` 里调**：领完当天连签数会变（0→1 或 2→3），
+     *   不重建的话那颗胶囊会**停在旧数字上**（第 57 轮验收现场发现）。
+     *   用 `_signSubStreak` 挡住"值没变就别重画"，免得每帧白折腾。
+     */
+    private buildSignSubRow(card: Node): void {
+        if (!card.isValid) return;
+        // ★ 第 57 轮三：这里读的是**累计连签天数**（`signTotalLive()`），不是本轮的 `signStreak`。
+        //   满 7 天后本轮回到第 1 格，但"已连签 n 天"应当继续往上走（用户拍板方案 B）。
+        const streak = SaveService.instance.signTotalLive();
+        if (this._signSubStreak === streak && this._signSubNodes.every((n) => n.isValid)) return;
+        this._signSubStreak = streak;
+        for (const n of this._signSubNodes) if (n.isValid) n.destroy();
+        this._signSubNodes = [];
+
+        const subCy = SIGN_CARD_H / 2 - SIGN_TOP_PAD - SIGN_SUB_GAP_TOP - SIGN_SUB_H / 2;
+        const tw = estTextWidth(SIGN_SUB_TEXT, SIGN_SUB_FS);
+        const chipText = `已连签 ${streak} 天`;
+        const chipW = estTextWidth(chipText, SIGN_CHIP_FS) + SIGN_CHIP_PAD_X * 2;
+        const lineW = streak > 0 ? tw + SIGN_CHIP_GAP + chipW : tw;
+        const lineL = -lineW / 2;
+
+        const sub = createLabel(card, SIGN_SUB_TEXT, {
+            fontSize: SIGN_SUB_FS, color: COLOR.CREAM_DIM,
+            w: tw + 6, h: SIGN_SUB_H, x: lineL + tw / 2, y: subCy,
+        });
+        sub.node.name = 'SignSub';
+        // 插回"标题之下、日历之上"的固定层位：重建出来的节点默认会被追加到最末，
+        // 虽然这一行与日历不重叠（视觉上无所谓），但层位漂移以后很难查。
+        sub.node.setSiblingIndex(2);
+        this._signSubNodes.push(sub.node);
+
+        if (streak > 0) {
+            const chip = createNode('SignStreak', card, { w: chipW, h: SIGN_CHIP_H, x: lineL + tw + SIGN_CHIP_GAP + chipW / 2, y: subCy });
+            const { g: cg } = createGraphicsNode('Face', chip, { w: chipW, h: SIGN_CHIP_H });
+            fillRoundRect(cg, 0, 0, chipW, SIGN_CHIP_H, SIGN_CHIP_H / 2, COLOR.GOLD, 33);        // rgba(246,196,69,.13)
+            strokeRoundRect(cg, 0, 0, chipW, SIGN_CHIP_H, SIGN_CHIP_H / 2, COLOR.GOLD, 2, 128);  // rgba(246,196,69,.5)
+            const lab = createLabel(chip, chipText, {
+                fontSize: SIGN_CHIP_FS, bold: true, color: COLOR.GOLD_HI, w: chipW, h: SIGN_CHIP_H,
+            });
+            chip.setSiblingIndex(3);
+            void lab;
+            this._signSubNodes.push(chip);
+        }
+    }
+
+    /** 按 `SaveService` 的当前状态，把七格刷成 done / today / future */
+    private refreshSignCells(): void {
+        const sv = SaveService.instance;
+        // ★ 先刷副标题行：领完当天「已连签 n 天」要跟着变（见 `buildSignSubRow` 注释）
+        this.buildSignSubRow(this._signCard!);
+        const today = sv.signDayToday();
+        const claimed = sv.signClaimed();
+        for (const c of this._signCells) {
+            const st: SignCellState = c.day === today ? 'today' : (c.day <= claimed ? 'done' : 'future');
+            paintSignCell(c.face, c.node.getComponent(UITransform)!.width, SIGN_CELL_H, st);
+            c.op.opacity = st === 'future' ? SIGN_FUTURE_OPACITY : 255;
+            if (c.glow) c.glow.active = st === 'today';
+            if (c.tick) c.tick.active = st === 'done';
+            if (c.claim) c.claim.active = st === 'today';
+
+            const wide = c.day === SIGN.CYCLE;
+            if (st === 'today') {
+                c.dayLabel.color = hex2color(COLOR.GOLD_HI);
+                c.dayLabel.isBold = true;
+                c.nameLabel.color = hex2color(COLOR.CREAM);
+                c.nameLabel.isBold = true;
+            } else if (st === 'done') {
+                c.dayLabel.color = hex2color(COLOR.CREAM_DIM);
+                c.dayLabel.isBold = false;
+                c.nameLabel.color = hex2color('#8FC0A6');
+                c.nameLabel.isBold = false;
+            } else {
+                c.dayLabel.color = hex2color(COLOR.CREAM_DIM);
+                c.dayLabel.isBold = false;
+                c.nameLabel.color = hex2color('#A8BCAF');
+                c.nameLabel.isBold = false;
+            }
+            void wide;
+
+            // 呼吸：只有当天那格转，1.8s 一循环（0.9 亮 + 0.9 暗 = 稿上的 1.8s）
+            if (c.glowOp) {
+                Tween.stopAllByTarget(c.glowOp);
+                if (st === 'today') {
+                    c.glowOp.opacity = 150;
+                    tween(c.glowOp)
+                        .to(0.9, { opacity: 255 }, { easing: 'sineInOut' })
+                        .to(0.9, { opacity: 150 }, { easing: 'sineInOut' })
+                        .union().repeatForever().start();
+                }
+            }
+        }
+    }
+
+    /** 建一格里的图标：第 7 日 = 签到图标；其余按 `CFG.SIGN.DAYS` 单件 / 双件 */
+    private buildSignCellIcon(cell: Node, day: number): void {
+        const r = SIGN.DAYS[day - 1];
+        if (r.pick) {
+            createSprite(cell, 'Icon', { path: 'home/icon_signin', aspectW: SIGN_IC_SINGLE, y: SIGN_IC_Y });
+            return;
+        }
+        if (r.items.length === 1) {
+            createSprite(cell, 'Icon', { path: TOOL_ICON[r.items[0].tool], aspectW: SIGN_IC_SINGLE, y: SIGN_IC_Y });
+            return;
+        }
+        // 两样各 1 个：并排（稿：各 46、间隙 4）
+        const step = SIGN_IC_DUO + SIGN_IC_DUO_GAP;
+        r.items.forEach((it, i) => {
+            createSprite(cell, `Icon${i}`, {
+                path: TOOL_ICON[it.tool], aspectW: SIGN_IC_DUO,
+                x: -step / 2 + i * step, y: SIGN_IC_Y,
+            });
+        });
+    }
+
+    private closeSignIn(): void {
+        const l = this._signLayer;
+        this._signLayer = null;
+        // ⚠️ 先把呼吸 tween 停掉：节点销毁后 tween 仍会跑一帧，
+        //    在某些机型上会抛出"组件已失效"的告警（不是崩溃，但会污染错误日志）。
+        for (const c of this._signCells) if (c.glowOp) Tween.stopAllByTarget(c.glowOp);
+        this._signCells = [];
+        this._signPick = null;
+        this._signPickDim = null;
+        this._signCard = null;
+        this._signSubNodes = [];
+        this._signSubStreak = null;
+        this._signBusy = false;
+        if (!l?.isValid) return;
+        const op = l.getComponent(UIOpacity)!;
+        MotionFx.fadeTo(op, 0, 0.2);
+        this.timers.add(240, () => { if (l.isValid) l.destroy(); });
+        this.refreshFnDots();
+    }
+
+    /**
+     * ★ 领当天那一格（稿 A 的落点行为）。
+     *
+     * 顺序：**先推进签到 + 拿到"第几天" → 再发货**。
+     *  第 7 日要先弹四选一选择器，玩家**选定之后**才落账；取消 ⇒ 这一次不领
+     *  （签到进度也**不推进** —— 否则会出现"领了但没拿到东西"）。
+     */
+    private claimSignToday(day: number): void {
+        if (this._signBusy) return;
+        const sv = SaveService.instance;
+        if (sv.signDayToday() !== day) return;      // 只有"当天"那格可领（冒泡来的第二遍走这里）
+        this._signBusy = true;
+        Haptics.light();
+
+        const r = SIGN.DAYS[day - 1];
+        if (r.pick) {
+            this.openSignPicker();
+            return;
+        }
+        this.grantSignDay(day, r.items.map((it) => ({ tool: it.tool, n: it.n })));
+    }
+
+    /** 真正落账：推进签到 + 发货 + 反馈（第 7 日选定后也走这里） */
+    private grantSignDay(day: number, items: { tool: ToolKey; n: number }[]): void {
+        const sv = SaveService.instance;
+        const got = sv.claimSign();                 // ⚠️ 它自带"今天已领 ⇒ 返回 0 且不改状态"的保护
+        if (got === 0) { this._signBusy = false; return; }
+        for (const it of items) sv.addTool(it.tool, it.n);
+        AudioService.playSfx(SFX.toolUse);
+        const txt = items.map((it) => `${TOOL_META[it.tool].name} ×${it.n}`).join(' + ');
+        toast(this.body, `签到第 ${got} 天 · ${txt} 已到账`);
+
+        // 反馈：当天那格"叮"一下（稿 A 没有底部大按钮，缩放回弹就是唯一的落账反馈）
+        const cell = this._signCells.find((c) => c.day === day)?.node;
+        if (cell?.isValid) {
+            tween(cell)
+                .to(0.09, { scale: v3(1.12, 1.12, 1) })
+                .to(0.20, { scale: v3(1, 1, 1) }, { easing: 'backOut' })
+                .start();
+        }
+        this.refreshSignCells();
+        this.refreshFnDots();
+        this._signBusy = false;
+        console.log(`[HomePage] 签到：第 ${day} 天已领 ⇒ 发放 ${txt}`);
+    }
+
+    /** 第 7 日大奖：四选一（二级弹层）。选定 ⇒ `grantSignDay`；取消 ⇒ 这一次不领 */
+    private openSignPicker(): void {
+        const layer = this._signLayer;
+        if (!layer?.isValid || this._signPick?.isValid) return;
+
+        const pick = createNode('SignPicker', layer, { w: SIGN_PICK_W, h: SIGN_PICK_CARD_H_TOTAL, y: -61 });
+        this._signPick = pick;
+        pick.addComponent(UIOpacity).opacity = 0;
+
+        // 二级遮罩：比一级更深（.86），否则底下的「七日签到」标题会透上来和本层标题叠字
+        //
+        // ⚠️ 两个坑：
+        //   ① `createScrim` 建出来的节点**也叫 `Scrim`**，且一级遮罩先建 ⇒
+        //      `getChildByName('Scrim')` 拿到的是**一级**那颗 —— 关选择器时会顺手把
+        //      一级遮罩销毁掉（表现为"取消之后整个弹层变透明，还能点到首页"）。
+        //      所以必须**用返回值**，不能靠名字找。
+        //   ② 遮罩是**后建**的，默认会盖在 `SignPicker` 上面 ⇒ 整张选择器卡变灰、点不动。
+        //      要把它插到"弹层之下、卡之上"（= 倒数第二）。
+        const dim = createScrim(layer, 219, () => this.closeSignPicker());
+        this._signPickDim = dim;
+        dim.setSiblingIndex(layer.children.length - 2);
+
+        const half = SIGN_PICK_CARD_H_TOTAL / 2;
+        const { g } = createGraphicsNode('Bg', pick, { w: SIGN_PICK_W, h: SIGN_PICK_CARD_H_TOTAL });
+        strokeRoundRect(g, 0, 0, SIGN_PICK_W + 6, SIGN_PICK_CARD_H_TOTAL + 6, 39, '#0A3327', 3, 255);
+        fillVGradient(g, 0, 0, SIGN_PICK_W, SIGN_PICK_CARD_H_TOTAL, 36, '#1B6047', '#123F30', 32);
+        strokeRoundRect(g, 0, 0, SIGN_PICK_W, SIGN_PICK_CARD_H_TOTAL, 36, COLOR.GOLD, 5, 255);
+
+        createLabel(pick, '选择奖励', {
+            fontSize: SIGN_PICK_TITLE_FS, bold: true, serif: true, color: COLOR.CREAM,
+            w: SIGN_PICK_W, h: 90, y: half - 2, outline: '#4A2B18', outlineWidth: 3,
+        });
+        const subY = half - SIGN_PICK_TOP_PAD - SIGN_PICK_SUB_GAP_TOP - SIGN_PICK_SUB_H / 2;
+        createLabel(pick, `第 7 天大奖 · 任选 1 种，直接拿 ${SIGN.PICK_N} 个`, {
+            fontSize: 24, color: COLOR.CREAM_DIM, w: SIGN_PICK_GRID_W + 20, h: SIGN_PICK_SUB_H, y: subY,
+        });
+
+        const gridCy = half - (SIGN_PICK_TOP_PAD + SIGN_PICK_SUB_GAP_TOP + SIGN_PICK_SUB_H
+            + SIGN_PICK_SUB_GAP_BOTTOM + (SIGN_PICK_CARD_H * 2 + SIGN_PICK_GAP) / 2);
+        const grid = createNode('SignPickGrid', pick, {
+            w: SIGN_PICK_GRID_W, h: SIGN_PICK_CARD_H * 2 + SIGN_PICK_GAP, y: gridCy,
+        });
+
+        TOOL_ORDER.forEach((key, i) => {
+            const col = i % 2, row = Math.floor(i / 2);
+            const c = createNode(`SignPickCard_${key}`, grid, {
+                w: SIGN_PICK_CARD_W, h: SIGN_PICK_CARD_H,
+                // ⚠️ 横向**左对齐**、不居中：稿里 `.grid4` 是 `flex + wrap`，
+                //    两列 224+16+224 = 464 < 内容宽 482 ⇒ 右边富余 18px 全留在右侧。
+                x: -SIGN_PICK_GRID_W / 2 + SIGN_PICK_CARD_W / 2 + col * (SIGN_PICK_CARD_W + SIGN_PICK_GAP),
+                y: ((SIGN_PICK_CARD_H + SIGN_PICK_GAP) / 2) * (1 - 2 * row),
+            });
+            const { g: cg } = createGraphicsNode('Face', c, { w: SIGN_PICK_CARD_W, h: SIGN_PICK_CARD_H });
+            fillVGradient(cg, 0, 0, SIGN_PICK_CARD_W, SIGN_PICK_CARD_H, SIGN_PICK_CARD_R, '#1E6049', '#144534', 20);
+            strokeRoundRect(cg, 0, 0, SIGN_PICK_CARD_W, SIGN_PICK_CARD_H, SIGN_PICK_CARD_R, '#FFFFFF', 3, 71);
+
+            createSprite(c, 'Icon', { path: TOOL_ICON[key], aspectW: SIGN_PICK_ICON, y: SIGN_PICK_CARD_H / 2 - 22 - SIGN_PICK_ICON / 2 });
+            createLabel(c, TOOL_META[key].name, {
+                fontSize: SIGN_PICK_NAME_FS, bold: true, color: COLOR.CREAM,
+                w: SIGN_PICK_CARD_W, h: 36, y: SIGN_PICK_CARD_H / 2 - 22 - SIGN_PICK_ICON - 10 - 18,
+            });
+            // 右上角「×2」金标
+            const badgeW = 62, badgeH = 34;
+            const badge = createNode('Times', c, { w: badgeW, h: badgeH, x: SIGN_PICK_CARD_W / 2 - 12 - badgeW / 2, y: SIGN_PICK_CARD_H / 2 - 12 - badgeH / 2 });
+            const { g: bg2 } = createGraphicsNode('Face', badge, { w: badgeW, h: badgeH });
+            fillVGradient(bg2, 0, 0, badgeW, badgeH, badgeH / 2, COLOR.GOLD_HI, '#E8A92E', 12);
+            createLabel(badge, `×${SIGN.PICK_N}`, { fontSize: 20, bold: true, color: '#5C3610', w: badgeW, h: badgeH });
+
+            this.tapable(c, () => this.chooseSignReward(key));
+        });
+
+        const closeW = SIGN_PICK_GRID_W - SIGN_CLOSE_INSET * 2;
+        const close = createNode('SignPickCancel', pick, {
+            w: closeW, h: SIGN_CLOSE_H, y: -half + 34 + SIGN_CLOSE_H / 2,
+        });
+        const { g: cg } = createGraphicsNode('Face', close, { w: closeW, h: SIGN_CLOSE_H });
+        fillRoundRect(cg, 0, 0, closeW, SIGN_CLOSE_H, SIGN_CLOSE_H / 2, 'rgba(0,0,0,0.18)', 255);
+        strokeRoundRect(cg, 0, 0, closeW, SIGN_CLOSE_H, SIGN_CLOSE_H / 2, 'rgba(255,247,230,0.55)', 3, 255);
+        createLabel(close, '取消', { fontSize: 28, bold: true, color: COLOR.CREAM, w: closeW, h: 40 });
+        this.tapable(close, () => this.closeSignPicker());
+
+        MotionFx.fadeTo(pick.getComponent(UIOpacity)!, 255, 0.18);
+        console.log('[HomePage] 第 7 日大奖：已弹出「四选一」选择器');
+    }
+
+    private closeSignPicker(): void {
+        const p = this._signPick;
+        const dim = this._signPickDim;
+        this._signPick = null;
+        this._signPickDim = null;
+        this._signBusy = false;      // 取消 ⇒ 这一次不领，也**不推进**签到进度
+        if (dim?.isValid) dim.destroy();
+        if (!p?.isValid) return;
+        const op = p.getComponent(UIOpacity)!;
+        MotionFx.fadeTo(op, 0, 0.16);
+        this.timers.add(200, () => { if (p.isValid) p.destroy(); });
+    }
+
+    private chooseSignReward(key: ToolKey): void {
+        if (!this._signPick?.isValid) return;
+        Haptics.light();
+        const layer = this._signLayer;
+        this.closeSignPicker();
+        if (!layer?.isValid) return;
+        this._signBusy = true;
+        this.grantSignDay(SIGN.CYCLE, [{ tool: key, n: SIGN.PICK_N }]);
+    }
+
+    /** 首页两颗入口红点（T13b）：签到 = 今天还没签；商城 = 四件里有任一件还剩次数 */
+    private refreshFnDots(): void {
+        const sv = SaveService.instance;
+        const on: Record<string, boolean> = {
+            signin: sv.signDayToday() > 0,
+            shop: TOOL_ORDER.some((k) => sv.dailyLeft(`shop:${k}`, AD_QUOTA.SHOP_PER_TOOL_PER_DAY) > 0),
+        };
+        for (const id of Object.keys(this._fnDots)) {
+            const d = this._fnDots[id];
+            if (d.isValid) d.active = on[id] === true;
+        }
     }
 
     private openSheet(): void {

@@ -449,6 +449,61 @@ export async function verifiedShot(cdp, path, opt = {}) {
     throw last;
 }
 
+/**
+ * ★★ 主玩页取图的**唯一可用通道**：`Page.startScreencast`（帧推送）。
+ *
+ * 【为什么游戏页**不能**用 `verifiedShot`】（第 57 轮三实测，两次复现 + 三条对照）
+ *   `Page.captureScreenshot` 在**主玩页**上会把渲染进程**彻底卡死**，而且**不可逆**：
+ *     · 视口 421×927 @DPR3，无 clip          → 60 s + 90 s **全超时**；
+ *     · 带覆盖视口的 clip（scale:1）          → 45 s 超时；
+ *     · 先停引擎主循环（`cc.game.pause()` + `cc.director.pause()`，两者都生效）→ 30 s 超时；
+ *     · 卡死之后**连 `Runtime.evaluate` 也超时** ⇒ 后面还没跑的断言**整段陪葬**
+ *       （第 57 轮三的 B11/B12 两条负控就是这么凭空消失的，日志上还看不出"少跑了"）。
+ *   对照组（证明**变量是页面、不是调用方式**）：同一构建的**首页**走同一条无 clip 通道
+ *     **820 ms 成功**；把视口缩到 200×440 再截也能 **222 ms** 出图 —— 但那是**另一种版式**
+ *     （fit 规则一变，构图就变了）⇒ **不能当证据**。
+ *   探针留档：`tools/_r58-probe-shot.mjs`（通道 × 页面）、`tools/_r58-probe-shot2.mjs`（三条替代路）。
+ *
+ * 【这条通道的边界，必须如实说清】
+ *   · 出图恒为**视口 CSS 尺寸**（421×927）——`maxWidth/maxHeight` 调大也没用（实测 3 帧字节数完全一致），
+ *     拿不到 DPR 倍率 ⇒ 它**不是尺寸/几何判据通道**，只能用来"让人看见"。
+ *   · 帧是**推送**来的，必须逐帧 `Page.screencastFrameAck`，否则推一帧就停。
+ *   · 它**不会**卡死进程：实测连截两轮之后 `Runtime.evaluate` 仍是 1 ms。
+ */
+export async function screencastShot(cdp, path, opt = {}) {
+    const { w = 421, h = 927, waitMs = 8000 } = opt;
+    const frames = [];
+    const onMsg = (ev) => {
+        try {
+            const m = JSON.parse(ev.data);
+            if (m.method === 'Page.screencastFrame') frames.push(m.params);
+        } catch { /* ignore */ }
+    };
+    cdp.ws.addEventListener('message', onMsg);
+    try {
+        await cdp.send('Page.startScreencast',
+            { format: 'png', maxWidth: w, maxHeight: h, everyNthFrame: 1 }, 15000);
+        const t0 = Date.now();
+        while (frames.length === 0 && Date.now() - t0 < waitMs) await sleep(150);
+        if (!frames.length) throw new Error(`screencast：${waitMs} ms 内一帧都没推来`);
+        for (const f of frames) {
+            await cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }, 8000).catch(() => { });
+        }
+        const buf = Buffer.from(frames[0].data, 'base64');
+        const gotW = buf.readUInt32BE(16), gotH = buf.readUInt32BE(20);
+        // ⚠️ 尺寸自证：screencast 只承诺"不超过 maxWidth/maxHeight"。实测就是视口 CSS 尺寸 ⇒ 写死它。
+        if (gotW !== w || gotH !== h) {
+            throw new Error(`screencast 出图 ${gotW}×${gotH}，期望 ${w}×${h}（= 视口 CSS 尺寸）`
+                + ' —— 尺寸不符就别拿它当证据。');
+        }
+        await writeFile(path, buf);
+        return path;
+    } finally {
+        try { cdp.ws.removeEventListener('message', onMsg); } catch { /* ignore */ }
+        try { await cdp.send('Page.stopScreencast', {}, 8000); } catch { /* ignore */ }
+    }
+}
+
 /** 起 Chrome + 建 CDP 连接（含页面助手注入） */
 /** 存档键（与 `core/SaveService.ts` 的 KEY 必须一致） */
 export const SAVE_KEY = 'game5.save.v1';
@@ -464,6 +519,37 @@ export function seedAtLevel(level) {
         JSON.stringify({ level: ${level}, best: ${Math.max(0, level - 1)},
           inventory: { erase: 0, move: 0, shuffle: 0, addslot: 0 },
           coins: 0, plays: 0, cleared: 0, signDate: '', signStreak: 0 })); } catch (e) {}`;
+}
+
+/**
+ * ★ 第 57 轮新增：**替换**"新文档种子脚本"。
+ *
+ * ── 为什么必须有这个函数（踩过的坑）────────────────────────
+ *  `openBrowser({ seedScript })` 是用 `Page.addScriptToEvaluateOnNewDocument`
+ *  注册的 —— 这类脚本**每一次文档导航都会重跑**，`Page.reload` 也算。
+ *
+ *  于是"**运行期直接改 localStorage 造存档状态**"这种做法在 reload 之后
+ *  **会被种子脚本原样覆盖回去**（种子脚本先跑，把存档写成它那份）。
+ *  表现是"种子没生效"：你明明写进去了、reload 也真的发生了、读取时却是旧值。
+ *  第 57 轮签到验收就是被这个坑住了一整轮 —— 而**单独探针脚本全绿**，
+ *  因为那个探针压根没用 `seedScript` ⇒ 没有覆盖源。
+ *
+ * ── 正确姿势 ────────────────────────────────────────────────
+ *  把"运行期想造的状态"写进**种子脚本本身**，再 reload：
+ *  `同一种子脚本每次导航都会自己把状态铺好`，不存在被谁覆盖的问题。
+ *
+ * @param {object} cdp
+ * @param {string} source  新的种子脚本（在页面脚本之前执行）
+ * @param {string|null} prevId 上一次的返回值；传了就先把旧的摘掉，避免层层叠加
+ * @returns {Promise<string|null>} 新脚本的 identifier，供下次替换用
+ */
+export async function setSeedScript(cdp, source, prevId = null) {
+    if (prevId) {
+        try { await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: prevId }); }
+        catch { /* 已经被浏览器回收 —— 无所谓 */ }
+    }
+    const r = await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source });
+    return r?.identifier ?? null;
 }
 
 /**
@@ -529,13 +615,17 @@ export async function openBrowser(url, { width = 421, height = 927, scale = 3, s
     }
     // 需要"开局就是第 N 关"时用：**必须在页面脚本之前**写 localStorage，
     // 因为 SaveService 在模块加载时就构造并读了一次存档（晚一步就不生效）。
+    let seedId = null;
     if (seedScript) {
-        await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: seedScript });
+        const r = await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: seedScript });
+        seedId = r?.identifier ?? null;
     }
     await cdp.send('Page.navigate', { url });
 
     return {
         cdp,
+        /** 本次注册的"新文档种子脚本" id；配合 `setSeedScript(cdp, src, seedId)` 做替换 */
+        seedId,
         close() {
             try { ws.close(); } catch { /* ignore */ }
             try { proc.kill(); } catch { /* ignore */ }
@@ -606,12 +696,29 @@ export async function navigateTo(cdp, to) {
     await sleep(1600);
     if (to === 'home') return;
     await tapNode(cdp, 'BtnStart');
-    if (!(await waitLog(cdp, '[PageManager] → gameStart', 12000))) throw new Error('没到开局页');
+    if (!(await waitLog(cdp, '[PageManager] → gameStart', 12000))) {
+        //  ⚠️ 这条报错以前只有四个字（"没到开局页"），指向的是**导航**；
+        //     而真实根因往往是"**上一次点击被遮罩吞了**"（第 57 轮三：签到层没关干净，
+        //     点 `BtnStart` 落在遮罩上）。这里把"点下去时命中了谁"一并打出来 ——
+        //     一行诊断，省掉一整轮归因。
+        console.log('      ↳ 点 BtnStart 时的命中栈：' + JSON.stringify(await hitAt(cdp, 'BtnStart')));
+        throw new Error('没到开局页');
+    }
     await sleep(4500);                                   // 掷骰 + 赠礼卡展开
     if (to === 'gameStart') return;
     await tapNode(cdp, 'BtnGo');
     if (!(await waitLog(cdp, '[PageManager] → game', 15000))) throw new Error('没到主玩页');
     await waitFor(cdp, '!!globalThis.__game5', 15000, '调试桥');
+}
+
+/** 排障用：某具名节点中心点上的命中栈（顶层在前）。`hit()` 只看元素，别拿它当判据。 */
+async function hitAt(cdp, name) {
+    try {
+        const p = await cdp.ev(`window.__g5t.centerOf(${JSON.stringify(name)})`);
+        if (!p) return `找不到节点 ${name}`;
+        const h = await cdp.ev(`window.__g5t.hit(${Math.round(p.x)}, ${Math.round(p.y)})`);
+        return { at: `${Math.round(p.x)},${Math.round(p.y)}`, el: h?.el, nodes: (h?.nodes || []).slice(0, 6) };
+    } catch (e) { return `命中栈取不到：${String(e?.message).slice(0, 60)}`; }
 }
 
 /** 等页面里出现某个全局量 */
