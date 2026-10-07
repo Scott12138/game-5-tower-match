@@ -1,0 +1,66 @@
+[log] [Bootstrap] 自举模块已执行（《麻麻大消除》）
+[timeEnd] LoadScene db://assets/scenes/Main.scene: 17.073974609375 ms
+[log] [GameRoot] 《麻麻大消除》v0.1.0-cocos 启动
+[log] [GameRoot] 可视尺寸 750×1651（设计 750×1334 · fitWidth）
+[log] [GameRoot] [1/6] buildUIRoot 完成
+[log] [AudioService] 声道池已建立：BGM 1 + 音效 8
+[log] [GameRoot] [2/6] AudioService.init 完成
+[log] [GameRoot] [2.5/6] startBgm 完成
+[log] [GameRoot] [3/6] PageManager.create 完成
+[log] [GameRoot] 无 wx 前后台事件（浏览器直跑），跳过
+[log] [GameRoot] [3.5/6] armLifecycle（前后台） 完成
+[log] [ShareService] 无 wx 分享能力（浏览器直跑），跳过
+[log] [LoginService] 无 wx.login（浏览器直跑），跳过
+[log] [GameRoot] [3.6/6] armPlatform（分享 / 登录） 完成
+[log] [GameRoot] 已注册页面：splash, home, gameStart, game
+[log] [GameRoot] [4/6] registerPages 完成
+[log] [GameRoot] 存档：关卡 3 / 最高 2 / 金币 0 / 局数 0
+[log] [GameRoot] [5/6] preloadData 完成
+[log] [PageManager] → splash
+[log] [GameRoot] [6/6] open(splash) 完成
+[log] [Bootstrap] GameRoot 已挂载到 "Canvas"
+[log] [Bootstrap] 引擎性能面板：已关闭
+[warning] [AudioService] 音频加载失败：audio/tool_use Bundle resources doesn't contain audio/tool_use（已记为缺省，不再重试）
+[warning] [AudioService] 音频加载失败：audio/button Bundle resources doesn't contain audio/button（已记为缺省，不再重试）
+[log] [PageManager] → home
+[log] [RankService] 无 setUserCloudStorage，跳过分榜上报
+[log] [PageManager] → gameStart
+[log] [GamePage] 可点 10 张 · 桌上剩 30 · 当前段 0
+[log] [GamePage] 关卡 3 · 30 张 / 5 层 / 1 段
+[log] [PageManager] → game
+[log] [GamePage] 织锦平铺层就绪 贴图 256×256 wrap=REPEAT 节点 750.0×1651.4
+[log] [GamePage] 可点 10 张 · 桌上剩 30 · 当前段 0
+[log] [GamePage] 调试桥已挂载：globalThis.__game5
+[log] [GamePage] 入场完成 · 开局可点 10 张
+[warning] [AudioService] 音频加载失败：audio/slot_warn Bundle resources doesn't contain audio/slot_warn（已记为缺省，不再重试）
+[warning] [AudioService] 音频加载失败：audio/shuffle Bundle resources doesn't contain audio/shuffle（已记为缺省，不再重试）
+[warning] [AudioService] 音频加载失败：audio/revive Bundle resources doesn't contain audio/revive（已记为缺省，不再重试）
+[log] [GamePage] 可点 9 张 · 桌上剩 29 · 当前段 0
+[log] [GamePage] 可点 9 张 · 桌上剩 28 · 当前段 0
+[log] [GamePage] 可点 9 张 · 桌上剩 27 · 当前段 0
+[log] [GamePage] 可点 8 张 · 桌上剩 26 · 当前段 0
+[log] [GamePage] 可点 8 张 · 桌上剩 25 · 当前段 0
+[log] [GamePage] 可点 7 张 · 桌上剩 24 · 当前段 0
+[log] [GamePage] 卡住提示：3s 无消除 → 推荐「消除」
+[log] [GamePage] 卡住提示已挂到「消除」键上（6s 后自动收）
+[log] [GamePage] 可点 7 张 · 桌上剩 23 · 当前段 0
+[log] [GamePage] 可点 7 张 · 桌上剩 22 · 当前段 0
+[log] [GamePage] 可点 7 张 · 桌上剩 21 · 当前段 0
+[log] [GamePage] 可点 6 张 · 桌上剩 20 · 当前段 0
+[log] [GamePage] 可点 6 张 · 桌上剩 19 · 当前段 0
+[log] [GamePage] 判负：slotsFull · 牌堆剩 19 · 槽内 8 张
+[log] [GamePage] 结算弹层：负（slotsFull）
+[log] [GamePage] 可点 6 张 · 桌上剩 19 · 当前段 0
+[log] [GamePage] 可点 5 张 · 桌上剩 18 · 当前段 0
+[log] [GamePage] 可点 4 张 · 桌上剩 17 · 当前段 0
+[log] [GamePage] 可点 3 张 · 桌上剩 16 · 当前段 0
+[log] [GamePage] 可点 4 张 · 桌上剩 15 · 当前段 0
+[log] [GamePage] 可点 3 张 · 桌上剩 14 · 当前段 0
+[log] [GamePage] 可点 4 张 · 桌上剩 13 · 当前段 0
+[log] [GamePage] 可点 3 张 · 桌上剩 12 · 当前段 0
+[log] [GamePage] 可点 3 张 · 桌上剩 11 · 当前段 0
+[log] [GamePage] 可点 2 张 · 桌上剩 10 · 当前段 0
+[log] [GamePage] 可点 2 张 · 桌上剩 9 · 当前段 0
+[log] [GamePage] 判负：slotsFull · 牌堆剩 9 · 槽内 8 张
+[log] [GamePage] 结算弹层：负（slotsFull）
+[log] [PageManager] → gameStart

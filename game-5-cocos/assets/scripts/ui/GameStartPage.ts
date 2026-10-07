@@ -33,7 +33,7 @@ import { MotionFx } from './MotionFx';
 import { AudioService } from './AudioService';
 import { Haptics } from './Haptics';
 import { SaveService } from '../core/SaveService';
-import { beginRun, composeGift, TIER_COLOR, TIER_TEXT, type RunGift } from '../core/Gift';
+import { beginRun, rollGift, TIER_COLOR, TIER_TEXT, type RunGift } from '../core/Gift';
 import {
     cachedFrame, createGraphicsNode, createLabel, createNode, createSprite, draw3dFace,
     fillRadialGlow, fillRoundRect, fillVGradient, fromBottom, fromTop, strokeRoundRect,
@@ -302,10 +302,21 @@ export class GameStartPage extends PageBase {
     //  · `render(t)` 是**纯函数**：同一个 t 永远给出同一帧 ⇒ 可冻帧、可慢放、可脚本断言。
     //    本轮 `tools/r40-scan.mjs` 就是靠它扫全程验「零穿插 / 最远点 ≤ 81」的。
     protected onEnter(): void {
-        this._gift = composeGift(
-            1 + Math.floor(Math.random() * 6),
-            1 + Math.floor(Math.random() * 6),
-        );
+        // ★ 掷骰取种子：**生产默认 = 真随机**（`__g5GiftSeed` 不存在 ⇒ 走 `Math.random`，
+        //   与改动前的 `1 + floor(random*6)` 逐字等价，玩法手感一点不动）。
+        //
+        //   为什么留这个钩子：`core/Gift.ts` 里本来就有 `rollGift(seed)`（注释写着
+        //   「无头验收靠它复现同一局」），但本页当时直接调 `composeGift(Math.random(), ...)`
+        //   **绕过了它** ⇒ 那个确定性入口成了死代码。
+        //   后果不是"少验一条"，而是**验收脚本的分支会随机漂**：和值 12 才给「复活档」，
+        //   没有复活档时「槽满」会弹失败弹层，有则先走「赠礼自动复活」——
+        //   两条分支的判据条数不同（实测 29 vs 27）。于是「全绿」这件事本身就不可靠了
+        //   —— 判据纪律第 1 条「判据自身也要被验证」正是治这个。
+        //
+        //   ⚠️ 故意**不加 `if (DEBUG)` 门禁**：验收跑的是 release 产物（`DEBUG` 为假），
+        //      门禁一加，钩子在验收时就等于不存在。
+        const s = (globalThis as Record<string, unknown>).__g5GiftSeed;
+        this._gift = rollGift(typeof s === 'number' && Number.isFinite(s) ? s : undefined);
         AudioService.preload(SFX.diceRoll);
 
         // 换面相位：把"自转归零那一刻"对齐到本局掷出的点数（否则会"停 3 点发 5 点"）

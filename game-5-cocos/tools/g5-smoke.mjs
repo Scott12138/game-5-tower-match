@@ -56,9 +56,14 @@
  *      桌上就只剩 3 种面 ⇒ 最多填 6 格 ⇒ 第 ④ 段永远走 `stall` 分支。
  *      （*改动前* ② 段凑不成组、一组都没消，4 种面凑齐 ⇒ 恰好能填到 8 ⇒ 才偶然走到过。）
  *    · 第 3 关起：30 张 / **8 种面** ⇒ 4 组两两不同随便摆 ⇒ 稳定填满。
- *    ⇒ 固定跑法（两条都跑，都在 `docs-verify` 归档）：
- *        node tools/g5-smoke.mjs <out1>                 # 第 1 关 → 走**胜态**：碰消除 / 道具 / 下一关
- *        node tools/g5-smoke.mjs <out2> --level 3       # 第 3 关 → 走**负态**：看广告复活 / 重新挑战
+ *    ⇒ 固定跑法（**三条都跑**，都在 `docs-verify` 归档）：
+ *        node tools/g5-smoke.mjs <out1>                    # 第 1 关 → 走**胜态**：碰消除 / 道具 / 下一关
+ *        node tools/g5-smoke.mjs <out2> --level 3          # 第 3 关 → 走**负态**：失败弹层 / 看广告复活 / 重新挑战
+ *        node tools/g5-smoke.mjs <out3> --level 3 --gift-seed 1545
+ *                                                          # 第 3 关 + **和值 12（复活档）** →
+ *                                                          # 走**赠礼自动复活**分支（第 ④ 段的另一条路）
+ *      ⚠️ 第 3 条是 2026-10-08 补的：在此之前掷骰是随机数 ⇒ 走哪条分支全看运气，
+ *         判据总数在 27~29 之间漂，偶发 1 红且不可复现（见 `GIFT_SEED` 处的详细说明）。
  *    ⚠️ 别用第 10 关以后的重盘面（90+ 张 / 7 层）：第 ⑤ 段收尾 + 截图会明显变慢。
  */
 
@@ -70,6 +75,24 @@ import { canvasRect, designToCss, openBrowser, sleep, startServer, waitFor } fro
 const argv = process.argv.slice(2);
 const OUT = resolve(argv[0] || '/tmp/g5-smoke');
 const LEVEL = (() => { const i = argv.indexOf('--level'); return i >= 0 ? Number(argv[i + 1]) : 1; })();
+/**
+ * 开局掷骰的**固定种子**（写进页面的 `globalThis.__g5GiftSeed`）。
+ *
+ * 【为什么必须有这个】（2026-10-08 第 60 轮实测发现，改了本文件）
+ *   掷骰原本是 `Math.random()` ⇒ **每局赠礼不同**，而 `GIFT_TABLE` 里**只有和值 12
+ *   给「复活档」**（本局失败时自动直消 4 张）。于是第 ④ 段「槽满之后」会走两条不同分支：
+ *     · 非 12 ⇒ 弹**失败弹层** ⇒ 判据条数多（实测 **29** 条）
+ *     · 和值 12 ⇒ 先走**赠礼自动复活** ⇒ 判据条数少（实测 **27** 条）
+ *   表现是「同一命令、同样全绿，判据总数在 27~29 之间漂」——**连"全绿"这件事
+ *   本身都不可靠**了（10 次里出现过 1 次 27 条 + 1 红，且无法复现）。
+ *   ⇒ 定型：种子固定，**两条分支各跑一遍**（默认 1 ⇒ 失败弹层分支；
+ *     `--gift-seed 1545` ⇒ 6+6=12 ⇒ 复活档分支），把偶发变成可复现。
+ *   ⚠️ 种子只影响**赠礼内容**，不影响牌堆布局（牌堆由 `CFG.diffSeedOf` 决定）。
+ */
+const GIFT_SEED = (() => {
+    const i = argv.indexOf('--gift-seed');
+    return i >= 0 ? Number(argv[i + 1]) : 1;
+})();
 const DIST = resolve(import.meta.dirname, '..', 'build', 'web-desktop');
 const SAVE_KEY = 'game5.save.v1';
 
@@ -77,11 +100,13 @@ const SAVE_KEY = 'game5.save.v1';
  * 开局就是第 N 关。
  * ⚠️ 必须**在页面脚本之前**写 localStorage —— SaveService 在模块加载时就
  *    构造并读了一次存档，晚一步就不生效（脚本还在首页上等你点）。
+ * ⚠️ `__g5GiftSeed` 同理：必须早于 `GameStartPage.onEnter`。见上方 GIFT_SEED 注释。
  */
 const SEED = `try { localStorage.setItem(${JSON.stringify(SAVE_KEY)},
     JSON.stringify({ level: ${LEVEL}, best: ${LEVEL - 1},
       inventory: { erase: 0, move: 0, shuffle: 0, addslot: 0 },
-      coins: 0, plays: 0, cleared: 0, signDate: '', signStreak: 0 })); } catch (e) {}`;
+      coins: 0, plays: 0, cleared: 0, signDate: '', signStreak: 0 })); } catch (e) {}
+    try { globalThis.__g5GiftSeed = ${GIFT_SEED}; } catch (e) {}`;
 
 // ---------- 断言记账 ----------
 const RESULTS = [];
@@ -512,8 +537,18 @@ try {
     if (overlay) console.log(`    弹层内节点：${layerNodes.join(', ')}`);
 
     const slotFilled = !!stFull && (stFull.slots >= stFull.slotMax || stFull.over);
-    check('连点把槽填满（或本局已结束）', slotFilled || stall,
-        `slots=${stFull?.slots}/${stFull?.slotMax}${stall ? '（牌堆里已挑不出不会凑成的牌）' : ''}`);
+    // ★ 「槽满」在**复活档**下是个**瞬态**，事后读状态读不到（2026-10-08 第 60 轮查明）。
+    //   本循环在**下一次迭代的开头**才判 `st.slots >= st.slotMax`，而赠礼给的是复活档时，
+    //   「填满第 8 格的那一击」会**当场触发**自动复活、直消 4 张 ⇒ 事后读到 `slots=4/8 over=false`，
+    //   于是这条判据在复活档下**恒红**（且因为掷骰是随机数，它表现为"十次里偶发一红、
+    //   还复现不了"）。产品行为是对的 —— 是**判据没考虑瞬态**。
+    //   ⇒ 用「赠礼复活自动生效」这条日志当**满槽的正面证据**：该日志只在槽真的满过时才出现，
+    //     不是放水（对照：常规档下它恒为 false，此时本条仍按 slots/over 判）。
+    const slotFilledOrConsumed = slotFilled || autoRevive;
+    check('连点把槽填满（或本局已结束）', slotFilledOrConsumed || stall,
+        slotFilled ? `slots=${stFull?.slots}/${stFull?.slotMax}`
+            : (autoRevive ? '槽满那一刻被「赠礼自动复活」当场直消（瞬态，见判据注释）'
+                : `slots=${stFull?.slots}/${stFull?.slotMax}`) + (stall ? '（牌堆里已挑不出不会凑成的牌）' : ''));
 
     if (isFailLayer) {
         check('槽满 → 弹出**失败**结算弹层（含「看广告复活」）', true, `节点：${layerNodes.join(', ')}`);

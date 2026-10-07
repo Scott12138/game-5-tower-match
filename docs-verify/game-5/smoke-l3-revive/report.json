@@ -1,0 +1,228 @@
+{
+  "results": [
+    {
+      "name": "启动页已进入（PageManager 打点 splash）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "启动页阶段调试桥未挂载（只有主玩页才挂）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "启动页自动跳到首页",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "此刻场景里只有 首页（Page_home）",
+      "pass": true,
+      "detail": "活着的页面节点：Page_home"
+    },
+    {
+      "name": "首页主按钮 BtnStart 存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "真实点击「开始游戏」→ 开局页",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "此刻场景里只有 开局页（Page_gameStart）",
+      "pass": true,
+      "detail": "活着的页面节点：Page_gameStart"
+    },
+    {
+      "name": "开局页赠礼按钮 BtnGo 出现",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "真实点击「开始挑战」→ 主玩页",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "此刻场景里只有 主玩页（Page_game）",
+      "pass": true,
+      "detail": "活着的页面节点：Page_game"
+    },
+    {
+      "name": "第 3 关已装载（remaining == total）",
+      "pass": true,
+      "detail": "remaining=30 total=30"
+    },
+    {
+      "name": "开局槽位为空、上限为 8",
+      "pass": true,
+      "detail": "slots=0 slotMax=8"
+    },
+    {
+      "name": "本局未结束 / 未锁",
+      "pass": true,
+      "detail": "over=false locked=false"
+    },
+    {
+      "name": "开局有可点牌",
+      "pass": true,
+      "detail": "10 张"
+    },
+    {
+      "name": "可点牌在画布 CSS 矩形内（421×927）",
+      "pass": true,
+      "detail": "x∈[141,300] y∈[347,581] （设计 px x∈[242,525] y∈[610,1026]）"
+    },
+    {
+      "name": "真实点击 1 张牌 → 槽内 +1",
+      "pass": true,
+      "detail": "0 → 1（点了「六筒」）"
+    },
+    {
+      "name": "真实点击凑成 3 张同面 → 牌被消除",
+      "pass": true,
+      "detail": "第 2 轮点「六筒」（槽里原有 2 张，★ 点下去即凑成「碰」） → cleared 0 → 3（槽内剩 0 张）"
+    },
+    {
+      "name": "真实点击道具格 → 生效（或前置条件不满足，属正确）",
+      "pass": true,
+      "detail": "本局骰子档位没给到道具（库存 Tool_erase=0, Tool_move=0, Tool_shuffle=0, Tool_addslot=0）—— 属正常"
+    },
+    {
+      "name": "连点把槽填满（或本局已结束）",
+      "pass": true,
+      "detail": "槽满那一刻被「赠礼自动复活」当场直消（瞬态，见判据注释）"
+    },
+    {
+      "name": "赠礼自动复活后槽被直消并继续本局",
+      "pass": true,
+      "detail": "slots=4/8 over=false"
+    },
+    {
+      "name": "收尾过程有实际进展（消除数上升）",
+      "pass": true,
+      "detail": "cleared=13"
+    },
+    {
+      "name": "本局走完后弹出结算弹层（胜或负）",
+      "pass": true,
+      "detail": "over=true remaining=9 cleared=13 暂存架=0 槽=8"
+    },
+    {
+      "name": "结算弹层形态自洽（胜带「下一关」／负带「重新挑战」）",
+      "pass": true,
+      "detail": "负态 · 按钮轴：BtnAdRevive, BtnRetry, BtnHome"
+    },
+    {
+      "name": "结算弹层两态都有「返回首页」（★ 第 58 轮需求①）",
+      "pass": true,
+      "detail": "负态 · 按钮轴：BtnAdRevive, BtnRetry, BtnHome"
+    },
+    {
+      "name": "结算弹层主按钮不混态（「下一关」与「看广告复活」不同时出现）",
+      "pass": true,
+      "detail": "BtnNext=false BtnAdRevive=true"
+    },
+    {
+      "name": "点「重新挑战」→ 回到开局页（闭环合上）",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "此刻场景里只有 开局页（Page_gameStart）",
+      "pass": true,
+      "detail": "活着的页面节点：Page_gameStart"
+    }
+  ],
+  "shots": [
+    "/Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/smoke-l3-revive/01-splash.png",
+    "/Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/smoke-l3-revive/02-home.png",
+    "/Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/smoke-l3-revive/03-game-start-gift.png",
+    "/Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/smoke-l3-revive/04-game-board.png",
+    "/Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/smoke-l3-revive/05-game-after-match.png",
+    "/Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/smoke-l3-revive/06-game-after-tool.png",
+    "/Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/smoke-l3-revive/07-slot-full.png",
+    "/Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/smoke-l3-revive/08-final.png",
+    "/Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/smoke-l3-revive/09-result-final.png",
+    "/Users/consli/WorkBuddy/2026-10-04-19-15-36/docs-verify/game-5/smoke-l3-revive/10-loop-back.png"
+  ],
+  "errors": [],
+  "consoleErrors": [],
+  "skipped": 0,
+  "summary": {
+    "total": 27,
+    "passed": 27,
+    "skipped": 0,
+    "failed": 0
+  },
+  "logs": [
+    "[log] [Bootstrap] 自举模块已执行（《麻麻大消除》）",
+    "[timeEnd] LoadScene db://assets/scenes/Main.scene: 16.51318359375 ms",
+    "[log] [GameRoot] 《麻麻大消除》v0.1.0-cocos 启动",
+    "[log] [GameRoot] 可视尺寸 750×1651（设计 750×1334 · fitWidth）",
+    "[log] [GameRoot] [1/6] buildUIRoot 完成",
+    "[log] [AudioService] 声道池已建立：BGM 1 + 音效 8",
+    "[log] [GameRoot] [2/6] AudioService.init 完成",
+    "[log] [GameRoot] [2.5/6] startBgm 完成",
+    "[log] [GameRoot] [3/6] PageManager.create 完成",
+    "[log] [GameRoot] 无 wx 前后台事件（浏览器直跑），跳过",
+    "[log] [GameRoot] [3.5/6] armLifecycle（前后台） 完成",
+    "[log] [ShareService] 无 wx 分享能力（浏览器直跑），跳过",
+    "[log] [LoginService] 无 wx.login（浏览器直跑），跳过",
+    "[log] [GameRoot] [3.6/6] armPlatform（分享 / 登录） 完成",
+    "[log] [GameRoot] 已注册页面：splash, home, gameStart, game",
+    "[log] [GameRoot] [4/6] registerPages 完成",
+    "[log] [GameRoot] 存档：关卡 3 / 最高 2 / 金币 0 / 局数 0",
+    "[log] [GameRoot] [5/6] preloadData 完成",
+    "[log] [PageManager] → splash",
+    "[log] [GameRoot] [6/6] open(splash) 完成",
+    "[log] [Bootstrap] GameRoot 已挂载到 \"Canvas\"",
+    "[log] [Bootstrap] 引擎性能面板：已关闭",
+    "[warning] [AudioService] 音频加载失败：audio/tool_use Bundle resources doesn't contain audio/tool_use（已记为缺省，不再重试）",
+    "[warning] [AudioService] 音频加载失败：audio/button Bundle resources doesn't contain audio/button（已记为缺省，不再重试）",
+    "[log] [PageManager] → home",
+    "[log] [RankService] 无 setUserCloudStorage，跳过分榜上报",
+    "[log] [PageManager] → gameStart",
+    "[log] [GamePage] 可点 10 张 · 桌上剩 30 · 当前段 0",
+    "[log] [GamePage] 关卡 3 · 30 张 / 5 层 / 1 段",
+    "[log] [PageManager] → game",
+    "[log] [GamePage] 织锦平铺层就绪 贴图 256×256 wrap=REPEAT 节点 750.0×1651.4",
+    "[log] [GamePage] 可点 10 张 · 桌上剩 30 · 当前段 0",
+    "[log] [GamePage] 调试桥已挂载：globalThis.__game5",
+    "[log] [GamePage] 入场完成 · 开局可点 10 张",
+    "[warning] [AudioService] 音频加载失败：audio/slot_warn Bundle resources doesn't contain audio/slot_warn（已记为缺省，不再重试）",
+    "[warning] [AudioService] 音频加载失败：audio/shuffle Bundle resources doesn't contain audio/shuffle（已记为缺省，不再重试）",
+    "[warning] [AudioService] 音频加载失败：audio/revive Bundle resources doesn't contain audio/revive（已记为缺省，不再重试）",
+    "[log] [GamePage] 可点 9 张 · 桌上剩 29 · 当前段 0",
+    "[log] [GamePage] 可点 9 张 · 桌上剩 28 · 当前段 0",
+    "[log] [GamePage] 可点 9 张 · 桌上剩 27 · 当前段 0",
+    "[log] [GamePage] 可点 8 张 · 桌上剩 26 · 当前段 0",
+    "[log] [GamePage] 可点 8 张 · 桌上剩 25 · 当前段 0",
+    "[log] [GamePage] 可点 7 张 · 桌上剩 24 · 当前段 0",
+    "[log] [GamePage] 可点 7 张 · 桌上剩 23 · 当前段 0",
+    "[log] [GamePage] 可点 7 张 · 桌上剩 22 · 当前段 0",
+    "[log] [GamePage] 卡住提示：3s 无消除 → 推荐「消除」",
+    "[log] [GamePage] 卡住提示已挂到「消除」键上（6s 后自动收）",
+    "[log] [GamePage] 可点 7 张 · 桌上剩 21 · 当前段 0",
+    "[log] [GamePage] 可点 6 张 · 桌上剩 20 · 当前段 0",
+    "[log] [GamePage] 可点 6 张 · 桌上剩 19 · 当前段 0",
+    "[log] [GamePage] 判负：slotsFull · 牌堆剩 19 · 槽内 8 张",
+    "[log] [GamePage] 赠礼复活自动生效（原因 slotsFull）",
+    "[log] [GamePage] 可点 6 张 · 桌上剩 19 · 当前段 0",
+    "[log] [GamePage] 可点 5 张 · 桌上剩 18 · 当前段 0",
+    "[log] [GamePage] 可点 4 张 · 桌上剩 17 · 当前段 0",
+    "[log] [GamePage] 可点 3 张 · 桌上剩 16 · 当前段 0",
+    "[log] [GamePage] 可点 4 张 · 桌上剩 15 · 当前段 0",
+    "[log] [GamePage] 可点 3 张 · 桌上剩 14 · 当前段 0",
+    "[log] [GamePage] 可点 4 张 · 桌上剩 13 · 当前段 0",
+    "[log] [GamePage] 可点 3 张 · 桌上剩 12 · 当前段 0",
+    "[log] [GamePage] 可点 3 张 · 桌上剩 11 · 当前段 0",
+    "[log] [GamePage] 可点 2 张 · 桌上剩 10 · 当前段 0",
+    "[log] [GamePage] 可点 2 张 · 桌上剩 9 · 当前段 0",
+    "[log] [GamePage] 判负：slotsFull · 牌堆剩 9 · 槽内 8 张",
+    "[log] [GamePage] 结算弹层：负（slotsFull）",
+    "[log] [PageManager] → gameStart"
+  ]
+}
