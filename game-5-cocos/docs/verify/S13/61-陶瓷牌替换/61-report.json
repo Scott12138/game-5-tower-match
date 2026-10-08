@@ -1,0 +1,97 @@
+{
+  "pass": 18,
+  "fail": 0,
+  "rows": [
+    {
+      "name": "A1 A 源图库 27 张母版在位",
+      "ok": true,
+      "detail": "27/27"
+    },
+    {
+      "name": "A2 B 成品库 27 张均为 224×298",
+      "ok": true,
+      "detail": "27/27"
+    },
+    {
+      "name": "A3 C bundle 27 png + 27 .meta 全部在位",
+      "ok": true,
+      "detail": "54/54"
+    },
+    {
+      "name": "A4 C 的 27 张与 B 成品库逐字节一致",
+      "ok": true,
+      "detail": "27/27"
+    },
+    {
+      "name": "A5 【要害】27 个 .meta 的 uuid 与 HEAD 完全一致（引用未断）",
+      "ok": true,
+      "detail": "27/27 一致"
+    },
+    {
+      "name": "A6 27 张成品与 HEAD 逐字节不同（替换真的发生了）",
+      "ok": true,
+      "detail": "与 HEAD 相同 0 张"
+    },
+    {
+      "name": "A7 负控：未改动的资源与 HEAD 仍逐字节相同（A6 有分辨力）",
+      "ok": true,
+      "detail": "未改动且相同 1 个"
+    },
+    {
+      "name": "A8a 「陶瓷麻将牌」目录名精确 + source 27 / product 27",
+      "ok": true,
+      "detail": "source=27 product=27"
+    },
+    {
+      "name": "A8b 「玉石麻将牌」目录名精确 + product 27（source 含历代留痕，>27 即为完整）",
+      "ok": true,
+      "detail": "source=81 product=27"
+    },
+    {
+      "name": "B1 跨多局取并集后三花色均有牌面精灵渲染（单局不保证同现 ⇒ 不许按单局判）",
+      "ok": true,
+      "detail": "并集=tiao,tong,wan · 累计 26 个不同帧名"
+    },
+    {
+      "name": "B2 渲染出的帧名全部落在新牌面命名域（无残留 / 未定义帧）",
+      "ok": true,
+      "detail": "26 个帧名全部合规"
+    },
+    {
+      "name": "B3 主玩页取证截图已落盘（screencastShot，不卡主玩页）",
+      "ok": true,
+      "detail": "61-主玩页-L1.png 61-主玩页-L4.png 61-主玩页-L8.png 61-主玩页-L12.png"
+    },
+    {
+      "name": "B4 [tiao] 对照两侧真的分得开（新 f210 ≥ max(30%, 旧×5)）",
+      "ok": true,
+      "detail": "新 77% vs 旧 6%"
+    },
+    {
+      "name": "B5 [tiao] 【决定性】画面渲染的确是新的陶瓷tiao牌（有块超过旧素材自身上界）",
+      "ok": true,
+      "detail": "实测最高 69% vs 门槛 26%"
+    },
+    {
+      "name": "B6 [tiao] 负控：同一量法打在归档旧素材合成图上必须判「不合格」",
+      "ok": true,
+      "detail": "旧 f210 6% < 门槛 26%"
+    },
+    {
+      "name": "B7 [tong] 对照两侧真的分得开（新 f210 ≥ max(30%, 旧×5)）",
+      "ok": true,
+      "detail": "新 55% vs 旧 7%"
+    },
+    {
+      "name": "B8 [tong] 【决定性】画面渲染的确是新的陶瓷tong牌（有块超过旧素材自身上界）",
+      "ok": true,
+      "detail": "实测最高 68% vs 门槛 27%"
+    },
+    {
+      "name": "B9 [tong] 负控：同一量法打在归档旧素材合成图上必须判「不合格」",
+      "ok": true,
+      "detail": "旧 f210 7% < 门槛 27%"
+    }
+  ],
+  "shot": "/tmp/g5-r61-verify/61-主玩页-L1.png"
+}
