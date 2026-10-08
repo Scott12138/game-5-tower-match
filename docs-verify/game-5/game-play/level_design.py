@@ -72,6 +72,27 @@ SHIFT_TRIES = (0.0, 0.35)       # 层间黄金角错位半径候选
 SHIFT_GOLD = math.radians(137.50776405003785)
 CVN_LIMIT, QBAL_LIMIT = 1.25, 0.60   # 均匀度门槛（1.25 = 第 31 轮 B8 验收线）
 
+# ★ 第 62 轮新增：「吃」组占比（用户需求② —— 现在全是「碰」，要 30% 是「吃」）
+#   碰 = 三张**完全相同**；吃 = **同一花色**里点数连着三张（n, n+1, n+2），不跨花色。
+#   口径必须与工程侧 `core/MatchRule.ts` 的 findPeng / findChi 完全一致。
+CHI_RATIO_MAX = 0.30            # 「吃」占全部可消组的比例上限（用户拍板 30%）
+CHI_LV_FIRST = 3                # 第 3 关起才可能出现「吃」（前 2 关是教学关，纯「碰」）
+CHI_LV_FULL = 10               # 第 10 关达到满额 0.30（= 篇章一收尾），其后各关保持
+
+
+def chi_ratio_of(lv):
+    """「吃」组占比的**渐进曲线**（★ 第 62 轮 · 用户拍板「渐进」）。
+
+    前 2 关教学关保持纯「碰」（0%），第 3 关起逐关线性爬升，第 10 关到达 `CHI_RATIO_MAX`
+    并在此后各关保持 —— 这样新手关不会被"要看连号"劝退，而中后段一次性吃满难度。
+    """
+    if lv < CHI_LV_FIRST:
+        return 0.0
+    if lv >= CHI_LV_FULL:
+        return CHI_RATIO_MAX
+    ramp = (lv - CHI_LV_FIRST + 1) / float(CHI_LV_FULL - CHI_LV_FIRST + 1)
+    return CHI_RATIO_MAX * ramp
+
 
 def qbal_limit(n):
     """象限不平衡门槛：**按小样本噪声放宽**。
@@ -476,27 +497,66 @@ def greedy_peel(tiles, open_first=0, phases=None):
     return order
 
 
-def fill_by_triples(order, seed):
-    """把 order 切成长度 3 的连续段，每段填**同一种牌**（一次「碰」）。
+def fill_by_triples(order, seed, chi_ratio=0.0):
+    """把 order 切成长度 3 的连续段，每段填成**一个合法可消组**（「碰」或「吃」）。
 
-    段内三张同种 ⇒ 玩家依次点击 order[3k..3k+2] 即整关清空；槽位瞬时占用 ≤3 ≪ 8。
-    因每段张数均为 3 的倍数，全局三切分**必然对齐段边界** ⇒ 每组不跨段。
+    ★ 第 62 轮改造（用户需求②：现在全是「碰」，要让「吃」占 30%）：
+      · 「碰」＝三张**同一种牌面**（原行为）；
+      · 「吃」＝**同一花色**里点数连着三张 `(suit, s) (suit, s+1) (suit, s+2)`，`s ∈ 1..7`，
+        **不跨花色**。允许的「吃」组合＝ 3 花色 × 7 起点 ＝ 21 种。
+    以 `chi_ratio` 为目标比例，从全部 `len(order)//3` 个组里**随机挑 `round(chi_ratio·组数)` 个**
+    填「吃」，其余填「碰」（用整数计数而不是逐组掷骰 ⇒ 实际比例**可控**，不受抽样方差影响）。
+
+    ★ 三条不变量：
+      ① 段内三张仍构成**一个合法可消组** ⇒ 玩家依次点击 `order[3k..3k+2]` 即整关清空
+         （槽位瞬时占用 ≤3 ≪ 8）。**「吃」不破坏可解性**——可解性来自"每段是一组"，
+         与这组是碰还是吃无关。
+      ② 因每段张数均为 3 的倍数，全局三切分**必然对齐段边界** ⇒ 每组不跨段。
+      ③ 本函数**只填牌面**，不碰几何（`tiles` 的 x/y/z/rot 与 `order` 都不受影响）
+         ⇒ 改 `chi_ratio` 不会移动任何一张牌（第 62 轮硬判据：几何与清序逐位不变）。
     """
     rng = random.Random(seed * 7919 + 13)
     kinds = [(k, nn) for k in SUITS for nn in range(1, 10)]
+    n_groups = len(order) // 3
+    p = max(0.0, min(1.0, chi_ratio))
+    n_chi = int(round(p * n_groups))
+    chi_gidx = set(rng.sample(range(n_groups), n_chi)) if n_chi else set()
+
     faces = [None] * len(order)
     prev = None
-    for s in range(0, len(order), 3):
-        g = order[s:s + 3]
-        pick = kinds[rng.randrange(len(kinds))]
-        for _ in range(6):
-            if pick != prev:
-                break
+    for gi in range(n_groups):
+        g = order[gi * 3: gi * 3 + 3]
+        if gi in chi_gidx:
+            k = SUITS[rng.randrange(len(SUITS))]
+            s0 = 1 + rng.randrange(7)
+            trio = [(k, s0), (k, s0 + 1), (k, s0 + 2)]
+            prev = None                       # 「碰」的防重规则与「吃」无关，跨过吃后重置
+            for idx, f in zip(g, trio):
+                faces[idx] = f
+        else:
             pick = kinds[rng.randrange(len(kinds))]
-        prev = pick
-        for idx in g:
-            faces[idx] = pick
+            for _ in range(6):
+                if pick != prev:
+                    break
+                pick = kinds[rng.randrange(len(kinds))]
+            prev = pick
+            for idx in g:
+                faces[idx] = pick
     return faces
+
+
+def group_kind(a, b, c):
+    """判定三张牌面构成的可消组类型：`'peng'` / `'chi'` / `None`（非法组）。
+
+    口径与工程侧 `core/MatchRule.ts` 严格一致（碰＝三张全同；吃＝同花色连号三张）。
+    """
+    if a == b == c:
+        return 'peng'
+    if a[0] == b[0] == c[0]:
+        ns = sorted((a[1], b[1], c[1]))
+        if ns[0] + 1 == ns[1] and ns[1] + 1 == ns[2]:
+            return 'chi'
+    return None
 
 
 def verify_clear(tiles, order):
@@ -604,7 +664,12 @@ def build():
         'footprints': [p for p, _ in FOOTPRINTS],
         'designRes': [750, 1334],
         'safeZoneScreen': {'x': 34, 'y': 326, 'w': 682, 'h': 682},
-        'solveMode': 'constructive-peel-triples-by-segment',
+        'solveMode': 'constructive-peel-groups-by-segment',
+        'groupKind': 'peng+chi',                    # ★ 第 62 轮：每组 = 碰 或 吃（同花色连号三张）
+        'chiRatioMax': CHI_RATIO_MAX,               # 吃占比上限（用户拍板 30%）
+        'chiLvFirst': CHI_LV_FIRST,                 # 第 3 关起出现吃
+        'chiLvFull': CHI_LV_FULL,                   # 第 10 关吃到满额，其后保持
+        'chiCurve': 'ramp-from-lv3-to-lv10',
         'segMax': SEG_MAX, 'segBy': 'layer-topdown',
         'segConcurrent': True,
         'shiftGold': round(SHIFT_GOLD, 6), 'topShareTries': list(TOP_SHARE_TRIES),
@@ -675,11 +740,19 @@ def build():
         # ★ 满清可解（按段推进）
         G_open = max(1, min(3, n_live // 3))
         order = greedy_peel(tiles, open_first=3 * G_open, phases=segs)
-        faces = fill_by_triples(order, seed)
+        chi_target = chi_ratio_of(lv)
+        faces = fill_by_triples(order, seed, chi_target)
         cleared, fail_at = verify_clear(tiles, order)
         seg_ok, seg_msg = verify_segments(tiles, order, segs)
         st = seg_stats(tiles, segs)
         n_open_match = max_triples([faces[i] for i in range(n_total) if cover[i] < COVER_TH])
+
+        # ★ 第 62 轮：按「清序三切分」独立复数组类型（不依赖 fill_by_triples 的内部计数）
+        n_groups = n_total // 3
+        group_kinds = [group_kind(faces[order[3 * g]], faces[order[3 * g + 1]],
+                                  faces[order[3 * g + 2]]) for g in range(n_groups)]
+        n_chi = sum(1 for k in group_kinds if k == 'chi')
+        n_peng = sum(1 for k in group_kinds if k == 'peng')
 
         chap = next(c for a, b, c in CHAPTERS if a <= lv <= b)
         out['levels'].append({
@@ -700,7 +773,12 @@ def build():
             'cleared': bool(cleared), 'failAt': fail_at,
             'segCleared': bool(seg_ok), 'segMsg': seg_msg,
             'uniRelaxed': (not best['uniOk']),
-            'nGroups': n_total // 3, 'openGroups': G_open,
+            'nGroups': n_groups, 'openGroups': G_open,
+            # ★ 第 62 轮：「碰 / 吃」配比
+            'nPeng': n_peng, 'nChi': n_chi,
+            'chiTarget': round(chi_target, 4),
+            'chiRatio': round(n_chi / float(n_groups), 4),
+            'groupKinds': group_kinds,
             'uni': {'cv': round(u['cv'], 4), 'cvNorm': round(u['cvNorm'], 4),
                     'qbal': round(u['qbal'], 4), 'coff': round(u['coff'], 4),
                     'aspect': round(u['aspect'], 3),
@@ -778,6 +856,14 @@ def report(d):
           f"{max(L['nStage'] for L in d['levels'])}"
           f"（按层切、段内 ≤{SEG_MAX} 张、3 的倍数、段序自顶向下）"
           f" · 段内满清可解 {sum(1 for L in d['levels'] if L['segCleared'])}/30 关 ✅")
+    tot_g = sum(L['nGroups'] for L in d['levels'])
+    tot_chi = sum(L['nChi'] for L in d['levels'])
+    tot_peng = sum(L['nPeng'] for L in d['levels'])
+    print(f"组类型（★ 第 62 轮）：共 {tot_g} 组 = 碰 {tot_peng}（{tot_peng/tot_g*100:.1f}%）"
+          f" + 吃 {tot_chi}（{tot_chi/tot_g*100:.1f}%）"
+          f" · 曲线 L1~2 纯碰 → L3 起爬升 → L{CHI_LV_FULL} 起保持 {CHI_RATIO_MAX*100:.0f}%"
+          f" · 达标关（|实际−目标| ≤ 1 组）"
+          f" {sum(1 for L in d['levels'] if abs(L['nChi'] - L['chiTarget']*L['nGroups']) <= 1)}/30")
     print('-' * 132)
     bad = []
     for i, L in enumerate(d['levels']):
@@ -800,6 +886,14 @@ def report(d):
             bad.append(f"L{L['lv']} 不可满清(failAt={L['failAt']})")
         if not L['segCleared']:
             bad.append(f"L{L['lv']} 分段不合法({L['segMsg']})")
+        # ★ 第 62 轮：清序三切分必须**每组都是合法可消组**（碰＝三张同 / 吃＝同花色连号三张）
+        gk = L.get('groupKinds')
+        if gk is None or len(gk) != L['nGroups']:
+            bad.append(f"L{L['lv']} 组类型缺失或长度不符")
+        elif any(k not in ('peng', 'chi') for k in gk):
+            bad.append(f"L{L['lv']} 存在非法组（既非「碰」也非「吃」）")
+        elif L['nPeng'] + L['nChi'] != L['nGroups'] or L['nChi'] != gk.count('chi'):
+            bad.append(f"L{L['lv']} 碰/吃 计数与组类型不一致")
         if any(t['rot'] not in (0, 90) for t in L['tiles']):
             bad.append(f"L{L['lv']} 朝向越界")
         # ★ 第 32 轮第 3 条：分段约束

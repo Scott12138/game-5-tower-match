@@ -6,10 +6,12 @@
  *
  *  ── 根因（不搞清楚这个就调不出难度）──────────────────────────
  *  关卡生成器 `level_design.py`：
- *      order = greedy_peel(tiles, ...)        # 一条"顺手打"的合法清序
- *      faces = fill_by_triples(order, seed)   # 清序上**每 3 张一组，一组填同一种牌面**
+ *      order = greedy_peel(tiles, ...)         # 一条"顺手打"的合法清序
+ *      faces = fill_by_triples(order, seed, p) # 清序上**每 3 张一组，一组填成一个可消组**
  *  于是最优解退化成"顺着能点的往下点，点到的三张天然是一组"——
  *  玩家不用思考 ⇒ 不需要道具 ⇒ 不会有广告。这就是"难度太低"的全部原因。
+ *  ⚠️ 第 62 轮起"一个可消组"不再限定为「碰」：生成器按用户拍板把约 30% 的组填成
+ *     「吃」（同花色连号三张），比例沿关卡号渐进。本模块的逻辑与之无关（只按名次分块洗牌）。
  *
  *  ── 本模块做什么：**名次分块置换** ─────────────────────────
  *  1. 用 `Board.peelOrder()` 给每张牌算名次 `rank[i]`（清序上第几个被消掉）；
@@ -50,8 +52,13 @@
  *  ⚠️ **不 import './cc.ts'** —— 离线标定脚本（tools/_r46-diff-verify.mjs）要直接跑它。
  */
 
+// 「一个合法可消组」的判定**直接复用产品代码的口径**（MatchRule.findMatch），
+// 不在这里重写一遍 —— 两处分叉的表现永远是"判据悄悄失效"，不会报错。
+import { findMatch } from './MatchRule.ts';
+
 /** 置换下限：3 = 生成器一组的长度 ⇒ 块内洗牌**退化成恒等**（完全按关卡表原样） */
 export const MIN_BLOCK = 3;
+
 
 /** 确定性 LCG（与 `Board.shuffle` 同一套常数，保证行为一致性） */
 function lcg(seed: number): () => number {
@@ -73,7 +80,7 @@ export function diffuseFaces(base: number[], rank: number[], block: number, seed
     const n = out.length;
     if (n < 2) return out;
     const B = Math.max(MIN_BLOCK, Math.round(block));
-    // 块 = 生成器一组（3）⇒ 块内洗牌是**恒等变换**（三张本来就同面）⇒ 直接原样返回
+    // 块 = 生成器一组（3）⇒ 块内洗牌是**恒等变换**（三张本来就是一个可消组）⇒ 直接原样返回
     if (B <= MIN_BLOCK) return out;
 
     // 名次 → 牌下标（`rank` 是排列，所以直接反查即可）
@@ -98,16 +105,14 @@ export function diffuseFaces(base: number[], rank: number[], block: number, seed
 }
 
 /**
- * 置换强度自检：**清序上每连续 3 张"三张全同牌面"的比例**。
+ * 置换强度自检 ①：**清序上每连续 3 张"三张全同牌面"的比例**（即「碰」的占比）。
  *
- * 口径与判据：
- *   · 关卡表原样（`BLOCK = 3`）必须 **≈ 1.0** —— 生成器就是"每 3 张一填同面"。
- *     这条不成立 = `peelOrder()` 还原错了（名次不对），那么置换就是在空转，
- *     此时"难度变了"也只是巧合。**它是整条链路的对照组。**
- *   · `BLOCK` 越大越接近 1/9（三张全同的纯随机概率）。
+ * ⚠️ 第 62 轮起**它不再是"链路对不对"的判据** —— 生成器已按用户拍板把约 30% 的组填成
+ *    「吃」（同花色连号三张，本就不同面）⇒ 关卡表原样时这个值掉到 ≈ 0.70 是**正常的**。
+ *    "链路对不对"改由下面的 `legalGroupRate()` 负责（原样时必须 = 1.0）。
+ *    保留本函数是为了**看配比**（碰占比）与观察置换把"同面"打散到什么程度。
  *
- * 【为什么把它放在产品代码里】标定脚本要拿它当对照组：只看"通关率掉了"不够 ——
- *   万一名次传错、置换根本没生效，通关率也可能因为别的原因变化。
+ * 【为什么放在产品代码里】标定脚本要拿它当对照量：只看"通关率掉了"不够。
  */
 export function tripleIntactRate(faces: number[], rank: number[]): number {
     const n = Math.min(faces.length, rank.length);
@@ -121,4 +126,31 @@ export function tripleIntactRate(faces: number[], rank: number[]): number {
         if (a === b && b === c) intact++;
     }
     return intact / groups;
+}
+
+/**
+ * 置换强度自检 ②（★ 第 62 轮新增 · **取代** `tripleIntactRate` 成为主判据）：
+ * **清序上每连续 3 张构成"一个合法可消组"的比例**。
+ *
+ * 口径 = 产品判定本身（`MatchRule.findMatch`）：
+ *   · 「碰」＝三张牌面全同；·「吃」＝同一花色里点数连着三张（不跨花色）。
+ *
+ * 判据：
+ *   · 关卡表原样（`BLOCK = 3`）必须 **= 1.0** —— 生成器保证"每 3 张是一个可消组"。
+ *     这条不成立 = `peelOrder()` 还原错了（名次不对），置换就是在空转。
+ *     **它是整条链路的对照组。**
+ *   · `BLOCK` 越大越接近"随手三张恰好能消"的偶然概率 ⇒ 用来量化"结构被打散多少"。
+ */
+export function legalGroupRate(faces: number[], rank: number[]): number {
+    const n = Math.min(faces.length, rank.length);
+    const groups = Math.floor(n / 3);
+    if (groups <= 0) return 0;
+    const byRank = new Array<number>(n);
+    for (let i = 0; i < n; i++) byRank[rank[i]] = faces[i];
+    let ok = 0;
+    for (let g = 0; g < groups; g++) {
+        const trio = [byRank[g * 3], byRank[g * 3 + 1], byRank[g * 3 + 2]];
+        if (findMatch(trio, -1) !== null) ok++;
+    }
+    return ok / groups;
 }

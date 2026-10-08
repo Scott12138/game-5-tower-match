@@ -112,27 +112,35 @@ for (const s of SUITS) for (let i = 1; i <= 9; i++) {
 check('A5 【要害】27 个 .meta 的 uuid 与 HEAD 完全一致（引用未断）',
     uuidBad.length === 0, uuidBad.slice(0, 3).join(' ') || '27/27 一致');
 
-// A6 27 张成品与 HEAD 逐字节不同（真的换了）
-let sameAsHead = 0;
-for (const s of SUITS) for (let i = 1; i <= 9; i++) {
-    const head = gitShow(`game-5-cocos/assets/bundles/game/tiles/${s.k}/${s.k}${i}.png`);
-    if (Buffer.compare(head, readFileSync(resolve(C_ROOT, s.k, `${s.k}${i}.png`))) === 0) sameAsHead++;
+// A6 ★ 「现行牌面 = 归档『陶瓷麻将牌』的 product 库」逐字节一致
+//
+// ⚠️ 第 62 轮修正：原 A6 是"成品与 git HEAD 逐字节**不同**"（用来证明第 61 轮的替换真的发生了）。
+//    但第 61 轮已于 `30456e0` 提交 ⇒ HEAD 里就是陶瓷版 ⇒ 这条**恒假**，从此一直红。
+//    那是"判据陈旧"（同判据 109 那一类），不是产品回归。
+//    改为**不依赖 git 状态**的等价断言：现行牌面必须与归档套装的 product 库完全一致。
+//    （"替换真的发生了"这件事，由 A1~A4 + A6 + A8a 联合钉死：A 库 → B 库 → C bundle，
+//      且 B 库 == 陶瓷 product；旧套另有 A7 负控证明新旧确实不同。）
+let setDiff = [];
+for (const s of SUITS) for (const n of s.nums) {
+    const cur = readFileSync(resolve(B_ROOT, s.k, `${n}${s.cn}.png`));
+    const arc = readFileSync(resolve(NEW_SET, 'product', s.k, `${n}${s.cn}.png`));
+    if (Buffer.compare(cur, arc) !== 0) setDiff.push(`${s.k}/${n}${s.cn}`);
 }
-check('A6 27 张成品与 HEAD 逐字节不同（替换真的发生了）', sameAsHead === 0, `与 HEAD 相同 ${sameAsHead} 张`);
+check('A6 现行牌面 27 张 == 归档「陶瓷麻将牌」product 库（逐字节）',
+    setDiff.length === 0, setDiff.slice(0, 4).join(' ') || '27/27 一致');
 
-// A7 负控：同一套"与 HEAD 比字节"的量法打在**本轮没碰过**的资源上，必须判「相同」
-//    （否则 A6 可能是"恒为不同"的假判据）
-let untouchedSame = 0;
-for (const f of ['home/icon_signin.png', 'home/icon_shop.png', 'game-start/dice/face_1.png']) {
-    const p = resolve(C_ROOT, '..', f);
-    if (!existsSync(p)) continue;
+// A7 负控：同一比对打在**旧套装「玉石麻将牌」**的 product 上，必须判「不一致」
+//    （否则 A6 可能是"恒为相同"的假判据）
+let oldDiff = 0;
+for (const s of SUITS) for (const n of s.nums) {
     try {
-        const head = gitShow(`game-5-cocos/assets/bundles/game/${f}`);
-        if (Buffer.compare(head, readFileSync(p)) === 0) untouchedSame++;
-    } catch { /* 该文件不在 HEAD 里，跳过 */ }
+        const cur = readFileSync(resolve(B_ROOT, s.k, `${n}${s.cn}.png`));
+        const old = readFileSync(resolve(OLD_SET, 'product', s.k, `${n}${s.cn}.png`));
+        if (Buffer.compare(cur, old) !== 0) oldDiff++;
+    } catch { /* 旧套缺该文件 ⇒ 也算"可分辨" */ oldDiff++; }
 }
-check('A7 负控：未改动的资源与 HEAD 仍逐字节相同（A6 有分辨力）',
-    untouchedSame >= 1, `未改动且相同 ${untouchedSame} 个`);
+check('A7 负控：同一比对打在旧「玉石麻将牌」上必须判「不一致」（A6 有分辨力）',
+    oldDiff === 27, `旧套与现行不同 ${oldDiff}/27`);
 
 // A8 命名套装归档完整 + 命名准确
 function countExt(d, ext = '.png') {

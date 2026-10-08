@@ -31,6 +31,8 @@ def main():
     meta = raw['meta']
     out_levels = []
     total_tiles = 0
+    peng_n = 0
+    chi_n = 0
 
     for L in raw['levels']:
         tiles = L['tiles']
@@ -60,12 +62,29 @@ def main():
         so = [int(i) for i in L['solveOrder']]
         assert sorted(so) == list(range(L['nTotal'])), \
             'L%d solveOrder 不是 0..n-1 的排列' % L['lv']
-        # 交叉校验：生成器确实"每 3 张连续位填同一种牌面"（难度置换要打散的就是这个结构）
+        # ★ 交叉校验（第 62 轮改口径）：清序每 3 张连续位必须构成**一个合法可消组**。
+        #   旧口径是"三张牌面全同"（那时生成器只会填「碰」）；现在生成器按用户拍板把 30%
+        #   的组填成「吃」（同一花色里点数连着三张，不跨花色）⇒ 不变量升级为
+        #   **「碰」或「吃」二者之一**。难度置换（core/Difficulty.ts）要打散的正是这个
+        #   "顺手就是一组"的结构，所以这条断言是整条链路的对照组，不能省。
         fenc_pre = [SUIT[s] * 10 + int(n) for s, n in faces]
-        intact = sum(1 for k in range(0, len(so), 3)
-                     if fenc_pre[so[k]] == fenc_pre[so[k + 1]] == fenc_pre[so[k + 2]])
-        assert intact == len(so) // 3, \
-            'L%d 只有 %d/%d 组同面（期望全部同面）' % (L['lv'], intact, len(so) // 3)
+
+        def _group_kind(a, b, c):
+            if a == b == c:
+                return 'peng'
+            if a // 10 == b // 10 == c // 10:          # 同花色
+                ns = sorted((a % 10, b % 10, c % 10))
+                if ns[0] + 1 == ns[1] and ns[1] + 1 == ns[2]:
+                    return 'chi'
+            return None
+
+        group_kinds = [_group_kind(fenc_pre[so[k]], fenc_pre[so[k + 1]], fenc_pre[so[k + 2]])
+                       for k in range(0, len(so), 3)]
+        illegal = sum(1 for k in group_kinds if k is None)
+        assert illegal == 0, \
+            'L%d 有 %d/%d 组不是合法可消组（碰/吃）' % (L['lv'], illegal, len(group_kinds))
+        chi_n += group_kinds.count('chi')
+        peng_n += group_kinds.count('peng')
 
         out_levels.append({
             'lv': L['lv'],
@@ -91,12 +110,14 @@ def main():
     w(' * LevelData.ts · 30 关关卡数据（**自动生成，请勿手工编辑**）')
     w(' *')
     w(' * 来源：docs-verify/game-5/game-play/levels.json（v7 口径 · 38/38 验收 · 满清可解 30/30）')
+    w(' *   ★ 第 62 轮：牌面组已由"全是碰"改为「碰 70% + 吃 30%」—— 见 f 字段与 so 的说明')
     w(' * 生成：python3 tools/gen-level-data.py')
     w(' *')
     w(' * 编码口径（为压体积，全部走整数扁平数组）：')
     w(' *   t: 每 4 个一组 = [x*wu*1000, y*wu*1000, 层号 z, rot 0=竖/1=横(90°)]')
     w(' *   f: 每张一个 = suit*10 + num（wan=0 / tiao=1 / tong=2）')
-    w(' *   so: 清序（生成器 `greedy_peel` 的输出）—— 每 3 张连续位**同一种牌面**')
+    w(' *   so: 清序（生成器 `greedy_peel` 的输出）—— 每 3 张连续位构成**一个合法可消组**')
+    w(' *        （碰＝三张同牌面；吃＝同一花色里点数连着三张。判定口径见 core/MatchRule.ts）')
     w(' *   x,y 是 **wu 单位**（牌宽倍数，原点 = 安全区中心），乘 1000 取整，精度 0.001 wu')
     w(' */')
     w('')
@@ -130,7 +151,10 @@ def main():
     w('     * ★ 第 46 轮：**清序** —— 生成器 `greedy_peel()` 的输出，是 0..n-1 的一个排列。')
     w('     *')
     w('     * 【语义】`so[k]` = "顺手的打法"里第 k 个被消掉的牌下标。')
-    w('     * 【不变量】每连续 3 位 `so[3k..3k+2]` 对应的牌面**必然相同**（生成器就这么填的）。')
+    w('     * 【不变量】每连续 3 位 `so[3k..3k+2]` 构成**一个合法可消组** ——')
+    w('     *   「碰」（三张同牌面）或「吃」（同花色里点数连着三张，不跨花色）。')
+    w('     *   第 62 轮起不再"全是碰"：生成器按用户拍板把约 30% 的组填成「吃」')
+    w('     *   （比例沿关卡号渐进：L1~2 纯碰 → L3 起爬升 → L10 起保持 30%）。')
     w('     * 【用途】**难度置换**（`core/Difficulty.ts`）按它给每张牌算名次：难度参数把名次')
     w('     *   切成连续块、只在块内洗牌面 ⇒ 打散"顺手就是一组"的结构。')
     w('     * ⚠️ 它**不是唯一解**，也不参与可点判定；只用来定位"哪三张是一组"。')
@@ -179,6 +203,9 @@ def main():
     size = os.path.getsize(OUT)
     print('✅ 已写出 %s' % OUT)
     print('   关卡 %d 关 · 总张数 %d · 体积 %.1f KB' % (len(out_levels), total_tiles, size / 1024.0))
+    tg = peng_n + chi_n
+    print('   牌面组 %d = 碰 %d（%.1f%%）+ 吃 %d（%.1f%%）· 非法组 0 ✅' % (
+        tg, peng_n, peng_n / tg * 100, chi_n, chi_n / tg * 100))
     print('   首关 %d 张 / %d 层 / 牌位 %s' % (
         out_levels[0]['n'], out_levels[0]['layers'], out_levels[0]['t'][:4]))
     print('   末关 %d 张 / %d 层 / 段数 %d' % (
